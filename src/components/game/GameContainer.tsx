@@ -173,10 +173,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [resetGame]);
   
   useEffect(() => {
-    if (energy <= 0 && !isGameOver && !isStarving) {
+    if (isGameOver) return;
+
+    if (energy <= 0 && !isStarving) {
       setIsStarving(true);
     }
-    if (score <= 0 && isStarving && !isGameOver) {
+    
+    if (isStarving && score <= 0) {
       setIsGameOver(true);
     }
   }, [energy, score, isGameOver, isStarving]);
