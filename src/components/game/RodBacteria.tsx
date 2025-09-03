@@ -7,12 +7,15 @@ type RodBacteriaProps = {
   duration: number;
   delay: number;
   opacity: number;
+  initialRotation?: number;
+  animationDirection?: 'normal' | 'reverse';
 };
 
-export function RodBacteria({ position, size, duration, delay, opacity }: RodBacteriaProps) {
+export function RodBacteria({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: RodBacteriaProps) {
     const animationStyle: React.CSSProperties = {
         animation: `sway ${duration}s ease-in-out infinite, spin ${duration * 1.5}s linear infinite`,
         animationDelay: `${delay}s, ${delay}s`,
+        animationDirection: `${animationDirection}, normal`,
         transformOrigin: 'center center',
     };
 
@@ -22,6 +25,7 @@ export function RodBacteria({ position, size, duration, delay, opacity }: RodBac
         width: `${size}px`,
         height: `${size / 2}px`,
         opacity: opacity,
+        transform: `rotate(${initialRotation}deg)`,
     };
 
     return (

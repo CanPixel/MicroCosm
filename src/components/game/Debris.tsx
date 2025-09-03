@@ -18,6 +18,8 @@ export function Debris() {
       const size = Math.random() * 80 + 20; // Size between 20 and 100
       const duration = Math.random() * 40 + 20; // Animation duration between 20s and 60s
       const delay = Math.random() * -60; // Negative delay to start animations at different points
+      const initialRotation = Math.random() * 360;
+      const animationDirection = Math.random() < 0.5 ? 'normal' : 'reverse';
       
       const type = Math.random();
 
@@ -47,6 +49,8 @@ export function Debris() {
             duration,
             delay,
             opacity,
+            initialRotation,
+            animationDirection,
         }
       };
     });

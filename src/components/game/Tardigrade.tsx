@@ -7,12 +7,16 @@ type TardigradeProps = {
   duration: number;
   delay: number;
   opacity: number;
+  initialRotation?: number;
+  animationDirection?: 'normal' | 'reverse';
 };
 
 // A simplified tardigrade
-export function Tardigrade({ position, size, duration, delay, opacity }: TardigradeProps) {
+export function Tardigrade({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: TardigradeProps) {
+    const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
+
     const animationStyle: React.CSSProperties = {
-        animation: `sway ${duration * 1.5}s ease-in-out infinite, spin ${duration * 3}s linear infinite`,
+        animation: `sway ${duration * 1.5}s ease-in-out infinite, ${animationName} ${duration * 3}s linear infinite`,
         animationDelay: `${delay}s, ${delay}s`,
         transformOrigin: 'center center',
     };
@@ -23,6 +27,7 @@ export function Tardigrade({ position, size, duration, delay, opacity }: Tardigr
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
+        transform: `rotate(${initialRotation}deg)`,
     };
 
     return (

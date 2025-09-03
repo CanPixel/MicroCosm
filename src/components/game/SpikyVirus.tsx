@@ -7,13 +7,17 @@ type SpikyVirusProps = {
   duration: number;
   delay: number;
   opacity: number;
+  initialRotation?: number;
+  animationDirection?: 'normal' | 'reverse';
 };
 
 const NUM_SPIKES = 20;
 
-export function SpikyVirus({ position, size, duration, delay, opacity }: SpikyVirusProps) {
+export function SpikyVirus({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: SpikyVirusProps) {
+    const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
+    
     const animationStyle: React.CSSProperties = {
-        animation: `sway ${duration}s ease-in-out infinite, spin ${duration * 2}s linear infinite`,
+        animation: `sway ${duration}s ease-in-out infinite, ${animationName} ${duration * 2}s linear infinite`,
         animationDelay: `${delay}s, ${delay}s`,
         transformOrigin: 'center center',
     };
@@ -24,6 +28,7 @@ export function SpikyVirus({ position, size, duration, delay, opacity }: SpikyVi
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
+        transform: `rotate(${initialRotation}deg)`,
     };
 
     return (
