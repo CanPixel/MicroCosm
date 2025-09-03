@@ -12,7 +12,6 @@ const NUTRIENT_COUNT = 30;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
-const SIZE_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
 
 
@@ -27,7 +26,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [score, setScore] = useState(0);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
-  const targetCellSizeRef = useRef(INITIAL_CELL_SIZE);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -51,7 +49,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const { width, height } = containerRef.current.getBoundingClientRect();
     
     setCellSize(INITIAL_CELL_SIZE);
-    targetCellSizeRef.current = INITIAL_CELL_SIZE;
     setScore(0);
     setNutrients(
       Array.from({ length: NUTRIENT_COUNT }, () => ({
@@ -105,13 +102,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         return;
     }
     lastUpdateTimeRef.current = timestamp;
-
-    // Smoothly interpolate cell size
-    const currentSize = cellSize;
-    if (Math.abs(targetCellSizeRef.current - currentSize) > 0.1) {
-      const newSize = currentSize + (targetCellSizeRef.current - currentSize) * SIZE_LERP_FACTOR;
-      setCellSize(newSize);
-    }
 
     let targetVx = 0;
     let targetVy = 0;
@@ -174,7 +164,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     if (nutrientsEaten > 0) {
       setScore(s => s + 10 * nutrientsEaten);
-      targetCellSizeRef.current += (4 * nutrientsEaten);
+      setCellSize(cs => cs + (4 * nutrientsEaten));
       setNutrients(remainingNutrients);
     }
     
