@@ -65,8 +65,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   
   // Internal particles
   const particlesRef = useRef(Array.from({ length: 10 }).map(() => ({
-      x: Math.random() * 0.8 - 0.4, // range -0.4 to 0.4
-      y: Math.random() * 0.8 - 0.4, // range -0.4 to 0.4
+      x: (Math.random() * 0.8 - 0.4),
+      y: (Math.random() * 0.8 - 0.4),
       r: Math.random() * 0.05 + 0.02, // radius relative to cell size
       vx: (Math.random() - 0.5) * 0.02,
       vy: (Math.random() - 0.5) * 0.02,
@@ -131,8 +131,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         point.radius += (point.targetRadius - point.radius) * 0.1;
 
         // Occasionally set a new target radius
-        if (Math.random() < 0.01) {
-          point.targetRadius = currentBaseRadius * (0.8 + Math.random() * 0.3);
+        if (Math.random() < 0.02) { // Increased frequency for more blobby look
+          point.targetRadius = currentBaseRadius * (0.7 + Math.random() * 0.6); // Increased range
         }
         
         const pointAngle = point.angle + time / 5000;

@@ -25,7 +25,7 @@ export function Leaderboard() {
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow className="border-primary/20">
+            <TableRow className="border-secondary/50">
               <TableHead className="w-[50px]">Rank</TableHead>
               <TableHead>Player</TableHead>
               <TableHead className="text-right">Cell Size (μm)</TableHead>
@@ -33,7 +33,7 @@ export function Leaderboard() {
           </TableHeader>
           <TableBody>
             {highScores.map((player) => (
-              <TableRow key={player.rank} className="border-primary/10">
+              <TableRow key={player.rank} className="border-secondary/30">
                 <TableCell className="font-medium text-primary">{player.rank}</TableCell>
                 <TableCell>{player.name}</TableCell>
                 <TableCell className="text-right font-mono">{player.score}</TableCell>
