@@ -11,6 +11,7 @@ const INITIAL_CELL_SIZE = 50;
 const NUTRIENT_COUNT = 30;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
+const CAMERA_LERP_FACTOR = 0.05;
 
 type Position = { x: number; y: number };
 
@@ -29,6 +30,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const cellApiRef = useRef<BioCellHandle>(null);
 
   const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
+  const cameraPositionRef = useRef<Position>({ x: 0, y: 0 });
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   
   const [nutrients, setNutrients] = useState<Position[]>([]);
@@ -53,6 +55,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     const initialPosition = { x: width / 2, y: height / 2 };
     cellPositionRef.current = initialPosition;
+    cameraPositionRef.current = initialPosition;
     velocityRef.current = { x: 0, y: 0 };
     if (cellWrapperRef.current) {
         const halfSvgSize = (INITIAL_CELL_SIZE * 2.5) / 2;
@@ -107,9 +110,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     velocityRef.current.x += (targetVx - velocityRef.current.x) * LERP_FACTOR;
     velocityRef.current.y += (targetVy - velocityRef.current.y) * LERP_FACTOR;
     
-    let { x, y } = cellPositionRef.current;
-    x += velocityRef.current.x;
-    y += velocityRef.current.y;
+    cellPositionRef.current.x += velocityRef.current.x;
+    cellPositionRef.current.y += velocityRef.current.y;
     
     if (cellApiRef.current) {
         cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
@@ -117,9 +119,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     const halfSvgSize = (cellSize * 2.5) / 2;
     
-    cellPositionRef.current = { x, y };
     if (cellWrapperRef.current) {
-        cellWrapperRef.current.style.transform = `translate(${x - halfSvgSize}px, ${y - halfSvgSize}px)`;
+        cellWrapperRef.current.style.transform = `translate(${cellPositionRef.current.x - halfSvgSize}px, ${cellPositionRef.current.y - halfSvgSize}px)`;
     }
 
     // Camera and zoom logic
@@ -128,8 +129,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const initialZoom = 1.5;
     const zoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
 
-    const camX = -cellPositionRef.current.x * zoom + width / 2;
-    const camY = -cellPositionRef.current.y * zoom + height / 2;
+    // Smoothly move camera
+    cameraPositionRef.current.x += (cellPositionRef.current.x - cameraPositionRef.current.x) * CAMERA_LERP_FACTOR;
+    cameraPositionRef.current.y += (cellPositionRef.current.y - cameraPositionRef.current.y) * CAMERA_LERP_FACTOR;
+
+    const camX = -cameraPositionRef.current.x * zoom + width / 2;
+    const camY = -cameraPositionRef.current.y * zoom + height / 2;
     
     worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${zoom})`;
     
