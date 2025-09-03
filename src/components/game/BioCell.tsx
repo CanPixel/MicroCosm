@@ -64,8 +64,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       x: Math.random() * 0.6 - 0.3, // range -0.3 to 0.3
       y: Math.random() * 0.6 - 0.3, // range -0.3 to 0.3
       r: Math.random() * 0.05 + 0.02, // radius relative to cell size
-      vx: (Math.random() - 0.5) * 0.001,
-      vy: (Math.random() - 0.5) * 0.001,
+      vx: (Math.random() - 0.5) * 0.005,
+      vy: (Math.random() - 0.5) * 0.005,
   })));
 
   useEffect(() => {
@@ -99,7 +99,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       const inertiaOffsetY = -vy * 0.5;
 
       // Animate nucleus
-      const nucleusScale = 1 + Math.sin(time / 1000) * 0.05;
+      const nucleusScale = 1 + Math.sin(time / 500) * 0.08;
       nucleus.setAttribute('r', `${currentSize * 0.15 * nucleusScale}`);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${currentSize * 0.1 * nucleusScale}`);
       nucleusGroup.setAttribute('transform', `translate(${inertiaOffsetX}, ${inertiaOffsetY})`);
