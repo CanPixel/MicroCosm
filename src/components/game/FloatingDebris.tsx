@@ -16,3 +16,5 @@ export function FloatingDebris({ position }: FloatingDebrisProps) {
 
   return <div style={style} className="absolute w-3 h-3 bg-primary/40 rounded-full animate-sway" />;
 }
+
+    

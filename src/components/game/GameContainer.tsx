@@ -19,8 +19,8 @@ const ZOOM_LERP_FACTOR = 0.05;
 const MAX_SCORE_FOR_TRANSITION = 1500;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const SECTOR_SIZE = 500;
-const SUGAR_PER_SECTOR = 5;
+const MAX_SUGAR = 30;
+const SUGAR_SPAWN_INTERVAL = 2000; // ms
 
 type Position = { x: number; y: number };
 type DebrisParticle = Position & { size: number; opacity: number; color: 'primary' | 'accent' };
@@ -62,11 +62,56 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [sugars, setSugars] = useState<Position[]>([]);
   const [floatingDebris, setFloatingDebris] = useState<Position[]>([]);
   const [debris, setDebris] = useState<DebrisParticle[]>([]);
-  const generatedSectorsRef = useRef<Set<string>>(new Set());
 
   const animationFrameId = useRef<number>();
   const lastUpdateTimeRef = useRef(0);
+  const lastSugarSpawnTimeRef = useRef(0);
   const updateInterval = 1000 / 60; // 60 FPS
+
+  const spawnSugars = useCallback((count: number, immediate = false) => {
+    if (!containerRef.current) return;
+    const newSugars: Position[] = [];
+    const { width, height } = containerRef.current.getBoundingClientRect();
+    const spawnPadding = 100;
+
+    for (let i = 0; i < count; i++) {
+        const camX = cameraPositionRef.current.x;
+        const camY = cameraPositionRef.current.y;
+        
+        let x, y;
+
+        if (immediate) {
+             // Spawn within a radius of the screen center for the initial set
+             const angle = Math.random() * 2 * Math.PI;
+             const radius = Math.random() * Math.min(width, height) * 0.7;
+             x = camX + Math.cos(angle) * radius;
+             y = camY + Math.sin(angle) * radius;
+        } else {
+            // Spawn randomly just off-screen
+            const side = Math.floor(Math.random() * 4);
+            if (side === 0) { // Top
+                x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
+                y = camY - height / (2 * zoomRef.current) - spawnPadding;
+            } else if (side === 1) { // Right
+                x = camX + width / (2 * zoomRef.current) + spawnPadding;
+                y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
+            } else if (side === 2) { // Bottom
+                x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
+                y = camY + height / (2 * zoomRef.current) + spawnPadding;
+            } else { // Left
+                x = camX - width / (2 * zoomRef.current) - spawnPadding;
+                y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
+            }
+        }
+
+        newSugars.push({ 
+            x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
+            y: Math.max(0, Math.min(WORLD_HEIGHT, y)) 
+        });
+    }
+
+    setSugars(prev => [...prev, ...newSugars]);
+  }, []);
 
   const resetGame = useCallback(() => {
     if (!containerRef.current) return;
@@ -74,7 +119,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setCellSize(INITIAL_CELL_SIZE);
     setScore(0);
     setEnergy(100);
-    setSugars([]);
+    
     setFloatingDebris(
       Array.from({ length: FLOATING_DEBRIS_COUNT }, () => ({
         x: Math.random() * WORLD_WIDTH,
@@ -100,10 +145,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSvgSize}px, ${initialPosition.y - halfSvgSize}px)`;
     }
     keysPressedRef.current = {};
-    generatedSectorsRef.current.clear();
+    
+    // Initial sugar spawn
+    setSugars([]);
+    spawnSugars(15, true); 
     
     setIsGameOver(false);
-  }, []);
+  }, [spawnSugars]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -126,60 +174,29 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     };
   }, []);
 
-  const generateSugarsInSector = useCallback((sectorX: number, sectorY: number) => {
-    const sectorKey = `${sectorX},${sectorY}`;
-    if (generatedSectorsRef.current.has(sectorKey)) return;
-
-    const newSugars: Position[] = [];
-    const { width, height } = containerRef.current!.getBoundingClientRect();
-    const spawnPadding = 100;
-
-    for (let i = 0; i < SUGAR_PER_SECTOR; i++) {
-        // Spawn randomly within the sector, but try to spawn off-screen
-        const camX = cameraPositionRef.current.x;
-        const camY = cameraPositionRef.current.y;
-        
-        const side = Math.floor(Math.random() * 4);
-        let x, y;
-
-        if (side === 0) { // Top
-            x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
-            y = camY - height / 2 / zoomRef.current - spawnPadding;
-        } else if (side === 1) { // Right
-            x = camX + width / 2 / zoomRef.current + spawnPadding;
-            y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
-        } else if (side === 2) { // Bottom
-            x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
-            y = camY + height / 2 / zoomRef.current + spawnPadding;
-        } else { // Left
-            x = camX - width / 2 / zoomRef.current - spawnPadding;
-            y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
-        }
-
-        newSugars.push({ 
-            x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
-            y: Math.max(0, Math.min(WORLD_HEIGHT, y)) 
-        });
-    }
-
-    setSugars(prev => [...prev, ...newSugars]);
-    generatedSectorsRef.current.add(sectorKey);
-}, []);
-
-
   const gameLoop = useCallback((timestamp: number) => {
     if (isGameOver || !containerRef.current || !worldRef.current) {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
       return;
     }
 
-    if (timestamp - lastUpdateTimeRef.current < updateInterval) {
+    const elapsed = timestamp - lastUpdateTimeRef.current;
+
+    if (elapsed < updateInterval) {
         animationFrameId.current = requestAnimationFrame(gameLoop);
         return;
     }
     lastUpdateTimeRef.current = timestamp;
 
-    // Theme transition
+    // --- Sugar Spawning ---
+    if (timestamp - lastSugarSpawnTimeRef.current > SUGAR_SPAWN_INTERVAL) {
+        if (sugars.length < MAX_SUGAR) {
+            spawnSugars(3); // Spawn 3 new sugars
+        }
+        lastSugarSpawnTimeRef.current = timestamp;
+    }
+
+    // --- Theme transition ---
     const growthFactor = Math.min(score / MAX_SCORE_FOR_TRANSITION, 1);
     
     const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, growthFactor);
@@ -190,6 +207,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     document.documentElement.style.setProperty('--primary', `${newPrimary[0]} ${newPrimary[1]}% ${newPrimary[2]}%`);
     document.documentElement.style.setProperty('--accent', `${newAccent[0]} ${newAccent[1]}% ${newAccent[2]}%`);
 
+
+    // --- Player Movement ---
     let targetVx = 0;
     let targetVy = 0;
     if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= MAX_SPEED;
@@ -197,7 +216,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) targetVx -= MAX_SPEED;
     if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) targetVx += MAX_SPEED;
 
-    // Smoothly interpolate velocity (Lerp)
     velocityRef.current.x += (targetVx - velocityRef.current.x) * LERP_FACTOR;
     velocityRef.current.y += (targetVy - velocityRef.current.y) * LERP_FACTOR;
     
@@ -209,22 +227,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     const halfSvgSize = (cellSize * 2.5) / 2;
-    
     if (cellWrapperRef.current) {
         cellWrapperRef.current.style.transform = `translate(${cellPositionRef.current.x - halfSvgSize}px, ${cellPositionRef.current.y - halfSvgSize}px)`;
     }
 
-    // Camera and zoom logic
+    // --- Camera and Zoom ---
     const { width, height } = containerRef.current.getBoundingClientRect();
     const zoomOutFactor = 0.02;
     const initialZoom = 2.0;
     const targetZoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
 
-    // Smoothly interpolate zoom
     zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
     const zoom = zoomRef.current;
 
-    // Smoothly move camera
     cameraPositionRef.current.x += (cellPositionRef.current.x - cameraPositionRef.current.x) * CAMERA_LERP_FACTOR;
     cameraPositionRef.current.y += (cellPositionRef.current.y - cameraPositionRef.current.y) * CAMERA_LERP_FACTOR;
 
@@ -233,6 +248,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${zoom})`;
     
+    // --- Collision & Consumption ---
     let sugarsEaten = 0;
     const remainingSugars: Position[] = [];
     const currentCellRadius = cellSize / 2;
@@ -255,21 +271,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setEnergy(e => Math.min(100, e + 5 * sugarsEaten));
       setSugars(remainingSugars);
     }
-
-    // Check current sector and generate sugars for surrounding sectors
-    const currentSectorX = Math.floor(cellPositionRef.current.x / SECTOR_SIZE);
-    const currentSectorY = Math.floor(cellPositionRef.current.y / SECTOR_SIZE);
-    for (let x = -1; x <= 1; x++) {
-      for (let y = -1; y <= 1; y++) {
-        generateSugarsInSector(currentSectorX + x, currentSectorY + y);
-      }
-    }
-
-
+    
+    // --- Energy Drain ---
     setEnergy(e => Math.max(0, e - 0.01));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, sugars, score, generateSugarsInSector]);
+  }, [isGameOver, cellSize, sugars, score, spawnSugars]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -298,3 +305,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    

@@ -14,3 +14,5 @@ export function Sugar({ position }: SugarProps) {
 
   return <div style={style} className="absolute w-2.5 h-2.5 bg-white rounded-sm animate-pulse" />;
 }
+
+    

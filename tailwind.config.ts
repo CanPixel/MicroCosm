@@ -141,9 +141,11 @@ export default {
         'logo-blob-1': 'logo-blob-1 12s ease-in-out infinite',
         'logo-blob-2': 'logo-blob-2 10s ease-in-out infinite alternate',
         'logo-blob-3': 'logo-blob-3 15s ease-in-out infinite',
-        'sway': 'sway 5s ease-in-out infinite',
+        'sway': 'sway 8s ease-in-out infinite',
       },
     },
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
+
+    
