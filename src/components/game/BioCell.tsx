@@ -40,6 +40,16 @@ type BioCellProps = {
   size: number;
 };
 
+type Particle = {
+  x: number;
+  y: number;
+  r: number;
+  vx: number;
+  vy: number;
+  type: 'solid' | 'outline' | 'transparent';
+  color: 'primary' | 'foreground' | 'accent';
+};
+
 export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
@@ -64,20 +74,45 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   const pointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
   
   // Internal particles
-  const particlesRef = useRef(Array.from({ length: 10 }).map(() => ({
-      x: (Math.random() * 0.8 - 0.4),
-      y: (Math.random() * 0.8 - 0.4),
-      r: Math.random() * 0.05 + 0.02, // radius relative to cell size
-      vx: (Math.random() - 0.5) * 0.02,
-      vy: (Math.random() - 0.5) * 0.02,
-  })));
+  const particlesRef = useRef<Particle[]>([]);
 
   useEffect(() => {
-    // Initialize points
+    // Initialize points for the cell wall
     pointsRef.current = Array.from({ length: numPoints }, (_, i) => {
       const angle = (i / numPoints) * 2 * Math.PI;
       const initialRadiusVal = (size/2) * (0.8 + Math.random() * 0.2);
       return { angle, radius: initialRadiusVal, targetRadius: initialRadiusVal };
+    });
+
+    // Initialize internal particles with more variety
+    particlesRef.current = Array.from({ length: 20 }).map(() => {
+      const rand = Math.random();
+      let type: Particle['type'];
+      let color: Particle['color'];
+      
+      if (rand < 0.4) {
+        type = 'solid';
+        color = 'primary';
+      } else if (rand < 0.7) {
+        type = 'solid';
+        color = 'foreground';
+      } else if (rand < 0.9) {
+        type = 'outline';
+        color = 'foreground';
+      } else {
+        type = 'transparent';
+        color = 'primary';
+      }
+
+      return {
+        x: (Math.random() * 0.8 - 0.4),
+        y: (Math.random() * 0.8 - 0.4),
+        r: Math.random() * 0.06 + 0.02, // radius relative to cell size
+        vx: (Math.random() - 0.5) * 0.02,
+        vy: (Math.random() - 0.5) * 0.02,
+        type,
+        color,
+      };
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numPoints]);
@@ -188,16 +223,39 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         </g>
 
         {/* Internal Particles */}
-        {particlesRef.current.map((p, i) => (
-          <circle
-            key={i}
-            className="internal-particle"
-            cx={viewboxCenter + p.x * initialBaseRadius}
-            cy={viewboxCenter + p.y * initialBaseRadius}
-            r={p.r * initialBaseRadius}
-            fill="hsl(var(--primary) / 0.3)"
-          />
-        ))}
+        {particlesRef.current.map((p, i) => {
+            let fill = 'none';
+            let stroke = 'none';
+            let strokeWidth = '0';
+            let opacity = 1;
+
+            if (p.type === 'solid') {
+                fill = `hsl(var(--${p.color}))`;
+                opacity = p.color === 'primary' ? 0.3 : 0.9;
+            } else if (p.type === 'outline') {
+                fill = 'transparent';
+                stroke = `hsl(var(--${p.color}))`;
+                strokeWidth = '1';
+                opacity = 0.9;
+            } else if (p.type === 'transparent') {
+                fill = `hsl(var(--${p.color}))`;
+                opacity = 0.1;
+            }
+
+            return (
+                <circle
+                    key={i}
+                    className="internal-particle"
+                    cx={viewboxCenter + p.x * initialBaseRadius}
+                    cy={viewboxCenter + p.y * initialBaseRadius}
+                    r={p.r * initialBaseRadius}
+                    fill={fill}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    opacity={opacity}
+                />
+            )
+        })}
       </svg>
     </div>
   );
