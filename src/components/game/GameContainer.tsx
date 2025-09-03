@@ -115,11 +115,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     const halfSvgSize = (cellSize * 2.5) / 2;
-    if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        x = Math.max(halfSvgSize, Math.min(width - halfSvgSize, x));
-        y = Math.max(halfSvgSize, Math.min(height - halfSvgSize, y));
-    }
+    // Removed boundary checks to allow free movement
     
     cellPositionRef.current = { x, y };
     if (cellWrapperRef.current) {
@@ -161,7 +157,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [gameLoop]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background animate-fade-in">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-voronoi animate-fade-in">
         <div ref={cellWrapperRef} className="absolute">
             <BioCell ref={cellApiRef} size={cellSize} />
         </div>
