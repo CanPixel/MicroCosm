@@ -23,7 +23,7 @@ export function Background({ cameraPosition }: BackgroundProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pointsRef = useRef<MovingPoint[]>([]);
 
-  const parallaxFactor = 0.2;
+  const parallaxFactor = 0.1;
 
   useEffect(() => {
     // Initialize points with random velocities for movement
