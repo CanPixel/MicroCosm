@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -24,6 +25,8 @@ const SUGAR_SPAWN_INTERVAL = 2000; // ms
 
 type Position = { x: number; y: number };
 type DebrisParticle = Position & { size: number; opacity: number; color: 'primary' | 'accent' };
+type SugarParticle = Position & { rotation: number };
+
 
 type GameContainerProps = {
     onGameOver: () => void;
@@ -59,7 +62,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   
-  const [sugars, setSugars] = useState<Position[]>([]);
+  const [sugars, setSugars] = useState<SugarParticle[]>([]);
   const [floatingDebris, setFloatingDebris] = useState<Position[]>([]);
   const [debris, setDebris] = useState<DebrisParticle[]>([]);
 
@@ -70,7 +73,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   const spawnSugars = useCallback((count: number, immediate = false) => {
     if (!containerRef.current) return;
-    const newSugars: Position[] = [];
+    const newSugars: SugarParticle[] = [];
     const { width, height } = containerRef.current.getBoundingClientRect();
     const spawnPadding = 100;
 
@@ -106,7 +109,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         newSugars.push({ 
             x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
-            y: Math.max(0, Math.min(WORLD_HEIGHT, y)) 
+            y: Math.max(0, Math.min(WORLD_HEIGHT, y)),
+            rotation: Math.random() * 360,
         });
     }
 
@@ -250,7 +254,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // --- Collision & Consumption ---
     let sugarsEaten = 0;
-    const remainingSugars: Position[] = [];
+    const remainingSugars: SugarParticle[] = [];
     const currentCellRadius = cellSize / 2;
 
     for (const sugar of sugars) {
@@ -292,7 +296,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             {debris.map((d, i) => <Debris key={`d-${i}`} {...d} />)}
             {floatingDebris.map((pos, i) => <FloatingDebris key={`fd-${i}`} position={pos} />)}
-            {sugars.map((pos, i) => <Sugar key={`s-${i}`} position={pos} />)}
+            {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} rotation={sugar.rotation}/>)}
 
             <div ref={cellWrapperRef} className="absolute">
                 <BioCell ref={cellApiRef} size={cellSize} />
@@ -305,5 +309,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
 
     
