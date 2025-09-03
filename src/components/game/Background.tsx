@@ -1,27 +1,64 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Delaunay } from 'd3-delaunay';
 
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const NUM_POINTS = 50;
+const NUM_POINTS = 200; // Increased from 50 to "zoom out"
+
+type MovingPoint = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+};
 
 export function Background() {
-  const voronoiPath = useMemo(() => {
-    // Generate static points. Using a seeded random would also work.
-    const points: [number, number][] = Array.from({ length: NUM_POINTS }, (_, i) => {
-        // Simple pseudo-randomness to keep points static across renders
-        const x = (Math.sin(i * 0.3) + 1) * (WORLD_WIDTH / 2);
-        const y = (Math.cos(i * 0.7) + 1) * (WORLD_HEIGHT / 2);
-        return [x, y];
-    });
+  const pathRef = useRef<SVGPathElement>(null);
+  const pointsRef = useRef<MovingPoint[]>([]);
 
-    const delaunay = Delaunay.from(points);
-    const voronoi = delaunay.voronoi([0, 0, WORLD_WIDTH, WORLD_HEIGHT]);
-    
-    return voronoi.render();
+  useEffect(() => {
+    // Initialize points with random velocities for movement
+    pointsRef.current = Array.from({ length: NUM_POINTS }, (_, i) => ({
+      x: Math.random() * WORLD_WIDTH,
+      y: Math.random() * WORLD_HEIGHT,
+      vx: (Math.random() - 0.5) * 0.2, // Slow horizontal velocity
+      vy: (Math.random() - 0.5) * 0.2, // Slow vertical velocity
+    }));
+
+    let animationFrameId: number;
+
+    const animate = () => {
+      if (!pathRef.current) return;
+
+      // Update point positions
+      const currentPoints: [number, number][] = pointsRef.current.map(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Bounce off the walls
+        if (p.x < 0 || p.x > WORLD_WIDTH) p.vx *= -1;
+        if (p.y < 0 || p.y > WORLD_HEIGHT) p.vy *= -1;
+        
+        return [p.x, p.y];
+      });
+      
+      // Recalculate Voronoi diagram on each frame
+      const delaunay = Delaunay.from(currentPoints);
+      const voronoi = delaunay.voronoi([0, 0, WORLD_WIDTH, WORLD_HEIGHT]);
+      
+      pathRef.current.setAttribute('d', voronoi.render());
+      
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   return (
@@ -33,7 +70,7 @@ export function Background() {
         className="absolute top-0 left-0"
       >
         <path
-          d={voronoiPath}
+          ref={pathRef}
           fill="none"
           stroke="hsl(var(--foreground) / 0.1)"
           strokeWidth="2"
