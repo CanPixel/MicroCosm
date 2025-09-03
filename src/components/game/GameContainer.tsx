@@ -9,6 +9,7 @@ import { Sugar } from "./Sugar";
 import { Background } from "./Background";
 import { Debris, DebrisItem } from "./Debris";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
+import { Autonomous } from "./Autonomous";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_SPEED = 8;
@@ -17,8 +18,8 @@ const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const MAX_SUGAR = 20;
-const SUGAR_SPAWN_INTERVAL = 2000; // ms
+const MAX_SUGAR = 200; // Increased sugar limit
+const SUGAR_SPAWN_INTERVAL = 1000; // ms
 const MAX_THEME_SIZE = 300; // The cell size at which the theme transition is complete
 
 type Position = { x: number; y: number };
@@ -158,7 +159,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // Initial sugar spawn
     setSugars([]);
-    spawnSugars(15, true); 
+    spawnSugars(30, true); 
     
     // Set initial debris
     setDebris(Debris());
@@ -211,7 +212,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // --- Sugar Spawning ---
     if (timestamp - lastSugarSpawnTimeRef.current > SUGAR_SPAWN_INTERVAL) {
         if (sugars.length < MAX_SUGAR) {
-            spawnSugars(3); // Spawn 3 new sugars
+            spawnSugars(5); // Spawn 5 new sugars
         }
         lastSugarSpawnTimeRef.current = timestamp;
     }
@@ -296,8 +297,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     for(const d of debris) {
       const isOrganelle = (d.Component as any).isOrganelle;
       if (isOrganelle) {
-        const dx = cellPositionRef.current.x - d.props.position.x;
-        const dy = cellPositionRef.current.y - d.props.position.y;
+        const dx = cellPositionRef.current.x - d.initialPosition.x;
+        const dy = cellPositionRef.current.y - d.initialPosition.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist < currentCellRadius + d.props.size / 2) {
