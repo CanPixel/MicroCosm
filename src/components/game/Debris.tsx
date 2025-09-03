@@ -10,6 +10,7 @@ import { FlagellateProtist } from './FlagellateProtist';
 import { Ciliate } from './Ciliate';
 import { Bacteriophage } from './Bacteriophage';
 import { Autonomous } from './Autonomous';
+import { CancerCell } from './CancerCell';
 
 const DEBRIS_COUNT = 100; // Increased count for more variety
 const WORLD_WIDTH = 4000;
@@ -32,7 +33,11 @@ export function Debris() {
       let opacity;
       let isAutonomous = false;
 
-      if (type < 0.1) {
+      if (type < 0.02) { // 2% chance
+        Component = CancerCell;
+        opacity = Math.random() * 0.2 + 0.8; // High opacity
+        isAutonomous = true;
+      } else if (type < 0.1) {
         Component = Tardigrade;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
         isAutonomous = true;

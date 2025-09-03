@@ -171,6 +171,14 @@ export default {
           '70%': { transform: 'translate(2px, -1px) rotate(1deg)' },
           '80%': { transform: 'translate(-2px, 1px) rotate(0deg)' },
           '90%': { transform: 'translate(1px, -2px) rotate(-1deg)' },
+        },
+        'cancer-pulse': {
+            '0%, 100%': { transform: 'scale(1)' },
+            '50%': { transform: 'scale(1.05)' },
+        },
+        'tentacle-whip': {
+            '0%': { transform: 'rotate(-10deg) scaleY(0.9)' },
+            '100%': { transform: 'rotate(10deg) scaleY(1.1)' },
         }
       },
       animation: {
