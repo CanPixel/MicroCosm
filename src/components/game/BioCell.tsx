@@ -50,16 +50,6 @@ type Particle = {
   color: 'primary' | 'foreground' | 'accent';
 };
 
-type Speck = {
-    x: number; // initial relative x
-    y: number; // initial relative y
-    angle: number; // angle from center
-    dist: number; // distance from center
-    r: number;
-    opacity: number;
-};
-
-
 export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
@@ -85,7 +75,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   
   // Internal particles
   const particlesRef = useRef<Particle[]>([]);
-  const specksRef = useRef<Speck[]>([]);
 
 
   useEffect(() => {
@@ -126,21 +115,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         color,
       };
     });
-
-    // Initialize cytoplasm specks
-    specksRef.current = Array.from({ length: 40 }).map(() => {
-        const angle = Math.random() * 2 * Math.PI;
-        // Distribute up to the edge of the cell
-        const dist = Math.random() * 0.95; 
-        return {
-            x: Math.cos(angle) * dist,
-            y: Math.sin(angle) * dist,
-            angle: angle,
-            dist: dist,
-            r: Math.random() * 0.015 + 0.005, // very small radius
-            opacity: Math.random() * 0.4 + 0.1, // low opacity
-        };
-    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numPoints]);
 
@@ -148,11 +122,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     let animationFrameId: number;
     const path = svgRef.current?.querySelector('path');
     const particleElements = svgRef.current?.querySelectorAll('.internal-particle');
-    const speckElements = svgRef.current?.querySelectorAll('.cytoplasm-speck');
     const nucleusGroup = svgRef.current?.querySelector('.nucleus-group') as SVGGElement | null;
     const nucleus = nucleusGroup?.querySelector('.nucleus') as SVGCircleElement | null;
 
-    if (!path || !particleElements || !speckElements || !nucleus || !nucleusGroup) return;
+    if (!path || !particleElements || !nucleus || !nucleusGroup) return;
 
     let animatedWallPoints: Point[] = [];
 
@@ -224,27 +197,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       const svgPath = catmullRomSpline(animatedWallPoints);
       path.setAttribute('d', svgPath);
       
-      // Animate specks to follow the fluid dynamics of the cell wall
-      specksRef.current.forEach((s, i) => {
-          const speckEl = speckElements[i] as SVGCircleElement;
-          if (speckEl) {
-              // Find the closest wall point by angle
-              const wallPointIndex = Math.floor(s.angle / (2 * Math.PI / numPoints));
-              const wallPoint = animatedWallPoints[wallPointIndex % numPoints];
-              
-              if (wallPoint) {
-                // The wall point represents the current edge of the cell at that angle.
-                // We interpolate the speck's position between the center and this dynamic wall point.
-                const x = currentViewboxCenter + (wallPoint.x - currentViewboxCenter) * s.dist + inertiaOffsetX;
-                const y = currentViewboxCenter + (wallPoint.y - currentViewboxCenter) * s.dist + inertiaOffsetY;
-
-                speckEl.setAttribute('cx', `${x}`);
-                speckEl.setAttribute('cy', `${y}`);
-              }
-          }
-      });
-
-
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -268,20 +220,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
           stroke="hsl(var(--foreground))"
           strokeWidth="3"
         />
-        
-        {/* Cytoplasm Specks */}
-        {specksRef.current.map((s, i) => (
-             <circle
-                key={`speck-${i}`}
-                className="cytoplasm-speck"
-                cx={viewboxCenter + s.x * initialBaseRadius}
-                cy={viewboxCenter + s.y * initialBaseRadius}
-                r={s.r * initialBaseRadius}
-                fill="hsl(var(--foreground))"
-                opacity={s.opacity}
-            />
-        ))}
-
 
         {/* Nucleus */}
         <g className="nucleus-group">
