@@ -1,3 +1,4 @@
+
 "use client";
 import React from 'react';
 
@@ -10,9 +11,10 @@ type FlagellateProtistProps = {
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
   rotation?: number;
+  isMoving?: boolean;
 };
 
-export function FlagellateProtist({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: FlagellateProtistProps) {
+export function FlagellateProtist({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, isMoving = false }: FlagellateProtistProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
 
     const animationStyle: React.CSSProperties = {
@@ -31,13 +33,13 @@ export function FlagellateProtist({ position, size, duration, delay, opacity, in
     };
 
     const flagellaAnimationStyle1: React.CSSProperties = {
-        animation: `whip ${duration / 4}s ease-in-out infinite alternate`,
+        animation: isMoving ? `whip ${duration / 4}s ease-in-out infinite alternate` : 'none',
         animationDelay: `${delay}s`,
         transformOrigin: '20% 80%',
     };
 
      const flagellaAnimationStyle2: React.CSSProperties = {
-        animation: `whip ${duration / 3.5}s ease-in-out infinite alternate`,
+        animation: isMoving ? `whip ${duration / 3.5}s ease-in-out infinite alternate` : 'none',
         animationDelay: `${delay + 0.5}s`,
         transformOrigin: '20% 80%',
     };

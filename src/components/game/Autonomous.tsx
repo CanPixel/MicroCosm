@@ -5,6 +5,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
+const MOVEMENT_THRESHOLD = 0.1; // Speed below which the organism is considered "not moving"
+
 
 // Helper function for linear interpolation of angles (in degrees)
 function lerpAngle(a: number, b: number, t: number): number {
@@ -21,6 +23,7 @@ type AutonomousProps = {
 export function Autonomous({ children, initialPosition }: AutonomousProps) {
   const [position, setPosition] = useState(initialPosition);
   const [rotation, setRotation] = useState(0);
+  const [isMoving, setIsMoving] = useState(false);
   const velocityRef = useRef({ x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2 });
   const speed = useMemo(() => Math.random() * 0.5 + 0.25, []); // Random speed for variety
 
@@ -56,6 +59,10 @@ export function Autonomous({ children, initialPosition }: AutonomousProps) {
         const targetAngle = Math.atan2(velocityRef.current.y, velocityRef.current.x) * (180 / Math.PI);
         setRotation(prevRotation => lerpAngle(prevRotation, targetAngle, 0.05));
 
+        // Update moving state
+        const currentSpeed = Math.sqrt(velocityRef.current.x**2 + velocityRef.current.y**2);
+        setIsMoving(currentSpeed * speed > MOVEMENT_THRESHOLD);
+
         return { x: newX, y: newY };
       });
 
@@ -72,7 +79,7 @@ export function Autonomous({ children, initialPosition }: AutonomousProps) {
   // We need to clone the child to inject the new position and rotation props
   const childWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-      return React.cloneElement(child as React.ReactElement<any>, { position, rotation });
+      return React.cloneElement(child as React.ReactElement<any>, { position, rotation, isMoving });
     }
     return child;
   });
