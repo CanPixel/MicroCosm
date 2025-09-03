@@ -41,6 +41,8 @@ type BioCellProps = {
 export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
 
   useImperativeHandle(ref, () => ({
     updateVelocity: (vx, vy) => {
@@ -81,12 +83,13 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     if (!path) return;
 
     const animate = (time: number) => {
+      const currentSize = sizeRef.current;
       const { vx, vy } = velocityRef.current;
       const speed = Math.sqrt(vx * vx + vy * vy);
       const movementAngle = Math.atan2(vy, vx);
 
-      const currentBaseRadius = size / 2;
-      const currentViewboxCenter = (size * 2.5) / 2;
+      const currentBaseRadius = currentSize / 2;
+      const currentViewboxCenter = (currentSize * 2.5) / 2;
 
       const newPoints = pointsRef.current.map(point => {
         // Smoothly move radius towards target
@@ -122,7 +125,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size]);
+  }, []);
 
   const cellStyle: React.CSSProperties = {
     width: `${svgSize}px`,
