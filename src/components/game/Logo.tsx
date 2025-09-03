@@ -3,11 +3,20 @@
 
 import { cn } from "@/lib/utils";
 
-export function Logo() {
+type LogoProps = {
+  font?: string;
+};
+
+export function Logo({ font = 'font-headline' }: LogoProps) {
   return (
     <div className="relative flex items-center mb-2">
       <h1
-        className="text-xl font-bold text-primary font-headline"
+        className={cn(
+          "text-xl font-bold text-primary",
+          font,
+          font === 'font-kablammo' && 'text-2xl', // Kablammo is smaller
+          font === 'font-vibes' && 'text-3xl' // Vibes is smaller
+        )}
         style={{ filter: `drop-shadow(0 0 8px hsl(var(--primary)))` }}
       >
         MicroCosm

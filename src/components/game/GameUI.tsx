@@ -7,21 +7,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Dna, Gauge, Shield, Zap } from "lucide-react";
 import { Logo } from "./Logo";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "../ui/label";
 
 type GameUIProps = {
     cellSize: number;
     score: number;
     energy: number;
+    font: string;
+    onFontChange: (font: string) => void;
 };
 
-export function GameUI({ cellSize, score, energy }: GameUIProps) {
+export function GameUI({ cellSize, score, energy, font, onFontChange }: GameUIProps) {
+  const fonts = [
+    { value: 'font-headline', label: 'Space Grotesk' },
+    { value: 'font-kablammo', label: 'Kablammo' },
+    { value: 'font-zcool-qingke', label: 'ZCOOL QingKe' },
+    { value: 'font-zcool-kuaile', label: 'ZCOOL KuaiLe' },
+    { value: 'font-vibes', label: 'Vibes' },
+  ];
 
   return (
     <>
       <div className="fixed top-4 left-4 w-64 text-foreground z-20">
         <Card className="bg-card/80 backdrop-blur-sm border-primary/20 mt-2">
           <CardHeader>
-            <Logo />
+            <Logo font={font} />
             <CardTitle className="flex items-center gap-2 text-lg text-primary font-headline pt-2">
                 <Dna />
                 <span>BioCell Status</span>
@@ -38,6 +55,21 @@ export function GameUI({ cellSize, score, energy }: GameUIProps) {
                     <span className={cn(energy < 20 && "text-red-500")}>{energy.toFixed(0)}%</span>
                 </div>
                 <Progress value={energy} className="h-2 [&>div]:bg-primary" />
+            </div>
+             <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Title Font</Label>
+              <Select value={font} onValueChange={onFontChange}>
+                <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectValue placeholder="Select font" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fonts.map((f) => (
+                    <SelectItem key={f.value} value={f.value} className={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

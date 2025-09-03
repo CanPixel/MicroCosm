@@ -50,6 +50,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [energy, setEnergy] = useState(100);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
+  const [font, setFont] = useState("font-headline");
   
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -302,7 +303,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             </div>
         </div>
         
-        <GameUI cellSize={cellSize} score={score} energy={energy} />
+        <GameUI
+            cellSize={cellSize}
+            score={score}
+            energy={energy}
+            font={font}
+            onFontChange={setFont}
+        />
 
         <GameOverDialog score={score} isOpen={isGameOver} onRestart={onGameOver} />
     </div>
@@ -312,3 +319,4 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
 
     
+
