@@ -47,22 +47,27 @@ const generateBlobPath = (size: number): string => {
 export function FloatingDebris({ position, size, duration, delay, opacity }: FloatingDebrisProps) {
     const path = useMemo(() => generateBlobPath(size), [size]);
 
+    const animationStyle: React.CSSProperties = {
+        animation: `sway ${duration}s ease-in-out infinite`,
+        animationDelay: `${delay}s`,
+        transformOrigin: 'center center',
+    };
+
     const style: React.CSSProperties = {
         top: `${position.y}px`,
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size}px`,
-        animation: `sway ${duration}s ease-in-out infinite`,
-        animationDelay: `${delay}s`,
         opacity: opacity,
-        transformOrigin: 'center center',
     };
 
     return (
-        <div style={style} className="absolute top-0 left-0 transform -translate-x-1/2 -translate-y-1/2">
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="hsl(var(--foreground))">
-                <path d={path} />
-            </svg>
+        <div style={style} className="absolute">
+             <div style={animationStyle} className="w-full h-full">
+                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="hsl(var(--foreground))">
+                    <path d={path} />
+                </svg>
+            </div>
         </div>
     );
 }
