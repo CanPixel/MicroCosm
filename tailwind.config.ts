@@ -126,6 +126,10 @@ export default {
           '40%': { transform: 'translate(5px, 5px) scale(1)', borderRadius: '50%' },
           '60%': { transform: 'translate(10px, -10px) scale(0.9)', borderRadius: '70% 30% 60% 40% / 40% 70% 30% 60%' },
           '80%': { transform: 'translate(-5px, 8px) scale(1.1)', borderRadius: '50%' },
+        },
+        'sway': {
+          '0%, 100%': { transform: 'translate(-50%, -50%) rotate(-3deg) translateX(5px)' },
+          '50%': { transform: 'translate(-50%, -50%) rotate(3deg) translateX(-5px)' },
         }
       },
       animation: {
@@ -137,6 +141,7 @@ export default {
         'logo-blob-1': 'logo-blob-1 12s ease-in-out infinite',
         'logo-blob-2': 'logo-blob-2 10s ease-in-out infinite alternate',
         'logo-blob-3': 'logo-blob-3 15s ease-in-out infinite',
+        'sway': 'sway 5s ease-in-out infinite',
       },
     },
   },

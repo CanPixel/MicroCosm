@@ -1,23 +1,26 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { BioCell, BioCellHandle } from "./BioCell";
-import { Nutrient } from "./Nutrient";
+import { FloatingDebris } from "./FloatingDebris";
 import { Debris } from "./Debris";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
+import { Sugar } from "./Sugar";
 
 const INITIAL_CELL_SIZE = 50;
-const NUTRIENT_COUNT = 30;
+const FLOATING_DEBRIS_COUNT = 30;
 const DEBRIS_COUNT = 100;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
 const MAX_SCORE_FOR_TRANSITION = 1500;
-
+const WORLD_WIDTH = 4000;
+const WORLD_HEIGHT = 4000;
+const SECTOR_SIZE = 500;
+const SUGAR_PER_SECTOR = 5;
 
 type Position = { x: number; y: number };
 type DebrisParticle = Position & { size: number; opacity: number; color: 'primary' | 'accent' };
@@ -56,8 +59,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   
-  const [nutrients, setNutrients] = useState<Position[]>([]);
+  const [sugars, setSugars] = useState<Position[]>([]);
+  const [floatingDebris, setFloatingDebris] = useState<Position[]>([]);
   const [debris, setDebris] = useState<DebrisParticle[]>([]);
+  const generatedSectorsRef = useRef<Set<string>>(new Set());
 
   const animationFrameId = useRef<number>();
   const lastUpdateTimeRef = useRef(0);
@@ -65,30 +70,28 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   const resetGame = useCallback(() => {
     if (!containerRef.current) return;
-    const { width, height } = containerRef.current.getBoundingClientRect();
-    const worldWidth = width * 2; // Make world larger
-    const worldHeight = height * 2;
     
     setCellSize(INITIAL_CELL_SIZE);
     setScore(0);
     setEnergy(100);
-    setNutrients(
-      Array.from({ length: NUTRIENT_COUNT }, () => ({
-        x: Math.random() * worldWidth,
-        y: Math.random() * worldHeight,
+    setSugars([]);
+    setFloatingDebris(
+      Array.from({ length: FLOATING_DEBRIS_COUNT }, () => ({
+        x: Math.random() * WORLD_WIDTH,
+        y: Math.random() * WORLD_HEIGHT,
       }))
     );
     setDebris(
       Array.from({ length: DEBRIS_COUNT }, () => ({
-        x: Math.random() * worldWidth,
-        y: Math.random() * worldHeight,
+        x: Math.random() * WORLD_WIDTH,
+        y: Math.random() * WORLD_HEIGHT,
         size: Math.random() * 8 + 2,
         opacity: Math.random() * 0.3 + 0.1,
         color: Math.random() > 0.3 ? 'primary' : 'accent',
       }))
     );
     
-    const initialPosition = { x: worldWidth / 2, y: worldHeight / 2 };
+    const initialPosition = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
     cellPositionRef.current = initialPosition;
     cameraPositionRef.current = initialPosition;
     velocityRef.current = { x: 0, y: 0 };
@@ -97,6 +100,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSvgSize}px, ${initialPosition.y - halfSvgSize}px)`;
     }
     keysPressedRef.current = {};
+    generatedSectorsRef.current.clear();
     
     setIsGameOver(false);
   }, []);
@@ -121,6 +125,47 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, []);
+
+  const generateSugarsInSector = useCallback((sectorX: number, sectorY: number) => {
+    const sectorKey = `${sectorX},${sectorY}`;
+    if (generatedSectorsRef.current.has(sectorKey)) return;
+
+    const newSugars: Position[] = [];
+    const { width, height } = containerRef.current!.getBoundingClientRect();
+    const spawnPadding = 100;
+
+    for (let i = 0; i < SUGAR_PER_SECTOR; i++) {
+        // Spawn randomly within the sector, but try to spawn off-screen
+        const camX = cameraPositionRef.current.x;
+        const camY = cameraPositionRef.current.y;
+        
+        const side = Math.floor(Math.random() * 4);
+        let x, y;
+
+        if (side === 0) { // Top
+            x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
+            y = camY - height / 2 / zoomRef.current - spawnPadding;
+        } else if (side === 1) { // Right
+            x = camX + width / 2 / zoomRef.current + spawnPadding;
+            y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
+        } else if (side === 2) { // Bottom
+            x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
+            y = camY + height / 2 / zoomRef.current + spawnPadding;
+        } else { // Left
+            x = camX - width / 2 / zoomRef.current - spawnPadding;
+            y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
+        }
+
+        newSugars.push({ 
+            x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
+            y: Math.max(0, Math.min(WORLD_HEIGHT, y)) 
+        });
+    }
+
+    setSugars(prev => [...prev, ...newSugars]);
+    generatedSectorsRef.current.add(sectorKey);
+}, []);
+
 
   const gameLoop = useCallback((timestamp: number) => {
     if (isGameOver || !containerRef.current || !worldRef.current) {
@@ -156,8 +201,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     velocityRef.current.x += (targetVx - velocityRef.current.x) * LERP_FACTOR;
     velocityRef.current.y += (targetVy - velocityRef.current.y) * LERP_FACTOR;
     
-    cellPositionRef.current.x += velocityRef.current.x;
-    cellPositionRef.current.y += velocityRef.current.y;
+    cellPositionRef.current.x = Math.max(0, Math.min(WORLD_WIDTH, cellPositionRef.current.x + velocityRef.current.x));
+    cellPositionRef.current.y = Math.max(0, Math.min(WORLD_HEIGHT, cellPositionRef.current.y + velocityRef.current.y));
     
     if (cellApiRef.current) {
         cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
@@ -188,33 +233,43 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${zoom})`;
     
-    let nutrientsEaten = 0;
-    const remainingNutrients: Position[] = [];
+    let sugarsEaten = 0;
+    const remainingSugars: Position[] = [];
     const currentCellRadius = cellSize / 2;
 
-    for (const nutrient of nutrients) {
-        const dx = cellPositionRef.current.x - nutrient.x;
-        const dy = cellPositionRef.current.y - nutrient.y;
+    for (const sugar of sugars) {
+        const dx = cellPositionRef.current.x - sugar.x;
+        const dy = cellPositionRef.current.y - sugar.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < currentCellRadius) {
-            nutrientsEaten++;
+            sugarsEaten++;
         } else {
-            remainingNutrients.push(nutrient);
+            remainingSugars.push(sugar);
         }
     }
     
-    if (nutrientsEaten > 0) {
-      setScore(s => s + 10 * nutrientsEaten);
-      setCellSize(cs => cs + (4 * nutrientsEaten));
-      setEnergy(e => Math.min(100, e + 5 * nutrientsEaten));
-      setNutrients(remainingNutrients);
+    if (sugarsEaten > 0) {
+      setScore(s => s + 10 * sugarsEaten);
+      setCellSize(cs => cs + (4 * sugarsEaten));
+      setEnergy(e => Math.min(100, e + 5 * sugarsEaten));
+      setSugars(remainingSugars);
     }
+
+    // Check current sector and generate sugars for surrounding sectors
+    const currentSectorX = Math.floor(cellPositionRef.current.x / SECTOR_SIZE);
+    const currentSectorY = Math.floor(cellPositionRef.current.y / SECTOR_SIZE);
+    for (let x = -1; x <= 1; x++) {
+      for (let y = -1; y <= 1; y++) {
+        generateSugarsInSector(currentSectorX + x, currentSectorY + y);
+      }
+    }
+
 
     setEnergy(e => Math.max(0, e - 0.01));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, nutrients, score]);
+  }, [isGameOver, cellSize, sugars, score, generateSugarsInSector]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -227,9 +282,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-voronoi animate-fade-in">
-        <div ref={worldRef} className="absolute top-0 left-0 w-full h-full" style={{ transformOrigin: '0 0' }}>
+        <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             {debris.map((d, i) => <Debris key={`d-${i}`} {...d} />)}
-            {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
+            {floatingDebris.map((pos, i) => <FloatingDebris key={`fd-${i}`} position={pos} />)}
+            {sugars.map((pos, i) => <Sugar key={`s-${i}`} position={pos} />)}
 
             <div ref={cellWrapperRef} className="absolute">
                 <BioCell ref={cellApiRef} size={cellSize} />
