@@ -63,7 +63,8 @@ export function Debris() {
       }
       else {
         Component = FloatingDebris;
-        opacity = Math.random() * 0.1 + 0.05; // Keep these very low opacity for atmosphere
+        // Halved opacity for background elements
+        opacity = Math.random() * 0.05 + 0.025; 
       }
       
       const initialPosition = { x, y };

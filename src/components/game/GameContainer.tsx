@@ -302,10 +302,15 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         <Background cameraPosition={cameraForParallax} />
 
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
-            <Debris />
-            {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} size={sugar.size} />)}
+            <div className="absolute inset-0 z-10">
+                <Debris />
+            </div>
+            
+            <div className="absolute inset-0 z-20">
+                {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} size={sugar.size} />)}
+            </div>
 
-            <div ref={cellWrapperRef} className="absolute">
+            <div ref={cellWrapperRef} className="absolute z-30">
                 <BioCell ref={cellApiRef} size={cellSize} score={score} />
             </div>
         </div>
@@ -324,8 +329,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
-
-    
-
