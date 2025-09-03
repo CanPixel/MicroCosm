@@ -1,4 +1,4 @@
-# MicroCosm
+## MicroCosm
 
 Welcome to MicroCosm, an interactive cellular ecosystem simulation built with Next.js and prototyped in Firebase Studio.
 
