@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { FloatingDebris } from './FloatingDebris';
 import { Tardigrade } from './Tardigrade';
 import { SpikyVirus } from './SpikyVirus';
 import { RodBacteria } from './RodBacteria';
@@ -11,6 +10,9 @@ import { Ciliate } from './Ciliate';
 import { Bacteriophage } from './Bacteriophage';
 import { Autonomous } from './Autonomous';
 import { CancerCell } from './CancerCell';
+import { Mitochondrion } from './Mitochondrion';
+import { GolgiApparatus } from './GolgiApparatus';
+import { CellNucleus } from './CellNucleus';
 
 const DEBRIS_COUNT = 100; // Increased count for more variety
 const WORLD_WIDTH = 4000;
@@ -60,10 +62,15 @@ export function Debris() {
         Component = Bacteriophage;
         opacity = Math.random() * 0.3 + 0.6; // High opacity
         isAutonomous = true;
+      } else if (type < 0.75) {
+        Component = Mitochondrion;
+        opacity = Math.random() * 0.05 + 0.025; 
+      } else if (type < 0.85) {
+        Component = GolgiApparatus;
+        opacity = Math.random() * 0.05 + 0.025; 
       }
       else {
-        Component = FloatingDebris;
-        // Halved opacity for background elements
+        Component = CellNucleus;
         opacity = Math.random() * 0.05 + 0.025; 
       }
       
