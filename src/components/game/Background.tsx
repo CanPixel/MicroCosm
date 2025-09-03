@@ -5,7 +5,7 @@ import { Delaunay } from 'd3-delaunay';
 
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const NUM_POINTS = 1500;
+const NUM_POINTS = 1000;
 
 type MovingPoint = {
   x: number;
@@ -23,7 +23,7 @@ export function Background({ cameraPosition }: BackgroundProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pointsRef = useRef<MovingPoint[]>([]);
 
-  const parallaxFactor = 0.5; // Move background at 50% of camera speed
+  const parallaxFactor = 0.2;
 
   useEffect(() => {
     // Initialize points with random velocities for movement
