@@ -4,12 +4,12 @@
 import { cn } from "@/lib/utils";
 
 const VORONOI_COLORS = [
-  "hsl(var(--foreground) / 0.05)",
-  "hsl(var(--foreground) / 0.05)",
-  "hsl(var(--foreground) / 0.05)",
-  "hsl(var(--foreground) / 0.05)",
   "hsl(var(--foreground) / 0.1)",
   "hsl(var(--foreground) / 0.1)",
+  "hsl(var(--foreground) / 0.1)",
+  "hsl(var(--foreground) / 0.1)",
+  "hsl(var(--foreground) / 0.15)",
+  "hsl(var(--foreground) / 0.15)",
 ];
 
 const generateGradients = (count: number, color: string) => {
@@ -26,21 +26,21 @@ export function Background() {
   return (
     <div className="absolute inset-0 z-0">
       <div
-        className="absolute inset-0 bg-repeat animate-bg-pan-1"
+        className="absolute inset-0 bg-repeat"
         style={{
           backgroundImage: generateGradients(15, VORONOI_COLORS[0]),
           backgroundSize: "2000px 2000px",
         }}
       />
       <div
-        className="absolute inset-0 bg-repeat animate-bg-pan-2"
+        className="absolute inset-0 bg-repeat"
         style={{
           backgroundImage: generateGradients(15, VORONOI_COLORS[1]),
           backgroundSize: "1800px 1800px",
         }}
       />
        <div
-        className="absolute inset-0 bg-repeat animate-bg-pan-3"
+        className="absolute inset-0 bg-repeat"
         style={{
           backgroundImage: generateGradients(10, VORONOI_COLORS[2]),
           backgroundSize: "2200px 2200px",
