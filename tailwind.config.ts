@@ -155,6 +155,10 @@ export default {
         'spin-reverse': {
             '0%': { transform: 'rotate(0deg)' },
             '100%': { transform: 'rotate(-360deg)' },
+        },
+        'whip': {
+          '0%': { transform: 'rotate(-5deg)' },
+          '100%': { transform: 'rotate(10deg)' },
         }
       },
       animation: {
