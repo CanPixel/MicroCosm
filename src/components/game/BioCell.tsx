@@ -228,24 +228,19 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       specksRef.current.forEach((s, i) => {
           const speckEl = speckElements[i] as SVGCircleElement;
           if (speckEl) {
-              // Find the two nearest wall points by angle
+              // Find the closest wall point by angle
               const wallPointIndex = Math.floor(s.angle / (2 * Math.PI / numPoints));
-              const p1 = animatedWallPoints[wallPointIndex % numPoints];
+              const wallPoint = animatedWallPoints[wallPointIndex % numPoints];
               
-              // We interpolate between the center and the wall point
-              const wallDist = Math.sqrt(
-                  Math.pow(p1.x - currentViewboxCenter, 2) + 
-                  Math.pow(p1.y - currentViewboxCenter, 2)
-              );
-              
-              const speckDist = s.dist * wallDist;
-              const angle = Math.atan2(p1.y - currentViewboxCenter, p1.x - currentViewboxCenter);
+              if (wallPoint) {
+                // The wall point represents the current edge of the cell at that angle.
+                // We interpolate the speck's position between the center and this dynamic wall point.
+                const x = currentViewboxCenter + (wallPoint.x - currentViewboxCenter) * s.dist + inertiaOffsetX;
+                const y = currentViewboxCenter + (wallPoint.y - currentViewboxCenter) * s.dist + inertiaOffsetY;
 
-              const x = currentViewboxCenter + speckDist * Math.cos(angle) + inertiaOffsetX;
-              const y = currentViewboxCenter + speckDist * Math.sin(angle) + inertiaOffsetY;
-
-              speckEl.setAttribute('cx', `${x}`);
-              speckEl.setAttribute('cy', `${y}`);
+                speckEl.setAttribute('cx', `${x}`);
+                speckEl.setAttribute('cy', `${y}`);
+              }
           }
       });
 
