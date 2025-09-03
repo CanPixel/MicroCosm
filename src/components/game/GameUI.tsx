@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Dna, Gauge, Shield, Zap } from "lucide-react";
+import { Logo } from "./Logo";
 
 type GameUIProps = {
     cellSize: number;
@@ -17,10 +18,11 @@ export function GameUI({ cellSize, score, energy }: GameUIProps) {
 
   return (
     <>
-      <div className="fixed top-4 left-4 w-72 text-foreground font-headline z-20">
-        <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
+      <div className="fixed top-4 left-4 w-64 text-foreground z-20">
+        <Logo />
+        <Card className="bg-card/80 backdrop-blur-sm border-primary/20 mt-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg text-primary">
+            <CardTitle className="flex items-center gap-2 text-lg text-primary font-headline">
                 <Dna />
                 <span>BioCell Status</span>
             </CardTitle>

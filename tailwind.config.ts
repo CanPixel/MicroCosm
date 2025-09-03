@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -107,6 +108,24 @@ export default {
         'fade-in': {
           'from': { opacity: '0' },
           'to': { opacity: '1' },
+        },
+        'logo-blob-1': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)', borderRadius: '50%' },
+          '25%': { transform: 'translate(5px, 8px) scale(1.1)', borderRadius: '40% 60% 70% 30% / 40% 50% 50% 60%' },
+          '50%': { transform: 'translate(-5px, -3px) scale(0.9)', borderRadius: '50%' },
+          '75%': { transform: 'translate(3px, -8px) scale(1.05)', borderRadius: '60% 40% 30% 70% / 50% 60% 40% 50%' },
+        },
+        'logo-blob-2': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)', borderRadius: '50%' },
+          '33%': { transform: 'translate(-6px, 10px) scale(1.2)', borderRadius: '70% 30% 50% 50% / 30% 40% 60% 70%' },
+          '66%': { transform: 'translate(8px, -4px) scale(0.8)', borderRadius: '50%' },
+        },
+        'logo-blob-3': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)', borderRadius: '50%' },
+          '20%': { transform: 'translate(-10px, -5px) scale(1.1)', borderRadius: '30% 70% 40% 60% / 60% 30% 70% 40%' },
+          '40%': { transform: 'translate(5px, 5px) scale(1)', borderRadius: '50%' },
+          '60%': { transform: 'translate(10px, -10px) scale(0.9)', borderRadius: '70% 30% 60% 40% / 40% 70% 30% 60%' },
+          '80%': { transform: 'translate(-5px, 8px) scale(1.1)', borderRadius: '50%' },
         }
       },
       animation: {
@@ -115,6 +134,9 @@ export default {
         'morph': 'morph 8s ease-in-out infinite',
         'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
         'fade-in': 'fade-in 0.5s ease-in-out',
+        'logo-blob-1': 'logo-blob-1 12s ease-in-out infinite',
+        'logo-blob-2': 'logo-blob-2 10s ease-in-out infinite alternate',
+        'logo-blob-3': 'logo-blob-3 15s ease-in-out infinite',
       },
     },
   },
