@@ -35,7 +35,7 @@ const layers = [
 
 export function Background() {
   return (
-    <div className="absolute inset-0 -z-10 overflow-hidden bg-background">
+    <div className="absolute inset-0 -z-10 overflow-hidden bg-background/50">
       {layers.map((layer, i) => (
         <div
           key={i}
