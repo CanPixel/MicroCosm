@@ -23,7 +23,7 @@ export function Background({ cameraPosition }: BackgroundProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pointsRef = useRef<MovingPoint[]>([]);
 
-  const parallaxFactor = 0.1;
+  const parallaxFactor = 0.05;
 
   useEffect(() => {
     // Initialize points with random velocities for movement
@@ -85,11 +85,29 @@ export function Background({ cameraPosition }: BackgroundProps) {
         className="absolute top-0 left-0"
         style={{ willChange: 'transform' }}
       >
-      <path
-        ref={pathRef}
-        stroke="hsla(152, 49.80%, 50.00%, 0.06)"
-        strokeWidth="2"
-      />
+        <defs>
+            <radialGradient id="vignetteGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+              {/* Center of the vignette - mostly transparent */}
+              <stop offset="0%" stopColor="black" stopOpacity="0" />
+              {/* Mid-point - starts to become visible */}
+              <stop offset="50%" stopColor="black" stopOpacity="0" />
+              {/* Edge of the vignette - more opaque */}
+              <stop offset="100%" stopColor="black" stopOpacity="0.4" /> {/* Adjust opacity for strength */}
+            </radialGradient>
+          </defs>
+        <path
+          ref={pathRef}
+          stroke="hsla(152, 49.80%, 50.00%, 0.1)"
+          strokeWidth="2"
+        />
+        <rect
+          x="0"
+          y="0"
+          width={WORLD_WIDTH}
+          height={WORLD_HEIGHT}
+          fill="url(#vignetteGradient)"
+          style={{ pointerEvents: 'none' }}
+        />
       </svg>
     </div>
   );
