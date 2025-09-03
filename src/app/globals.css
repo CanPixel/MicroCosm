@@ -8,52 +8,52 @@ body {
 
 @layer base {
   :root {
-    --background: 265 38% 16%; /* #321F4C */
+    --background: 224 71% 4%; /* #050E18 */
     --foreground: 210 40% 98%;
-    --card: 265 38% 19%;
+    --card: 224 71% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 265 38% 16%;
+    --popover: 224 71% 4%;
     --popover-foreground: 210 40% 98%;
-    --primary: 36 100% 50%; /* #FF9900 - Orange */
-    --primary-foreground: 265 38% 16%;
-    --secondary: 265 30% 25%;
+    --primary: 198 93% 60%; /* #55D9F8 - Light Blue */
+    --primary-foreground: 224 71% 4%;
+    --secondary: 215 28% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 265 30% 25%;
+    --muted: 215 28% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 328 81% 59%; /* #E839B2 - Pink */
+    --accent: 263 90% 58%; /* #6E3FF4 - Purple */
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 265 30% 25%;
-    --input: 265 30% 25%;
-    --ring: 36 100% 50%;
-    --chart-1: 36 100% 50%;
-    --chart-2: 328 81% 59%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 198 93% 60%;
+    --chart-1: 198 93% 60%;
+    --chart-2: 263 90% 58%;
     --chart-3: 45 100% 50%; /* #FFC300 - Yellow */
     --chart-4: 197 37% 24%;
     --chart-5: 27 87% 67%;
     --radius: 0.8rem;
   }
   .dark {
-    --background: 265 38% 16%; /* #321F4C */
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 265 38% 19%;
+    --card: 224 71% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 265 38% 16%;
+    --popover: 224 71% 4%;
     --popover-foreground: 210 40% 98%;
-    --primary: 36 100% 50%; /* #FF9900 - Orange */
-    --primary-foreground: 265 38% 16%;
-    --secondary: 265 30% 25%;
+    --primary: 198 93% 60%;
+    --primary-foreground: 224 71% 4%;
+    --secondary: 215 28% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 265 30% 25%;
+    --muted: 215 28% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 328 81% 59%; /* #E839B2 - Pink */
+    --accent: 263 90% 58%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 265 30% 25%;
-    --input: 265 30% 25%;
-    --ring: 36 100% 50%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 198 93% 60%;
   }
 }
 
@@ -63,6 +63,7 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.5s ease;
   }
 }
 

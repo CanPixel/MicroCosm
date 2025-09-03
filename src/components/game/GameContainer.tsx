@@ -6,6 +6,7 @@ import { BioCell, BioCellHandle } from "./BioCell";
 import { Nutrient } from "./Nutrient";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
+import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 
 const INITIAL_CELL_SIZE = 50;
 const NUTRIENT_COUNT = 30;
@@ -13,12 +14,25 @@ const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
+const MAX_SCORE_FOR_TRANSITION = 1500;
 
 
 type Position = { x: number; y: number };
 
 type GameContainerProps = {
     onGameOver: () => void;
+};
+
+// Helper to interpolate between two HSL color values
+const lerpHSL = (
+  [h1, s1, l1]: number[], 
+  [h2, s2, l2]: number[], 
+  t: number
+): [number, number, number] => {
+  const h = h1 + (h2 - h1) * t;
+  const s = s1 + (s2 - s1) * t;
+  const l = l1 + (l2 - l1) * t;
+  return [h, s, l];
 };
 
 export function GameContainer({ onGameOver }: GameContainerProps) {
@@ -105,6 +119,17 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     lastUpdateTimeRef.current = timestamp;
 
+    // Theme transition
+    const growthFactor = Math.min(score / MAX_SCORE_FOR_TRANSITION, 1);
+    
+    const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, growthFactor);
+    const newPrimary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, growthFactor);
+    const newAccent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, growthFactor);
+    
+    document.documentElement.style.setProperty('--background', `${newBg[0]} ${newBg[1]}% ${newBg[2]}%`);
+    document.documentElement.style.setProperty('--primary', `${newPrimary[0]} ${newPrimary[1]}% ${newPrimary[2]}%`);
+    document.documentElement.style.setProperty('--accent', `${newAccent[0]} ${newAccent[1]}% ${newAccent[2]}%`);
+
     let targetVx = 0;
     let targetVy = 0;
     if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= MAX_SPEED;
@@ -174,7 +199,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setEnergy(e => Math.max(0, e - 0.01));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, nutrients]);
+  }, [isGameOver, cellSize, nutrients, score]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
