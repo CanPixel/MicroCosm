@@ -3,46 +3,26 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { BioCell, BioCellHandle } from "./BioCell";
-import { FloatingDebris } from "./FloatingDebris";
-import { Debris } from "./Debris";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
-import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { Sugar } from "./Sugar";
-import { Background } from "./Background";
 
 const INITIAL_CELL_SIZE = 50;
-const FLOATING_DEBRIS_COUNT = 30;
-const DEBRIS_COUNT = 100;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
-const MAX_SCORE_FOR_TRANSITION = 1500;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
 const MAX_SUGAR = 20;
 const SUGAR_SPAWN_INTERVAL = 2000; // ms
 
 type Position = { x: number; y: number };
-type DebrisParticle = Position & { size: number; opacity: number; color: 'primary' | 'accent' };
 type SugarParticle = Position;
 
 
 type GameContainerProps = {
     onGameOver: () => void;
-};
-
-// Helper to interpolate between two HSL color values
-const lerpHSL = (
-  [h1, s1, l1]: number[], 
-  [h2, s2, l2]: number[], 
-  t: number
-): [number, number, number] => {
-  const h = h1 + (h2 - h1) * t;
-  const s = s1 + (s2 - s1) * t;
-  const l = l1 + (l2 - l1) * t;
-  return [h, s, l];
 };
 
 export function GameContainer({ onGameOver }: GameContainerProps) {
@@ -65,8 +45,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const zoomRef = useRef(1);
   
   const [sugars, setSugars] = useState<SugarParticle[]>([]);
-  const [floatingDebris, setFloatingDebris] = useState<Position[]>([]);
-  const [debris, setDebris] = useState<DebrisParticle[]>([]);
 
   const animationFrameId = useRef<number>();
   const lastUpdateTimeRef = useRef(0);
@@ -125,22 +103,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setScore(0);
     setEnergy(100);
     
-    setFloatingDebris(
-      Array.from({ length: FLOATING_DEBRIS_COUNT }, () => ({
-        x: Math.random() * WORLD_WIDTH,
-        y: Math.random() * WORLD_HEIGHT,
-      }))
-    );
-    setDebris(
-      Array.from({ length: DEBRIS_COUNT }, () => ({
-        x: Math.random() * WORLD_WIDTH,
-        y: Math.random() * WORLD_HEIGHT,
-        size: Math.random() * 8 + 2,
-        opacity: Math.random() * 0.3 + 0.1,
-        color: Math.random() > 0.3 ? 'primary' : 'accent',
-      }))
-    );
-    
     const initialPosition = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
     cellPositionRef.current = initialPosition;
     cameraPositionRef.current = initialPosition;
@@ -163,6 +125,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         resetGame();
     }
   }, [resetGame]);
+  
+  useEffect(() => {
+    if (energy <= 0 && !isGameOver) {
+      setIsGameOver(true);
+    }
+  }, [energy, isGameOver]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -200,18 +168,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         }
         lastSugarSpawnTimeRef.current = timestamp;
     }
-
-    // --- Theme transition ---
-    const growthFactor = Math.min(score / MAX_SCORE_FOR_TRANSITION, 1);
-    
-    const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, growthFactor);
-    const newPrimary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, growthFactor);
-    const newAccent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, growthFactor);
-    
-    document.documentElement.style.setProperty('--background', `${newBg[0]} ${newBg[1]}% ${newBg[2]}%`);
-    document.documentElement.style.setProperty('--primary', `${newPrimary[0]} ${newPrimary[1]}% ${newPrimary[2]}%`);
-    document.documentElement.style.setProperty('--accent', `${newAccent[0]} ${newAccent[1]}% ${newAccent[2]}%`);
-
 
     // --- Player Movement ---
     let targetVx = 0;
@@ -294,10 +250,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden">
-        <Background />
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
-            {debris.map((d, i) => <Debris key={`d-${i}`} {...d} />)}
-            {floatingDebris.map((pos, i) => <FloatingDebris key={`fd-${i}`} position={pos} />)}
             {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} />)}
 
             <div ref={cellWrapperRef} className="absolute">
