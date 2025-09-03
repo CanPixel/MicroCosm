@@ -19,7 +19,7 @@ const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
 const MAX_SUGAR = 20;
 const SUGAR_SPAWN_INTERVAL = 2000; // ms
-const MAX_THEME_SIZE = 1000; // The cell size at which the theme transition is complete
+const MAX_THEME_SIZE = 300; // The cell size at which the theme transition is complete
 
 type Position = { x: number; y: number };
 type SugarParticle = Position & { size: number };
@@ -328,3 +328,4 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
 
     
+
