@@ -171,7 +171,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setNutrients(remainingNutrients);
     }
 
-    setEnergy(e => Math.max(0, e - 0.05));
+    setEnergy(e => Math.max(0, e - 0.01));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
   }, [isGameOver, cellSize, nutrients]);
