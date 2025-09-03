@@ -66,8 +66,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   
   // Internal particles
   const particlesRef = useRef(Array.from({ length: 10 }).map(() => ({
-      x: Math.random() * 0.5 - 0.25, // range -0.25 to 0.25
-      y: Math.random() * 0.5 - 0.25, // range -0.25 to 0.25
+      x: Math.random() * 0.4 - 0.2, // range -0.2 to 0.2
+      y: Math.random() * 0.4 - 0.2, // range -0.2 to 0.2
       r: Math.random() * 0.05 + 0.02, // radius relative to cell size
       vx: (Math.random() - 0.5) * 0.02,
       vy: (Math.random() - 0.5) * 0.02,
@@ -105,7 +105,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       const inertiaOffsetY = -vy * 0.5;
 
       // Animate nucleus
-      const nucleusScale = 1 + Math.sin(time / 200) * 0.2;
+      const nucleusScale = 1 + Math.sin(time / 500) * 0.1;
       nucleus.setAttribute('r', `${INITIAL_SIZE * 0.15 * nucleusScale}`);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
       nucleusGroup.setAttribute('transform', `translate(${inertiaOffsetX}, ${inertiaOffsetY})`);
@@ -116,8 +116,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         p.x += p.vx;
         p.y += p.vy;
 
-        if (p.x < -0.25 || p.x > 0.25) p.vx *= -1;
-        if (p.y < -0.25 || p.y > 0.25) p.vy *= -1;
+        if (p.x < -0.2 || p.x > 0.2) p.vx *= -1;
+        if (p.y < -0.2 || p.y > 0.2) p.vy *= -1;
         
         const particleEl = particleElements[i] as SVGCircleElement;
         if (particleEl) {
