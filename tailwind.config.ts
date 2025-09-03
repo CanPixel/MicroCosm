@@ -152,9 +152,9 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'bg-pan-1': 'bg-pan-1 45s linear infinite alternate',
-        'bg-pan-2': 'bg-pan-2 60s linear infinite alternate',
-        'bg-pan-3': 'bg-pan-3 90s linear infinite alternate',
+        'bg-pan-1': 'bg-pan-1 45s linear infinite',
+        'bg-pan-2': 'bg-pan-2 60s linear infinite',
+        'bg-pan-3': 'bg-pan-3 90s linear infinite',
         'morph': 'morph 8s ease-in-out infinite',
         'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
         'fade-in': 'fade-in 0.5s ease-in-out',
