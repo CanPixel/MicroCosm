@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Dna, Gauge, Shield, Zap } from "lucide-react";
+import { Dna, Gauge, Shield, Zap, AlertTriangle } from "lucide-react";
 import { Logo } from "./Logo";
 import {
   Select,
@@ -20,6 +20,7 @@ type GameUIProps = {
     cellSize: number;
     score: number;
     energy: number;
+    isStarving: boolean;
     font: string;
     onFontChange: (font: string) => void;
     collectedOrganelles: Set<string>;
@@ -31,7 +32,7 @@ const abilities = [
   { type: 'golgi', icon: Dna, label: 'Genetic Code' },
 ];
 
-export function GameUI({ cellSize, score, energy, font, onFontChange, collectedOrganelles }: GameUIProps) {
+export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange, collectedOrganelles }: GameUIProps) {
   const fonts = [
     { value: 'font-zcool-kuaile', label: 'ZCOOL KuaiLe' },
     { value: 'font-vibes', label: 'Vibes' },
@@ -53,14 +54,14 @@ export function GameUI({ cellSize, score, energy, font, onFontChange, collectedO
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center text-xs">
                 <span className="flex items-center gap-2"><Gauge className="w-4 h-4 text-foreground/70"/> Size</span>
-                <span>{score}μm</span>
+                <span>{score.toFixed(0)}μm</span>
             </div>
             <div className="space-y-1">
                  <div className="flex justify-between items-center text-xs">
                     <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-foreground/70"/> Energy</span>
-                    <span className={cn(energy < 20 && "text-red-500")}>{energy.toFixed(0)}%</span>
+                    <span className={cn(energy < 20 && "text-red-500", isStarving && "text-red-500 font-bold")}>{isStarving ? 'STARVING' : `${energy.toFixed(0)}%`}</span>
                 </div>
-                <Progress value={energy} className="h-2 [&>div]:bg-primary" />
+                <Progress value={energy} className={cn("h-2 [&>div]:bg-primary", isStarving && "[&>div]:bg-red-500")} />
             </div>
              <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Title Font</Label>
@@ -113,5 +114,3 @@ export function GameUI({ cellSize, score, energy, font, onFontChange, collectedO
     </>
   );
 }
-
-    

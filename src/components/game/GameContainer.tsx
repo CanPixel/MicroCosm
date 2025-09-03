@@ -24,6 +24,7 @@ const SUGAR_SPAWN_INTERVAL = 1000; // ms
 const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 0.5; // Lose 50% of size difference
 const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
+const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
 
 type Position = { x: number; y: number };
 type SugarParticle = Position & { size: number };
@@ -48,6 +49,7 @@ const lerpHSL = (
 
 export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isStarving, setIsStarving] = useState(false);
   const [score, setScore] = useState(0);
   const [energy, setEnergy] = useState(100);
 
@@ -114,20 +116,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
              y = camY + Math.sin(angle) * radius;
         } else {
             // Spawn randomly just off-screen
-            const side = Math.floor(Math.random() * 4);
-            if (side === 0) { // Top
-                x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
-                y = camY - height / (2 * zoomRef.current) - spawnPadding;
-            } else if (side === 1) { // Right
-                x = camX + width / (2 * zoomRef.current) + spawnPadding;
-                y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
-            } else if (side === 2) { // Bottom
-                x = camX + (Math.random() - 0.5) * (width + spawnPadding * 2);
-                y = camY + height / (2 * zoomRef.current) + spawnPadding;
-            } else { // Left
-                x = camX - width / (2 * zoomRef.current) - spawnPadding;
-                y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
-            }
+            const angle = Math.random() * 2 * Math.PI;
+            const spawnRadius = Math.max(width, height) / (2 * zoomRef.current) + spawnPadding;
+            x = camX + Math.cos(angle) * spawnRadius;
+            y = camY + Math.sin(angle) * spawnRadius;
         }
         
         const size = Math.round(Math.random() * 8 + 4); // size between 4px and 12px
@@ -148,6 +140,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setCellSize(INITIAL_CELL_SIZE);
     setScore(0);
     setEnergy(100);
+    setIsStarving(false);
     
     const initialPosition = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
     cellPositionRef.current = initialPosition;
@@ -180,10 +173,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [resetGame]);
   
   useEffect(() => {
-    if (energy <= 0 && !isGameOver) {
+    if (energy <= 0 && !isGameOver && !isStarving) {
+      setIsStarving(true);
+    }
+    if (score <= 0 && isStarving && !isGameOver) {
       setIsGameOver(true);
     }
-  }, [energy, isGameOver]);
+  }, [energy, score, isGameOver, isStarving]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -223,12 +219,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     // --- Player Movement ---
+    const currentMaxSpeed = isStarving ? MAX_SPEED * 0.1 : MAX_SPEED;
     let targetVx = 0;
     let targetVy = 0;
-    if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= MAX_SPEED;
-    if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) targetVy += MAX_SPEED;
-    if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) targetVx -= MAX_SPEED;
-    if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) targetVx += MAX_SPEED;
+    if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= currentMaxSpeed;
+    if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) targetVy += currentMaxSpeed;
+    if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) targetVx -= currentMaxSpeed;
+    if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) targetVx += currentMaxSpeed;
 
     velocityRef.current.x += (targetVx - velocityRef.current.x) * LERP_FACTOR;
     velocityRef.current.y += (targetVy - velocityRef.current.y) * LERP_FACTOR;
@@ -295,7 +292,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       
       setScore(Math.round(newScore));
       setCellSize(newSize);
-      setEnergy(e => Math.min(100, e + totalEnergyGained));
+      const newEnergy = Math.min(100, energy + totalEnergyGained)
+      setEnergy(newEnergy);
+      if (newEnergy > 0) {
+        setIsStarving(false);
+      }
       setSugars(remainingSugars);
     }
     
@@ -355,10 +356,17 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
 
     // --- Energy Drain ---
-    setEnergy(e => Math.max(0, e - 0.01));
+    if (isStarving) {
+      const newScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
+      const newSize = Math.max(1, cellSize - STARVATION_SIZE_DRAIN);
+      setScore(newScore);
+      setCellSize(newSize);
+    } else {
+      setEnergy(e => Math.max(0, e - 0.01));
+    }
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, score, sugars, debris, spawnSugars, eligibleOrganelles]);
+  }, [isGameOver, isStarving, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -431,6 +439,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             cellSize={cellSize}
             score={score}
             energy={energy}
+            isStarving={isStarving}
             font={font}
             onFontChange={(newFont) => {
               if (newFont) setFont(newFont);
