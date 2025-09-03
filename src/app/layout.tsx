@@ -5,6 +5,29 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: 'MicroCosm',
   description: 'An interactive cellular ecosystem simulation.',
+  robots: 'index, follow',
+  openGraph: {
+    title: 'MicroCosm',
+    description: 'An interactive cellular ecosystem simulation.',
+    url: 'https://micro-cosmos.web.app',
+    siteName: 'MicroCosm',
+    images: [
+      {
+        url: '/images/favicon.ico',
+        width: 630,
+        height: 630,
+        alt: 'MicroCosmOS Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MicroCosm',
+    description: 'An interactive cellular ecosystem simulation.',
+    images: ['/images/favicon.ico'],
+  },
 };
 
 export default function RootLayout({
