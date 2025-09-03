@@ -14,7 +14,6 @@ export function Logo({ font = 'font-headline' }: LogoProps) {
         className={cn(
           "text-xl font-bold text-primary",
           font,
-          font === 'font-kablammo' && 'text-2xl', // Kablammo is smaller
           font === 'font-vibes' && 'text-3xl' // Vibes is smaller
         )}
         style={{ filter: `drop-shadow(0 0 8px hsl(var(--primary)))` }}

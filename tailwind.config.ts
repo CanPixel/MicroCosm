@@ -13,8 +13,6 @@ export default {
       fontFamily: {
         body: ['Space Grotesk', 'sans-serif'],
         headline: ['Space Grotesk', 'sans-serif'],
-        kablammo: ['Kablammo', 'cursive'],
-        'zcool-qingke': ['"ZCOOL QingKe HuangYou"', 'cursive'],
         'zcool-kuaile': ['"ZCOOL KuaiLe"', 'cursive'],
         vibes: ['Vibes', 'cursive'],
         code: ['monospace'],

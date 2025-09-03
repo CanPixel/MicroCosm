@@ -308,7 +308,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             score={score}
             energy={energy}
             font={font}
-            onFontChange={setFont}
+            onFontChange={(newFont) => {
+              if (newFont) setFont(newFont);
+            }}
         />
 
         <GameOverDialog score={score} isOpen={isGameOver} onRestart={onGameOver} />
@@ -319,4 +321,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
 
     
+
 
