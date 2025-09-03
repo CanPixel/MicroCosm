@@ -125,17 +125,20 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         }
       });
 
+      // Wobble factor decreases as the cell gets bigger
+      const wobbleFactor = Math.max(0.2, 1 - (currentSize - INITIAL_SIZE) / 500);
 
       const newPoints = pointsRef.current.map(point => {
         // Smoothly move radius towards target
         point.radius += (point.targetRadius - point.radius) * 0.1;
 
         // Occasionally set a new target radius
-        if (Math.random() < 0.02) { // Increased frequency for more blobby look
-          point.targetRadius = currentBaseRadius * (0.7 + Math.random() * 0.6); // Increased range
+        if (Math.random() < 0.02 * wobbleFactor) { // Chance decreases as it grows
+          const randomFactor = (0.7 + Math.random() * 0.6 * wobbleFactor); // Range of change decreases
+          point.targetRadius = currentBaseRadius * randomFactor;
         }
         
-        const pointAngle = point.angle + time / 5000;
+        const pointAngle = point.angle + time / (5000 + (currentSize - INITIAL_SIZE) * 10); // Rotation slows down
         let currentRadius = point.radius;
 
         // Physics-based stretch
