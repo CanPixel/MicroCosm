@@ -54,7 +54,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     cellPositionRef.current = initialPosition;
     velocityRef.current = { x: 0, y: 0 };
     if (cellWrapperRef.current) {
-        const halfSvgSize = (INITIAL_CELL_SIZE * 1.5) / 2;
+        const halfSvgSize = (INITIAL_CELL_SIZE * 2.5) / 2;
         cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSvgSize}px, ${initialPosition.y - halfSvgSize}px)`;
     }
     keysPressedRef.current = {};
@@ -114,7 +114,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
     }
 
-    const halfSvgSize = (cellSize * 1.5) / 2;
+    const halfSvgSize = (cellSize * 2.5) / 2;
     if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
         x = Math.max(halfSvgSize, Math.min(width - halfSvgSize, x));
