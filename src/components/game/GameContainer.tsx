@@ -20,7 +20,7 @@ const ZOOM_LERP_FACTOR = 0.05;
 const MAX_SCORE_FOR_TRANSITION = 1500;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const MAX_SUGAR = 30;
+const MAX_SUGAR = 20;
 const SUGAR_SPAWN_INTERVAL = 2000; // ms
 
 type Position = { x: number; y: number };
@@ -321,5 +321,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
 
     
+
 
 
