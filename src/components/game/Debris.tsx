@@ -7,6 +7,7 @@ import { SpikyVirus } from './SpikyVirus';
 import { RodBacteria } from './RodBacteria';
 import { FlagellateProtist } from './FlagellateProtist';
 import { Ciliate } from './Ciliate';
+import { Bacteriophage } from './Bacteriophage';
 
 const DEBRIS_COUNT = 100; // Increased count for more variety
 const WORLD_WIDTH = 4000;
@@ -34,15 +35,18 @@ export function Debris() {
       } else if (type < 0.2) {
         Component = SpikyVirus;
         opacity = Math.random() * 0.2 + 0.6; // High opacity
-      } else if (type < 0.35) {
+      } else if (type < 0.3) {
         Component = RodBacteria;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
-      } else if (type < 0.5) {
+      } else if (type < 0.4) {
         Component = FlagellateProtist;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
-      } else if (type < 0.65) {
+      } else if (type < 0.5) {
         Component = Ciliate;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
+      } else if (type < 0.6) {
+        Component = Bacteriophage;
+        opacity = Math.random() * 0.3 + 0.6; // High opacity
       }
       else {
         Component = FloatingDebris;
