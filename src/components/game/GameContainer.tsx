@@ -73,6 +73,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   useEffect(() => {
     const progress = Math.min((cellSize - INITIAL_CELL_SIZE) / (MAX_THEME_SIZE - INITIAL_CELL_SIZE), 1);
     
+    if (progress < 0) return;
+
     const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, progress);
     const newPrimary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, progress);
     const newAccent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, progress);

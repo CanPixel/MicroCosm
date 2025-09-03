@@ -1,0 +1,40 @@
+
+"use client";
+import React from 'react';
+
+type RodBacteriaProps = {
+  position: { x: number; y: number };
+  size: number;
+  duration: number;
+  delay: number;
+  opacity: number;
+};
+
+export function RodBacteria({ position, size, duration, delay, opacity }: RodBacteriaProps) {
+    const animationStyle: React.CSSProperties = {
+        animation: `sway ${duration}s ease-in-out infinite, spin ${duration * 1.5}s linear infinite`,
+        animationDelay: `${delay}s, ${delay}s`,
+        transformOrigin: 'center center',
+    };
+
+    const style: React.CSSProperties = {
+        top: `${position.y}px`,
+        left: `${position.x}px`,
+        width: `${size}px`,
+        height: `${size / 2}px`,
+        opacity: opacity * 3, // Make them a bit more visible
+    };
+
+    return (
+        <div style={style} className="absolute">
+             <div style={animationStyle} className="w-full h-full">
+                <svg width={size} height={size/2} viewBox={`0 0 20 10`} fill="hsl(var(--accent) / 0.5)" stroke="hsl(var(--accent))" strokeWidth="0.5">
+                    <rect x="1" y="1" width="18" height="8" rx="4" ry="4" />
+                    <circle cx="7" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
+                    <circle cx="10" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
+                    <circle cx="13" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
+                </svg>
+            </div>
+        </div>
+    );
+}

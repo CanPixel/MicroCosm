@@ -142,11 +142,15 @@ export default {
           '80%': { transform: 'translate(-5px, 8px) scale(1.1)', borderRadius: '50%' },
         },
         'sway': {
-          '0%': { transform: 'translate(0px, 0px)' },
-          '25%': { transform: 'translate(15px, 5px)' },
-          '50%': { transform: 'translate(-10px, -10px)' },
-          '75%': { transform: 'translate(5px, -15px)' },
-          '100%': { transform: 'translate(0px, 0px)' },
+          '0%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+          '25%': { transform: 'translate(15px, 5px) rotate(-5deg)' },
+          '50%': { transform: 'translate(-10px, -10px) rotate(8deg)' },
+          '75%': { transform: 'translate(5px, -15px) rotate(-2deg)' },
+          '100%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+        },
+        'spin': {
+            '0%': { transform: 'rotate(0deg)' },
+            '100%': { transform: 'rotate(360deg)' },
         }
       },
       animation: {
@@ -159,6 +163,7 @@ export default {
         'logo-blob-2': 'logo-blob-2 10s ease-in-out infinite alternate',
         'logo-blob-3': 'logo-blob-3 15s ease-in-out infinite',
         'sway': 'sway 15s ease-in-out infinite',
+        'spin': 'spin 20s linear infinite',
       },
     },
   },

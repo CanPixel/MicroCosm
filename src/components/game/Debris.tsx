@@ -1,10 +1,12 @@
-
 "use client";
 
 import React, { useMemo } from 'react';
 import { FloatingDebris } from './FloatingDebris';
+import { Tardigrade } from './Tardigrade';
+import { SpikyVirus } from './SpikyVirus';
+import { RodBacteria } from './RodBacteria';
 
-const DEBRIS_COUNT = 30;
+const DEBRIS_COUNT = 40; // Increased count for more variety
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
 
@@ -14,17 +16,33 @@ export function Debris() {
       const x = Math.random() * WORLD_WIDTH;
       const y = Math.random() * WORLD_HEIGHT;
       const size = Math.random() * 80 + 20; // Size between 20 and 100
-      const duration = Math.random() * 20 + 15; // Animation duration between 15s and 35s
-      const delay = Math.random() * -30; // Negative delay to start animations at different points
+      const duration = Math.random() * 40 + 20; // Animation duration between 20s and 60s
+      const delay = Math.random() * -60; // Negative delay to start animations at different points
       const opacity = Math.random() * 0.1 + 0.05; // Low opacity
+      
+      const type = Math.random();
+
+      let Component;
+      if (type < 0.1) {
+        Component = Tardigrade;
+      } else if (type < 0.2) {
+        Component = SpikyVirus;
+      } else if (type < 0.35) {
+        Component = RodBacteria;
+      } else {
+        Component = FloatingDebris;
+      }
       
       return {
         id: `debris-${i}`,
-        position: { x, y },
-        size,
-        duration,
-        delay,
-        opacity,
+        Component,
+        props: {
+            position: { x, y },
+            size,
+            duration,
+            delay,
+            opacity,
+        }
       };
     });
   }, []);
@@ -32,14 +50,7 @@ export function Debris() {
   return (
     <div className="absolute inset-0 w-full h-full pointer-events-none">
       {debrisList.map(debris => (
-        <FloatingDebris
-          key={debris.id}
-          position={debris.position}
-          size={debris.size}
-          duration={debris.duration}
-          delay={debris.delay}
-          opacity={debris.opacity}
-        />
+        <debris.Component key={debris.id} {...debris.props} />
       ))}
     </div>
   );
