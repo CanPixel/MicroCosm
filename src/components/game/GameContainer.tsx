@@ -8,6 +8,7 @@ import { GameOverDialog } from "./GameOverDialog";
 import { Sugar } from "./Sugar";
 import { Background } from "./Background";
 import { Debris } from "./Debris";
+import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_SPEED = 8;
@@ -18,6 +19,7 @@ const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
 const MAX_SUGAR = 20;
 const SUGAR_SPAWN_INTERVAL = 2000; // ms
+const MAX_THEME_SIZE = 1000; // The cell size at which the theme transition is complete
 
 type Position = { x: number; y: number };
 type SugarParticle = Position;
@@ -25,6 +27,19 @@ type SugarParticle = Position;
 
 type GameContainerProps = {
     onGameOver: () => void;
+};
+
+// Helper to interpolate between two HSL colors
+const lerpHSL = (
+  [h1, s1, l1]: [number, number, number],
+  [h2, s2, l2]: [number, number, number],
+  t: number
+): [number, number, number] => {
+  return [
+    h1 + (h2 - h1) * t,
+    s1 + (s2 - s1) * t,
+    l1 + (l2 - l1) * t,
+  ];
 };
 
 export function GameContainer({ onGameOver }: GameContainerProps) {
@@ -53,6 +68,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const lastUpdateTimeRef = useRef(0);
   const lastSugarSpawnTimeRef = useRef(0);
   const updateInterval = 1000 / 60; // 60 FPS
+
+  // Theme transition effect
+  useEffect(() => {
+    const progress = Math.min((cellSize - INITIAL_CELL_SIZE) / (MAX_THEME_SIZE - INITIAL_CELL_SIZE), 1);
+    
+    const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, progress);
+    const newPrimary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, progress);
+    const newAccent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, progress);
+
+    const root = document.documentElement;
+    root.style.setProperty('--background', `${newBg[0]} ${newBg[1]}% ${newBg[2]}%`);
+    root.style.setProperty('--primary', `${newPrimary[0]} ${newPrimary[1]}% ${newPrimary[2]}%`);
+    root.style.setProperty('--accent', `${newAccent[0]} ${newAccent[1]}% ${newAccent[2]}%`);
+    
+  }, [cellSize]);
+
 
   const spawnSugars = useCallback((count: number, immediate = false) => {
     if (!containerRef.current) return;
@@ -282,3 +313,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
