@@ -311,7 +311,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         // Check for collection
-        if (eligibleOrganelles.has(d.id) && dist < currentCellRadius + d.props.size / 2) {
+        if (newEligibleOrganelles.has(d.id) && dist < currentCellRadius + d.props.size / 2) {
           setCollectedOrganelles(prev => new Set(prev).add((d.Component as any).type));
           collectedAny = true;
         } else {
