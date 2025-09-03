@@ -66,8 +66,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   
   // Internal particles
   const particlesRef = useRef(Array.from({ length: 10 }).map(() => ({
-      x: Math.random() * 0.4 - 0.2, // range -0.2 to 0.2
-      y: Math.random() * 0.4 - 0.2, // range -0.2 to 0.2
+      x: Math.random() * 0.8 - 0.4, // range -0.4 to 0.4
+      y: Math.random() * 0.8 - 0.4, // range -0.4 to 0.4
       r: Math.random() * 0.05 + 0.02, // radius relative to cell size
       vx: (Math.random() - 0.5) * 0.02,
       vy: (Math.random() - 0.5) * 0.02,
@@ -116,8 +116,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         p.x += p.vx;
         p.y += p.vy;
 
-        if (p.x < -0.2 || p.x > 0.2) p.vx *= -1;
-        if (p.y < -0.2 || p.y > 0.2) p.vy *= -1;
+        if (p.x < -0.4 || p.x > 0.4) p.vx *= -1;
+        if (p.y < -0.4 || p.y > 0.4) p.vy *= -1;
         
         const particleEl = particleElements[i] as SVGCircleElement;
         if (particleEl) {
