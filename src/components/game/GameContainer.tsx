@@ -25,7 +25,7 @@ const SUGAR_SPAWN_INTERVAL = 2000; // ms
 
 type Position = { x: number; y: number };
 type DebrisParticle = Position & { size: number; opacity: number; color: 'primary' | 'accent' };
-type SugarParticle = Position & { rotation: number };
+type SugarParticle = Position;
 
 
 type GameContainerProps = {
@@ -110,7 +110,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         newSugars.push({ 
             x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
             y: Math.max(0, Math.min(WORLD_HEIGHT, y)),
-            rotation: Math.random() * 360,
         });
     }
 
@@ -296,7 +295,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             {debris.map((d, i) => <Debris key={`d-${i}`} {...d} />)}
             {floatingDebris.map((pos, i) => <FloatingDebris key={`fd-${i}`} position={pos} />)}
-            {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} rotation={sugar.rotation}/>)}
+            {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} />)}
 
             <div ref={cellWrapperRef} className="absolute">
                 <BioCell ref={cellApiRef} size={cellSize} />
