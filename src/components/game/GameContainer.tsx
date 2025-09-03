@@ -41,7 +41,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [nutrients, setNutrients] = useState<Position[]>([]);
 
   const animationFrameId = useRef<number>();
-  const keysPressedRef = useRef<{ [key: string]: boolean }>({});
   const lastUpdateTimeRef = useRef(0);
   const updateInterval = 1000 / 60; // 60 FPS
 
@@ -132,7 +131,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // Camera and zoom logic
     const { width, height } = containerRef.current.getBoundingClientRect();
     const zoomOutFactor = 0.02;
-    const initialZoom = 1.5;
+    const initialZoom = 2.0;
     const targetZoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
 
     // Smoothly interpolate zoom

@@ -55,7 +55,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   const numPoints = 12; // Number of points defining the cell shape
   
   const svgSize = useMemo(() => size * 2.5, [size]);
-  const baseRadius = useMemo(() => size / 2, [size]);
   const viewboxCenter = useMemo(() => svgSize / 2, [svgSize]);
   
   const initialBaseRadius = useMemo(() => INITIAL_SIZE / 2, []);
