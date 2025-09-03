@@ -35,7 +35,7 @@ const abilities = [
 export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange, collectedOrganelles }: GameUIProps) {
   const fonts = [
     { value: 'font-zcool-kuaile', label: 'ZCOOL KuaiLe' },
-    { value: 'font-vibes', label: 'Vibes' },
+    { value: 'font-headline', label: 'Space Grotesk' },
   ];
 
   const hasUnlockedAbilities = collectedOrganelles.size > 0;
