@@ -24,7 +24,7 @@ export function GameOverDialog({ score, isOpen, onRestart }: GameOverDialogProps
             <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl">Game Over</AlertDialogTitle>
             <AlertDialogDescription>
-                Your BioCell has run out of energy. Your final size was {score}μm.
+                Your BioCell has run out of energy. Your final size was {Math.round(score)}μm.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

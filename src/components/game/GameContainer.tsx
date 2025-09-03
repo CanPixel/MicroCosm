@@ -123,7 +123,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             }
         }
         
-        const size = Math.random() * 8 + 4; // size between 4px and 12px
+        const size = Math.round(Math.random() * 8 + 4); // size between 4px and 12px
 
         newSugars.push({ 
             x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
@@ -276,7 +276,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     
     if (totalScoreGained > 0) {
-      setScore(s => s + totalScoreGained);
+      setScore(s => s + Math.round(totalScoreGained));
       setCellSize(cs => cs + totalSizeGained);
       setEnergy(e => Math.min(100, e + totalEnergyGained));
       setSugars(remainingSugars);
