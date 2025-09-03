@@ -22,7 +22,7 @@ const SUGAR_SPAWN_INTERVAL = 2000; // ms
 const MAX_THEME_SIZE = 1000; // The cell size at which the theme transition is complete
 
 type Position = { x: number; y: number };
-type SugarParticle = Position;
+type SugarParticle = Position & { size: number };
 
 
 type GameContainerProps = {
@@ -122,10 +122,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 y = camY + (Math.random() - 0.5) * (height + spawnPadding * 2);
             }
         }
+        
+        const size = Math.random() * 8 + 4; // size between 4px and 12px
 
         newSugars.push({ 
             x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
             y: Math.max(0, Math.min(WORLD_HEIGHT, y)),
+            size,
         });
     }
 
@@ -250,7 +253,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${zoom})`;
     
     // --- Collision & Consumption ---
-    let sugarsEaten = 0;
+    let totalScoreGained = 0;
+    let totalEnergyGained = 0;
+    let totalSizeGained = 0;
     const remainingSugars: SugarParticle[] = [];
     const currentCellRadius = cellSize / 2;
 
@@ -260,16 +265,20 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < currentCellRadius) {
-            sugarsEaten++;
+            // Reward is proportional to the sugar's size (base is a 8px size)
+            const sizeMultiplier = sugar.size / 8;
+            totalScoreGained += 10 * sizeMultiplier;
+            totalEnergyGained += 5 * sizeMultiplier;
+            totalSizeGained += 4 * sizeMultiplier;
         } else {
             remainingSugars.push(sugar);
         }
     }
     
-    if (sugarsEaten > 0) {
-      setScore(s => s + 10 * sugarsEaten);
-      setCellSize(cs => cs + (4 * sugarsEaten));
-      setEnergy(e => Math.min(100, e + 5 * sugarsEaten));
+    if (totalScoreGained > 0) {
+      setScore(s => s + totalScoreGained);
+      setCellSize(cs => cs + totalSizeGained);
+      setEnergy(e => Math.min(100, e + totalEnergyGained));
       setSugars(remainingSugars);
     }
     
@@ -294,7 +303,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             <Debris />
-            {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} />)}
+            {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} size={sugar.size} />)}
 
             <div ref={cellWrapperRef} className="absolute">
                 <BioCell ref={cellApiRef} size={cellSize} score={score} />
@@ -315,5 +324,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
 
     
