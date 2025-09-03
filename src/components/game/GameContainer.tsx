@@ -24,6 +24,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
   
   const containerRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
   const cellWrapperRef = useRef<HTMLDivElement>(null);
   const cellApiRef = useRef<BioCellHandle>(null);
 
@@ -84,7 +85,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, []);
 
   const gameLoop = useCallback((timestamp: number) => {
-    if (isGameOver) {
+    if (isGameOver || !containerRef.current || !worldRef.current) {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
       return;
     }
@@ -115,12 +116,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     const halfSvgSize = (cellSize * 2.5) / 2;
-    // Removed boundary checks to allow free movement
     
     cellPositionRef.current = { x, y };
     if (cellWrapperRef.current) {
         cellWrapperRef.current.style.transform = `translate(${x - halfSvgSize}px, ${y - halfSvgSize}px)`;
     }
+
+    // Camera and zoom logic
+    const { width, height } = containerRef.current.getBoundingClientRect();
+    const zoomOutFactor = 0.005;
+    const initialZoom = 1.5;
+    const zoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
+
+    const camX = -cellPositionRef.current.x * zoom + width / 2;
+    const camY = -cellPositionRef.current.y * zoom + height / 2;
+    
+    worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${zoom})`;
     
     let nutrientsEaten = 0;
     const remainingNutrients: Position[] = [];
@@ -158,10 +169,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-voronoi animate-fade-in">
-        <div ref={cellWrapperRef} className="absolute">
-            <BioCell ref={cellApiRef} size={cellSize} />
+        <div ref={worldRef} className="absolute top-0 left-0 w-full h-full" style={{ transformOrigin: '0 0' }}>
+            <div ref={cellWrapperRef} className="absolute">
+                <BioCell ref={cellApiRef} size={cellSize} />
+            </div>
+            {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
         </div>
-        {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
         
         <GameUI cellSize={cellSize} score={score} />
 
