@@ -124,10 +124,14 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     const particleElements = svgRef.current?.querySelectorAll('.internal-particle');
     const nucleusGroup = svgRef.current?.querySelector('.nucleus-group') as SVGGElement | null;
     const nucleus = nucleusGroup?.querySelector('.nucleus') as SVGCircleElement | null;
+    const radiatingCircle1 = nucleusGroup?.querySelector('.radiating-circle-1') as SVGCircleElement | null;
+    const radiatingCircle2 = nucleusGroup?.querySelector('.radiating-circle-2') as SVGCircleElement | null;
 
-    if (!path || !particleElements || !nucleus || !nucleusGroup) return;
+    if (!path || !particleElements || !nucleus || !nucleusGroup || !radiatingCircle1 || !radiatingCircle2) return;
 
     let animatedWallPoints: Point[] = [];
+    let radiationTime1 = 0;
+    let radiationTime2 = 1.5; // Stagger the second circle
 
     const animate = (time: number) => {
       const currentSize = sizeRef.current;
@@ -142,10 +146,25 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       const inertiaOffsetY = -vy * 0.5;
 
       // Animate nucleus
+      const nucleusBaseRadius = INITIAL_SIZE * 0.15;
       const nucleusScale = 1 + Math.sin(time / 500) * 0.1;
-      nucleus.setAttribute('r', `${INITIAL_SIZE * 0.15 * nucleusScale}`);
+      nucleus.setAttribute('r', `${nucleusBaseRadius * nucleusScale}`);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
       nucleusGroup.setAttribute('transform', `translate(${inertiaOffsetX}, ${inertiaOffsetY})`);
+
+      // Animate radiating circles
+      const animateRadiation = (circle: SVGCircleElement, rTime: number) => {
+          const maxRadius = nucleusBaseRadius * 3;
+          const currentRadius = (rTime % 3) / 3 * maxRadius;
+          const opacity = Math.max(0, 1 - (currentRadius / maxRadius));
+
+          circle.setAttribute('r', `${currentRadius}`);
+          circle.setAttribute('opacity', `${opacity}`);
+          return rTime + 0.02;
+      };
+
+      radiationTime1 = animateRadiation(radiatingCircle1, radiationTime1);
+      radiationTime2 = animateRadiation(radiatingCircle2, radiationTime2);
 
 
       // Animate particles
@@ -225,6 +244,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         <g className="nucleus-group">
             <circle className="nucleus" cx={viewboxCenter} cy={viewboxCenter} r={INITIAL_SIZE * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
             <circle cx={viewboxCenter} cy={viewboxCenter} r={INITIAL_SIZE * 0.1} fill="hsl(var(--accent) / 0.5)" />
+            <circle className="radiating-circle-1" cx={viewboxCenter} cy={viewboxCenter} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
+            <circle className="radiating-circle-2" cx={viewboxCenter} cy={viewboxCenter} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
         </g>
 
         {/* Internal Particles */}
