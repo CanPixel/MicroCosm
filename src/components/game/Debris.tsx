@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo } from 'react';
@@ -18,19 +19,24 @@ export function Debris() {
       const size = Math.random() * 80 + 20; // Size between 20 and 100
       const duration = Math.random() * 40 + 20; // Animation duration between 20s and 60s
       const delay = Math.random() * -60; // Negative delay to start animations at different points
-      const opacity = Math.random() * 0.1 + 0.05; // Low opacity
       
       const type = Math.random();
 
       let Component;
+      let opacity;
+
       if (type < 0.1) {
         Component = Tardigrade;
+        opacity = Math.random() * 0.2 + 0.7; // High opacity
       } else if (type < 0.2) {
         Component = SpikyVirus;
+        opacity = Math.random() * 0.2 + 0.6; // High opacity
       } else if (type < 0.35) {
         Component = RodBacteria;
+        opacity = Math.random() * 0.2 + 0.8; // High opacity
       } else {
         Component = FloatingDebris;
+        opacity = Math.random() * 0.1 + 0.05; // Keep these very low opacity for atmosphere
       }
       
       return {

@@ -22,7 +22,7 @@ export function RodBacteria({ position, size, duration, delay, opacity }: RodBac
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size / 2}px`,
-        opacity: opacity * 3, // Make them a bit more visible
+        opacity: opacity,
     };
 
     return (

@@ -24,7 +24,7 @@ export function SpikyVirus({ position, size, duration, delay, opacity }: SpikyVi
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size}px`,
-        opacity: opacity * 2,
+        opacity: opacity,
     };
 
     return (

@@ -23,7 +23,7 @@ export function Tardigrade({ position, size, duration, delay, opacity }: Tardigr
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size}px`,
-        opacity: opacity * 1.5,
+        opacity: opacity,
     };
 
     return (
