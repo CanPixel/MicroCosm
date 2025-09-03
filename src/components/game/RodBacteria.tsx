@@ -12,10 +12,11 @@ type RodBacteriaProps = {
 };
 
 export function RodBacteria({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: RodBacteriaProps) {
+    const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
+    
     const animationStyle: React.CSSProperties = {
-        animation: `sway ${duration}s ease-in-out infinite, spin ${duration * 1.5}s linear infinite`,
+        animation: `sway ${duration}s ease-in-out infinite, ${animationName} ${duration * 1.5}s linear infinite`,
         animationDelay: `${delay}s, ${delay}s`,
-        animationDirection: `${animationDirection}, normal`,
         transformOrigin: 'center center',
     };
 
