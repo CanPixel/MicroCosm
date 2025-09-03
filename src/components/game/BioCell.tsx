@@ -154,6 +154,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
     if (!path || !particleElements || !speckElements || !nucleus || !nucleusGroup) return;
 
+    let animatedWallPoints: Point[] = [];
+
     const animate = (time: number) => {
       const currentSize = sizeRef.current;
       const { vx, vy } = velocityRef.current;
@@ -190,32 +192,11 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
       // Physics-based stretch logic
       const stretchFactor = speed > 0.1 ? Math.min(speed / 10, 0.4) : 0;
-
-      // Animate specks (passive drift only)
-      specksRef.current.forEach((s, i) => {
-          const speckEl = speckElements[i] as SVGCircleElement;
-          if (speckEl) {
-              let speckRadius = s.dist * currentBaseRadius;
-
-              if (stretchFactor > 0) {
-                const angleDiff = Math.cos(s.angle - movementAngle);
-                speckRadius += angleDiff * currentBaseRadius * stretchFactor * s.dist; // Stretch in direction of movement
-                speckRadius -= (1 - Math.abs(angleDiff)) * currentBaseRadius * stretchFactor * 0.5 * s.dist; // Squash perpendicular
-              }
-              
-              const x = currentViewboxCenter + speckRadius * Math.cos(s.angle) + inertiaOffsetX;
-              const y = currentViewboxCenter + speckRadius * Math.sin(s.angle) + inertiaOffsetY;
-              
-              speckEl.setAttribute('cx', `${x}`);
-              speckEl.setAttribute('cy', `${y}`);
-          }
-      });
-
-
+      
       // Wobble factor decreases as the cell gets bigger
       const wobbleFactor = Math.max(0.2, 1 - (currentSize - INITIAL_SIZE) / 500);
 
-      const newPoints = pointsRef.current.map(point => {
+      animatedWallPoints = pointsRef.current.map(point => {
         // Smoothly move radius towards target
         point.radius += (point.targetRadius - point.radius) * 0.1;
 
@@ -240,9 +221,35 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         return { x, y };
       });
       
-      const svgPath = catmullRomSpline(newPoints);
+      const svgPath = catmullRomSpline(animatedWallPoints);
       path.setAttribute('d', svgPath);
       
+      // Animate specks to follow the fluid dynamics of the cell wall
+      specksRef.current.forEach((s, i) => {
+          const speckEl = speckElements[i] as SVGCircleElement;
+          if (speckEl) {
+              // Find the two nearest wall points by angle
+              const wallPointIndex = Math.floor(s.angle / (2 * Math.PI / numPoints));
+              const p1 = animatedWallPoints[wallPointIndex % numPoints];
+              
+              // We interpolate between the center and the wall point
+              const wallDist = Math.sqrt(
+                  Math.pow(p1.x - currentViewboxCenter, 2) + 
+                  Math.pow(p1.y - currentViewboxCenter, 2)
+              );
+              
+              const speckDist = s.dist * wallDist;
+              const angle = Math.atan2(p1.y - currentViewboxCenter, p1.x - currentViewboxCenter);
+
+              const x = currentViewboxCenter + speckDist * Math.cos(angle) + inertiaOffsetX;
+              const y = currentViewboxCenter + speckDist * Math.sin(angle) + inertiaOffsetY;
+
+              speckEl.setAttribute('cx', `${x}`);
+              speckEl.setAttribute('cy', `${y}`);
+          }
+      });
+
+
       animationFrameId = requestAnimationFrame(animate);
     };
 
