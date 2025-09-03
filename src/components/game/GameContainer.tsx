@@ -21,6 +21,8 @@ const WORLD_HEIGHT = 4000;
 const MAX_SUGAR = 200;
 const SUGAR_SPAWN_INTERVAL = 1000; // ms
 const MAX_THEME_SIZE = 300;
+const COLLISION_PENALTY_FACTOR = 0.5; // Lose 50% of size difference
+const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
 
 type Position = { x: number; y: number };
 type SugarParticle = Position & { size: number };
@@ -263,6 +265,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // --- Collision & Consumption ---
     const currentCellRadius = cellSize / 2;
+    const newDebris = [...debris]; // Create a mutable copy
 
     // Sugars
     let totalScoreGained = 0;
@@ -293,33 +296,45 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setSugars(remainingSugars);
     }
     
-    // Organelles
+    // Organelles & Harmful Collisions
     const remainingDebris: DebrisItem[] = [];
     let collectedAny = false;
     const newEligibleOrganelles = new Set<string>();
 
     for(const d of debris) {
-      const isOrganelle = (d.Component as any).isOrganelle;
-      if (isOrganelle) {
-        // Check for eligibility
-        if(cellSize > d.props.size) {
-            newEligibleOrganelles.add(d.id);
-        }
-
-        const dx = cellPositionRef.current.x - d.initialPosition.x;
-        const dy = cellPositionRef.current.y - d.initialPosition.y;
+        const isOrganelle = (d.Component as any).isOrganelle;
+        const organismSize = d.props.size;
+        const organismPosition = d.props.position;
+        const dx = cellPositionRef.current.x - organismPosition.x;
+        const dy = cellPositionRef.current.y - organismPosition.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        
-        // Check for collection
-        if (newEligibleOrganelles.has(d.id) && dist < currentCellRadius + d.props.size / 2) {
-          setCollectedOrganelles(prev => new Set(prev).add((d.Component as any).type));
-          collectedAny = true;
-        } else {
-          remainingDebris.push(d);
+        const collisionThreshold = currentCellRadius + organismSize / 2;
+
+        if (isOrganelle) {
+            // Check for eligibility
+            if(cellSize > organismSize) {
+                newEligibleOrganelles.add(d.id);
+            }
+
+            // Check for collection only if eligible in this frame
+            if (newEligibleOrganelles.has(d.id) && dist < collisionThreshold) {
+                setCollectedOrganelles(prev => new Set(prev).add((d.Component as any).type));
+                collectedAny = true;
+            } else {
+                remainingDebris.push(d);
+            }
+        } else { // It's another organism, check for harmful collision
+            if (dist < collisionThreshold && cellSize < organismSize) {
+                const sizeDifference = organismSize - cellSize;
+                const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
+                const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
+
+                setCellSize(cs => Math.max(INITIAL_CELL_SIZE / 2, cs - sizePenalty));
+                setScore(s => Math.max(0, s - sizePenalty));
+                setEnergy(e => Math.max(0, e - energyPenalty));
+            }
+            remainingDebris.push(d);
         }
-      } else {
-        remainingDebris.push(d);
-      }
     }
 
     if (collectedAny) {
@@ -383,8 +398,20 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             <div className="absolute inset-0 z-20">
                 {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} size={sugar.size} />)}
                 {passiveDebris.map(d => {
-                     if (!eligibleOrganelles.has(d.id)) return null; // Render in the background layer
-                     return <d.Component key={d.id} {...d.props} opacity={1} />; // Render with full opacity
+                     if (!eligibleOrganelles.has(d.id)) return null;
+                     const glowStyle: React.CSSProperties = {
+                       filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))',
+                       position: 'absolute',
+                       top: d.props.position.y,
+                       left: d.props.position.x,
+                       width: d.props.size,
+                       height: d.props.size,
+                     };
+                     return (
+                        <div key={d.id} style={glowStyle}>
+                           <d.Component {...d.props} opacity={1} position={{x:0, y:0}}/>
+                        </div>
+                     )
                 })}
             </div>
 
@@ -408,4 +435,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
