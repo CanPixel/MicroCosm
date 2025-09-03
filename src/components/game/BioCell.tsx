@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, useState } from 'react';
@@ -268,7 +269,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
         {hasEvolved && (
             <path
                 className="outer-wall"
-                fill="hsl(var(--primary) / 0.2)"
+                fill="hsl(var(--foreground) / 0.05)"
                 stroke="hsl(var(--foreground))"
                 strokeWidth="3"
             />
@@ -277,7 +278,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
           className="inner-wall"
           fill={hasEvolved ? "transparent" : "hsl(var(--primary) / 0.2)"}
           stroke="hsl(var(--foreground))"
-          strokeWidth="3"
+          strokeWidth={hasEvolved ? "0" : "3"}
         />
 
         {/* Nucleus */}
