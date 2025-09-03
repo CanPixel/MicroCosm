@@ -5,7 +5,7 @@ import { Delaunay } from 'd3-delaunay';
 
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const NUM_POINTS = 200; // Increased from 50 to "zoom out"
+const NUM_POINTS = 2000;
 
 type MovingPoint = {
   x: number;
@@ -23,7 +23,7 @@ export function Background() {
     pointsRef.current = Array.from({ length: NUM_POINTS }, (_, i) => ({
       x: Math.random() * WORLD_WIDTH,
       y: Math.random() * WORLD_HEIGHT,
-      vx: (Math.random() - 0.5) * 0.2, // Slow horizontal velocity
+      vx: (Math.random() - 0.5) * 0.25, // Slow horizontal velocity
       vy: (Math.random() - 0.5) * 0.2, // Slow vertical velocity
     }));
 
@@ -71,7 +71,7 @@ export function Background() {
         <path
           ref={pathRef}
           fill="none"
-          stroke="hsl(var(--foreground) / 0.1)"
+          stroke="hsl(var(--foreground) / 0.05)"
           strokeWidth="2"
         />
       </svg>

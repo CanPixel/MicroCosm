@@ -33,22 +33,22 @@ export function GameUI({ cellSize, score, energy, font, onFontChange }: GameUIPr
 
   return (
     <>
-      <div className="fixed top-4 left-4 w-64 text-foreground z-20">
+      <div className="fixed top-4 left-4 w-50 text-foreground z-20">
         <Card className="bg-card/80 backdrop-blur-sm border-primary/20 mt-2">
           <CardHeader>
             <Logo font={font} />
-            <CardTitle className="flex items-center gap-2 text-lg text-primary font-headline pt-2">
+            <CardTitle className="flex items-center gap-2 text-md text-primary font-headline pt-2">
                 <Dna />
                 <span>BioCell Status</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between items-center text-sm">
+            <div className="flex justify-between items-center text-xs">
                 <span className="flex items-center gap-2"><Gauge className="w-4 h-4 text-foreground/70"/> Size</span>
                 <span>{score}μm</span>
             </div>
             <div className="space-y-1">
-                 <div className="flex justify-between items-center text-sm">
+                 <div className="flex justify-between items-center text-xs">
                     <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-foreground/70"/> Energy</span>
                     <span className={cn(energy < 20 && "text-red-500")}>{energy.toFixed(0)}%</span>
                 </div>
