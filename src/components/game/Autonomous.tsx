@@ -1,9 +1,17 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
+
+// Helper function for linear interpolation of angles (in degrees)
+function lerpAngle(a: number, b: number, t: number): number {
+  const diff = b - a;
+  const delta = (diff + 180) % 360 - 180;
+  return a + delta * t;
+}
 
 type AutonomousProps = {
   children: React.ReactNode;
@@ -45,8 +53,8 @@ export function Autonomous({ children, initialPosition }: AutonomousProps) {
         }
         
         // Update rotation
-        const angle = Math.atan2(velocityRef.current.y, velocityRef.current.x) * (180 / Math.PI);
-        setRotation(angle);
+        const targetAngle = Math.atan2(velocityRef.current.y, velocityRef.current.x) * (180 / Math.PI);
+        setRotation(prevRotation => lerpAngle(prevRotation, targetAngle, 0.05));
 
         return { x: newX, y: newY };
       });

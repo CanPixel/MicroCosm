@@ -1,3 +1,4 @@
+
 "use client";
 import React from 'react';
 
@@ -27,7 +28,7 @@ export function RodBacteria({ position, size, duration, delay, opacity, initialR
         width: `${size}px`,
         height: `${size / 2}px`,
         opacity: opacity,
-        transform: `rotate(${rotation + 90}deg)`,
+        transform: `rotate(${rotation}deg)`,
     };
 
     return (

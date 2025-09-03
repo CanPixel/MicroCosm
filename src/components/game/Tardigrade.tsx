@@ -1,3 +1,4 @@
+
 "use client";
 import React from 'react';
 
@@ -28,14 +29,14 @@ export function Tardigrade({ position, size, duration, delay, opacity, initialRo
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
-        transform: `rotate(${rotation - 90}deg)`, // Facing right, so -90
+        transform: `rotate(${rotation}deg)`, // Facing right originally, so no offset needed
     };
 
     return (
         <div style={style} className="absolute">
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 40 40">
-                    <g>
+                    <g transform="rotate(90 20 20)">
                         {/* Body */}
                         <path d="M 15,5 C 5,15 5,25 15,35 L 25,35 C 35,25 35,15 25,5 Z" 
                             fill="hsl(var(--chart-3) / 0.4)" 
