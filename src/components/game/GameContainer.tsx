@@ -24,6 +24,7 @@ type GameContainerProps = {
 export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
+  const [energy, setEnergy] = useState(100);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
   
@@ -50,6 +51,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     setCellSize(INITIAL_CELL_SIZE);
     setScore(0);
+    setEnergy(100);
     setNutrients(
       Array.from({ length: NUTRIENT_COUNT }, () => ({
         x: Math.random() * width,
@@ -165,8 +167,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     if (nutrientsEaten > 0) {
       setScore(s => s + 10 * nutrientsEaten);
       setCellSize(cs => cs + (4 * nutrientsEaten));
+      setEnergy(e => Math.min(100, e + 5 * nutrientsEaten));
       setNutrients(remainingNutrients);
     }
+
+    setEnergy(e => Math.max(0, e - 0.05));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
   }, [isGameOver, cellSize, nutrients]);
@@ -189,7 +194,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
         </div>
         
-        <GameUI cellSize={cellSize} score={score} />
+        <GameUI cellSize={cellSize} score={score} energy={energy} />
 
         <GameOverDialog score={score} isOpen={isGameOver} onRestart={onGameOver} />
     </div>

@@ -1,5 +1,7 @@
+
 "use client";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,10 +10,10 @@ import { Dna, Gauge, Shield, Zap } from "lucide-react";
 type GameUIProps = {
     cellSize: number;
     score: number;
+    energy: number;
 };
 
-export function GameUI({ cellSize, score }: GameUIProps) {
-  const energy = Math.min(100, (cellSize - 40) / 2);
+export function GameUI({ cellSize, score, energy }: GameUIProps) {
 
   return (
     <>
@@ -31,7 +33,7 @@ export function GameUI({ cellSize, score }: GameUIProps) {
             <div className="space-y-1">
                  <div className="flex justify-between items-center text-sm">
                     <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-foreground/70"/> Energy</span>
-                    <span>{energy.toFixed(0)}%</span>
+                    <span className={cn(energy < 20 && "text-red-500")}>{energy.toFixed(0)}%</span>
                 </div>
                 <Progress value={energy} className="h-2 [&>div]:bg-primary" />
             </div>

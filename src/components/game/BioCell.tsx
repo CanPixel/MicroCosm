@@ -60,13 +60,13 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   const pointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
   
   // Internal particles
-  const particles = useMemo(() => {
-    return Array.from({ length: 10 }).map(() => ({
+  const particlesRef = useRef(Array.from({ length: 10 }).map(() => ({
       x: Math.random() * 0.6 - 0.3, // range -0.3 to 0.3
       y: Math.random() * 0.6 - 0.3, // range -0.3 to 0.3
       r: Math.random() * 0.05 + 0.02, // radius relative to cell size
-    }));
-  }, []);
+      vx: (Math.random() - 0.5) * 0.001,
+      vy: (Math.random() - 0.5) * 0.001,
+  })));
 
   useEffect(() => {
     // Initialize points
@@ -80,7 +80,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   useEffect(() => {
     let animationFrameId: number;
     const path = svgRef.current?.querySelector('path');
-    if (!path) return;
+    const particleElements = svgRef.current?.querySelectorAll('.internal-particle');
+    const nucleus = svgRef.current?.querySelector('.nucleus') as SVGCircleElement | null;
+    if (!path || !particleElements || !nucleus) return;
 
     const animate = (time: number) => {
       const currentSize = sizeRef.current;
@@ -90,6 +92,27 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
       const currentBaseRadius = currentSize / 2;
       const currentViewboxCenter = (currentSize * 2.5) / 2;
+      
+      // Animate nucleus
+      const nucleusScale = 1 + Math.sin(time / 1000) * 0.05;
+      nucleus.setAttribute('r', `${currentSize * 0.15 * nucleusScale}`);
+      (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${currentSize * 0.1 * nucleusScale}`);
+
+      // Animate particles
+      particlesRef.current.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < -0.3 || p.x > 0.3) p.vx *= -1;
+        if (p.y < -0.3 || p.y > 0.3) p.vy *= -1;
+        
+        const particleEl = particleElements[i] as SVGCircleElement;
+        if (particleEl) {
+            particleEl.setAttribute('cx', `${currentViewboxCenter + p.x * currentBaseRadius}`);
+            particleEl.setAttribute('cy', `${currentViewboxCenter + p.y * currentBaseRadius}`);
+        }
+      });
+
 
       const newPoints = pointsRef.current.map(point => {
         // Smoothly move radius towards target
@@ -144,13 +167,14 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         />
 
         {/* Nucleus */}
-        <circle cx={viewboxCenter} cy={viewboxCenter} r={size * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
+        <circle className="nucleus" cx={viewboxCenter} cy={viewboxCenter} r={size * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
         <circle cx={viewboxCenter} cy={viewboxCenter} r={size * 0.1} fill="hsl(var(--accent) / 0.5)" />
 
         {/* Internal Particles */}
-        {particles.map((p, i) => (
+        {particlesRef.current.map((p, i) => (
           <circle
             key={i}
+            className="internal-particle"
             cx={viewboxCenter + p.x * baseRadius}
             cy={viewboxCenter + p.y * baseRadius}
             r={p.r * baseRadius}
