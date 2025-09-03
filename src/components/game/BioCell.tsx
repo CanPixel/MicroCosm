@@ -52,7 +52,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   
   const svgSize = useMemo(() => size * 2.5, [size]);
   const baseRadius = useMemo(() => size / 2, [size]);
-  const viewboxCenter = svgSize / 2;
+  const viewboxCenter = useMemo(() => svgSize / 2, [svgSize]);
 
   // Points for the cell wall, with some randomness
   const pointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
@@ -123,7 +123,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   const cellStyle: React.CSSProperties = {
     width: `${svgSize}px`,
     height: `${svgSize}px`,
-    transition: 'width 0.5s ease-out, height 0.5s ease-out',
+    transition: 'width 0.2s ease-out, height 0.2s ease-out',
     filter: 'drop-shadow(0 0 10px hsl(var(--primary) / 0.8))'
   };
 

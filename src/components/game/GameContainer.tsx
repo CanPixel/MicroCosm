@@ -12,6 +12,9 @@ const NUTRIENT_COUNT = 30;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
+const SIZE_LERP_FACTOR = 0.05;
+const ZOOM_LERP_FACTOR = 0.05;
+
 
 type Position = { x: number; y: number };
 
@@ -22,7 +25,9 @@ type GameContainerProps = {
 export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
+
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
+  const targetCellSizeRef = useRef(INITIAL_CELL_SIZE);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -32,6 +37,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
   const cameraPositionRef = useRef<Position>({ x: 0, y: 0 });
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
   
   const [nutrients, setNutrients] = useState<Position[]>([]);
 
@@ -45,6 +51,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const { width, height } = containerRef.current.getBoundingClientRect();
     
     setCellSize(INITIAL_CELL_SIZE);
+    targetCellSizeRef.current = INITIAL_CELL_SIZE;
     setScore(0);
     setNutrients(
       Array.from({ length: NUTRIENT_COUNT }, () => ({
@@ -99,6 +106,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     lastUpdateTimeRef.current = timestamp;
 
+    // Smoothly interpolate cell size
+    const currentSize = cellSize;
+    if (Math.abs(targetCellSizeRef.current - currentSize) > 0.1) {
+      const newSize = currentSize + (targetCellSizeRef.current - currentSize) * SIZE_LERP_FACTOR;
+      setCellSize(newSize);
+    }
+
     let targetVx = 0;
     let targetVy = 0;
     if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= MAX_SPEED;
@@ -125,9 +139,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     // Camera and zoom logic
     const { width, height } = containerRef.current.getBoundingClientRect();
-    const zoomOutFactor = 0.01;
+    const zoomOutFactor = 0.02;
     const initialZoom = 1.5;
-    const zoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
+    const targetZoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
+
+    // Smoothly interpolate zoom
+    zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
+    const zoom = zoomRef.current;
 
     // Smoothly move camera
     cameraPositionRef.current.x += (cellPositionRef.current.x - cameraPositionRef.current.x) * CAMERA_LERP_FACTOR;
@@ -156,7 +174,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     if (nutrientsEaten > 0) {
       setScore(s => s + 10 * nutrientsEaten);
-      setCellSize(s => s + 2 * nutrientsEaten);
+      targetCellSizeRef.current += (4 * nutrientsEaten);
       setNutrients(remainingNutrients);
     }
     
