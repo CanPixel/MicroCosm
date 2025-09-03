@@ -19,10 +19,10 @@ export function GameUI({ cellSize, score, energy }: GameUIProps) {
   return (
     <>
       <div className="fixed top-4 left-4 w-64 text-foreground z-20">
-        <Logo />
         <Card className="bg-card/80 backdrop-blur-sm border-primary/20 mt-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg text-primary font-headline">
+            <Logo />
+            <CardTitle className="flex items-center gap-2 text-lg text-primary font-headline pt-2">
                 <Dna />
                 <span>BioCell Status</span>
             </CardTitle>
