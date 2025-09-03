@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['Space Grotesk', 'sans-serif'],
+        headline: ['Space Grotesk', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -88,10 +88,33 @@ export default {
             height: '0',
           },
         },
+        'morph': {
+          '0%, 100%': { borderRadius: '42% 58% 70% 30% / 45% 45% 55% 55%' },
+          '25%': { borderRadius: '58% 42% 43% 57% / 53% 51% 49% 47%' },
+          '50%': { borderRadius: '48% 52% 55% 45% / 43% 54% 46% 57%' },
+          '75%': { borderRadius: '61% 39% 52% 48% / 52% 50% 50% 48%' },
+        },
+        'pulse-glow': {
+          '0%, 100%': {
+            filter: 'drop-shadow(0 0 5px hsl(var(--accent)))',
+            transform: 'scale(1)',
+          },
+          '50%': {
+            filter: 'drop-shadow(0 0 10px hsl(var(--accent))) drop-shadow(0 0 15px hsl(var(--accent)))',
+            transform: 'scale(1.1)',
+          },
+        },
+        'fade-in': {
+          'from': { opacity: '0' },
+          'to': { opacity: '1' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'morph': 'morph 8s ease-in-out infinite',
+        'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+        'fade-in': 'fade-in 0.5s ease-in-out',
       },
     },
   },
