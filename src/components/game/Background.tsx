@@ -5,7 +5,7 @@ import { Delaunay } from 'd3-delaunay';
 
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const NUM_POINTS = 2000;
+const NUM_POINTS = 1500;
 
 type MovingPoint = {
   x: number;
@@ -23,8 +23,8 @@ export function Background() {
     pointsRef.current = Array.from({ length: NUM_POINTS }, (_, i) => ({
       x: Math.random() * WORLD_WIDTH,
       y: Math.random() * WORLD_HEIGHT,
-      vx: (Math.random() - 0.5) * 0.25, // Slow horizontal velocity
-      vy: (Math.random() - 0.5) * 0.2, // Slow vertical velocity
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.1,
     }));
 
     let animationFrameId: number;
@@ -68,12 +68,11 @@ export function Background() {
         viewBox={`0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`}
         className="absolute top-0 left-0"
       >
-        <path
-          ref={pathRef}
-          fill="none"
-          stroke="hsl(var(--foreground) / 0.05)"
-          strokeWidth="2"
-        />
+      <path
+        ref={pathRef}
+        stroke="hsla(152, 49.80%, 50.00%, 0.06)"
+        strokeWidth="2"
+      />
       </svg>
     </div>
   );

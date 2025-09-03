@@ -26,7 +26,6 @@ type GameUIProps = {
 
 export function GameUI({ cellSize, score, energy, font, onFontChange }: GameUIProps) {
   const fonts = [
-    { value: 'font-headline', label: 'Space Grotesk' },
     { value: 'font-zcool-kuaile', label: 'ZCOOL KuaiLe' },
     { value: 'font-vibes', label: 'Vibes' },
   ];
