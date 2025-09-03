@@ -293,7 +293,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [gameLoop]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden animate-fade-in">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden">
         <Background />
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             {debris.map((d, i) => <Debris key={`d-${i}`} {...d} />)}
@@ -319,14 +319,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
-
-    
-
-
-
-
-
-
-
