@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -6,6 +5,8 @@ import { BioCell, BioCellHandle } from "./BioCell";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { Sugar } from "./Sugar";
+import { Background } from "./Background";
+import { Debris } from "./Debris";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_SPEED = 8;
@@ -249,8 +250,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [gameLoop]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background">
+        <Background />
+
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
+            <Debris />
             {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} />)}
 
             <div ref={cellWrapperRef} className="absolute">
