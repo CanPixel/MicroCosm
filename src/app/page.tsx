@@ -8,7 +8,7 @@ export default function Home() {
   const [gameState, setGameState] = useState<"start" | "playing">("playing");
 
   return (
-    <main className="relative min-h-screen w-full bg-background text-foreground">
+    <main className="relative min-h-screen w-full text-foreground">
       {gameState === 'start' ? (
         <StartScreen onStart={() => setGameState("playing")} />
       ) : (
