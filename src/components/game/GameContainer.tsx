@@ -4,12 +4,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { BioCell, BioCellHandle } from "./BioCell";
 import { Nutrient } from "./Nutrient";
+import { Debris } from "./Debris";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 
 const INITIAL_CELL_SIZE = 50;
 const NUTRIENT_COUNT = 30;
+const DEBRIS_COUNT = 100;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
@@ -18,6 +20,7 @@ const MAX_SCORE_FOR_TRANSITION = 1500;
 
 
 type Position = { x: number; y: number };
+type DebrisParticle = Position & { size: number; opacity: number; color: 'primary' | 'accent' };
 
 type GameContainerProps = {
     onGameOver: () => void;
@@ -54,6 +57,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const zoomRef = useRef(1);
   
   const [nutrients, setNutrients] = useState<Position[]>([]);
+  const [debris, setDebris] = useState<DebrisParticle[]>([]);
 
   const animationFrameId = useRef<number>();
   const lastUpdateTimeRef = useRef(0);
@@ -62,18 +66,29 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const resetGame = useCallback(() => {
     if (!containerRef.current) return;
     const { width, height } = containerRef.current.getBoundingClientRect();
+    const worldWidth = width * 2; // Make world larger
+    const worldHeight = height * 2;
     
     setCellSize(INITIAL_CELL_SIZE);
     setScore(0);
     setEnergy(100);
     setNutrients(
       Array.from({ length: NUTRIENT_COUNT }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
+        x: Math.random() * worldWidth,
+        y: Math.random() * worldHeight,
+      }))
+    );
+    setDebris(
+      Array.from({ length: DEBRIS_COUNT }, () => ({
+        x: Math.random() * worldWidth,
+        y: Math.random() * worldHeight,
+        size: Math.random() * 8 + 2,
+        opacity: Math.random() * 0.3 + 0.1,
+        color: Math.random() > 0.3 ? 'primary' : 'accent',
       }))
     );
     
-    const initialPosition = { x: width / 2, y: height / 2 };
+    const initialPosition = { x: worldWidth / 2, y: worldHeight / 2 };
     cellPositionRef.current = initialPosition;
     cameraPositionRef.current = initialPosition;
     velocityRef.current = { x: 0, y: 0 };
@@ -213,10 +228,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-voronoi animate-fade-in">
         <div ref={worldRef} className="absolute top-0 left-0 w-full h-full" style={{ transformOrigin: '0 0' }}>
+            {debris.map((d, i) => <Debris key={`d-${i}`} {...d} />)}
+            {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
+
             <div ref={cellWrapperRef} className="absolute">
                 <BioCell ref={cellApiRef} size={cellSize} />
             </div>
-            {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
         </div>
         
         <GameUI cellSize={cellSize} score={score} energy={energy} />
