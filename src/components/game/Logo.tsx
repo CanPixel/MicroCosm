@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 export function Logo() {
   return (
-    <div className="relative flex items-center justify-center mb-2">
+    <div className="relative flex items-center mb-2">
       <h1
         className="text-xl font-bold text-primary font-headline"
         style={{ filter: `drop-shadow(0 0 8px hsl(var(--primary)))` }}
