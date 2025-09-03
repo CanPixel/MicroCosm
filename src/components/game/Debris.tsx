@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Tardigrade } from './Tardigrade';
 import { SpikyVirus } from './SpikyVirus';
 import { RodBacteria } from './RodBacteria';
@@ -26,8 +26,7 @@ export type DebrisItem = {
     props: any;
 };
 
-export function Debris() {
-  return useMemo(() => {
+export function Debris(): DebrisItem[] {
     return Array.from({ length: DEBRIS_COUNT }, (_, i) => {
       const x = Math.random() * WORLD_WIDTH;
       const y = Math.random() * WORLD_HEIGHT;
@@ -103,7 +102,4 @@ export function Debris() {
         }
       };
     });
-  }, []);
 }
-
-    
