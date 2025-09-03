@@ -50,6 +50,14 @@ type Particle = {
   color: 'primary' | 'foreground' | 'accent';
 };
 
+type Speck = {
+    x: number;
+    y: number;
+    r: number;
+    opacity: number;
+};
+
+
 export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
@@ -75,6 +83,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   
   // Internal particles
   const particlesRef = useRef<Particle[]>([]);
+  const specksRef = useRef<Speck[]>([]);
+
 
   useEffect(() => {
     // Initialize points for the cell wall
@@ -85,7 +95,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     });
 
     // Initialize internal particles with more variety
-    particlesRef.current = Array.from({ length: 20 }).map(() => {
+    particlesRef.current = Array.from({ length: 10 }).map(() => {
       const rand = Math.random();
       let type: Particle['type'];
       let color: Particle['color'];
@@ -114,6 +124,19 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         color,
       };
     });
+
+    // Initialize cytoplasm specks
+    specksRef.current = Array.from({ length: 40 }).map(() => {
+        const angle = Math.random() * 2 * Math.PI;
+        // Distribute up to the edge of the cell
+        const radius = Math.random() * 0.95; 
+        return {
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+            r: Math.random() * 0.015 + 0.005, // very small radius
+            opacity: Math.random() * 0.4 + 0.1, // low opacity
+        };
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numPoints]);
 
@@ -121,10 +144,11 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     let animationFrameId: number;
     const path = svgRef.current?.querySelector('path');
     const particleElements = svgRef.current?.querySelectorAll('.internal-particle');
+    const speckElements = svgRef.current?.querySelectorAll('.cytoplasm-speck');
     const nucleusGroup = svgRef.current?.querySelector('.nucleus-group') as SVGGElement | null;
     const nucleus = nucleusGroup?.querySelector('.nucleus') as SVGCircleElement | null;
 
-    if (!path || !particleElements || !nucleus || !nucleusGroup) return;
+    if (!path || !particleElements || !speckElements || !nucleus || !nucleusGroup) return;
 
     const animate = (time: number) => {
       const currentSize = sizeRef.current;
@@ -159,6 +183,16 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
             particleEl.setAttribute('cy', `${currentViewboxCenter + p.y * initialBaseRadius + inertiaOffsetY}`);
         }
       });
+
+      // Animate specks (passive drift only)
+      specksRef.current.forEach((s, i) => {
+          const speckEl = speckElements[i] as SVGCircleElement;
+          if (speckEl) {
+              speckEl.setAttribute('cx', `${currentViewboxCenter + s.x * currentBaseRadius + inertiaOffsetX}`);
+              speckEl.setAttribute('cy', `${currentViewboxCenter + s.y * currentBaseRadius + inertiaOffsetY}`);
+          }
+      });
+
 
       // Wobble factor decreases as the cell gets bigger
       const wobbleFactor = Math.max(0.2, 1 - (currentSize - INITIAL_SIZE) / 500);
@@ -215,6 +249,20 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
           stroke="hsl(var(--foreground))"
           strokeWidth="3"
         />
+        
+        {/* Cytoplasm Specks */}
+        {specksRef.current.map((s, i) => (
+             <circle
+                key={`speck-${i}`}
+                className="cytoplasm-speck"
+                cx={viewboxCenter + s.x * initialBaseRadius}
+                cy={viewboxCenter + s.y * initialBaseRadius}
+                r={s.r * initialBaseRadius}
+                fill="hsl(var(--foreground))"
+                opacity={s.opacity}
+            />
+        ))}
+
 
         {/* Nucleus */}
         <g className="nucleus-group">
