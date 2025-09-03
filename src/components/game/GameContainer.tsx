@@ -18,22 +18,23 @@ type GameContainerProps = {
 };
 
 export function GameContainer({ onGameOver }: GameContainerProps) {
-  const [mousePosition, setMousePosition] = useState<Position>({ x: 0, y: 0 });
-  const [cellPosition, setCellPosition] = useState<Position>({ x: 0, y: 0 });
-  const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
+  const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
-
+  const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
+  const [cellPosition, setCellPosition] = useState<Position>({ x: 0, y: 0 });
   const [nutrients, setNutrients] = useState<Position[]>([]);
   const [enemies, setEnemies] = useState<Position[]>([]);
 
-  const [isGameOver, setIsGameOver] = useState(false);
-  
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameId = useRef<number>();
+  const mousePositionRef = useRef<Position>({ x: 0, y: 0 });
+  const lastUpdateTimeRef = useRef(0);
+  const updateInterval = 1000 / 60; // 60 FPS
 
   const resetGame = useCallback(() => {
     if (!containerRef.current) return;
     const { width, height } = containerRef.current.getBoundingClientRect();
+    
     setCellSize(INITIAL_CELL_SIZE);
     setScore(0);
     setNutrients(
@@ -48,85 +49,96 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         y: Math.random() * height,
       }))
     );
-    setCellPosition({ x: width / 2, y: height / 2 });
-    setMousePosition({ x: width / 2, y: height / 2 });
+    
+    const initialPosition = { x: width / 2, y: height / 2 };
+    setCellPosition(initialPosition);
+    mousePositionRef.current = initialPosition;
+    
     setIsGameOver(false);
   }, []);
 
   useEffect(() => {
-    const handleInitialSetup = () => {
-      if (containerRef.current) {
-        setMousePosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    if (containerRef.current) {
         resetGame();
-      }
-    };
-    handleInitialSetup();
+    }
   }, [resetGame]);
-  
+
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setMousePosition({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+        mousePositionRef.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       }
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
-  const gameLoop = useCallback(() => {
+  const gameLoop = useCallback((timestamp: number) => {
     if (isGameOver) {
-        if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      return;
+    }
+
+    if (timestamp - lastUpdateTimeRef.current < updateInterval) {
+        animationFrameId.current = requestAnimationFrame(gameLoop);
         return;
-    };
+    }
+    lastUpdateTimeRef.current = timestamp;
 
-    setCellPosition((pos) => {
-        const dx = mousePosition.x - pos.x;
-        const dy = mousePosition.y - pos.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const speed = Math.max(1, dist / 20);
-        if (dist < 5) return pos;
-        return {
-            x: pos.x + (dx / dist) * speed,
-            y: pos.y + (dy / dist) * speed,
-        };
+    setCellPosition((currentPos) => {
+      const dx = mousePositionRef.current.x - currentPos.x;
+      const dy = mousePositionRef.current.y - currentPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const speed = Math.max(1, dist / 20); // Speed is proportional to distance
+      
+      if (dist < 5) return currentPos;
+
+      return {
+        x: currentPos.x + (dx / dist) * speed,
+        y: currentPos.y + (dy / dist) * speed,
+      };
     });
-
-    const cellRadius = cellSize / 2;
 
     setNutrients(currentNutrients => {
-        const remaining: Position[] = [];
-        let nutrientsEaten = 0;
-        for (const nutrient of currentNutrients) {
-            const dx = cellPosition.x - nutrient.x;
-            const dy = cellPosition.y - nutrient.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < cellRadius) {
-                nutrientsEaten++;
-            } else {
-                remaining.push(nutrient);
-            }
-        }
-        if (nutrientsEaten > 0) {
-            setScore(s => s + 10 * nutrientsEaten);
-            setCellSize(s => s + 2 * nutrientsEaten);
-        }
-        return remaining;
-    });
+      let nutrientsEaten = 0;
+      const remaining: Position[] = [];
+      const currentCellRadius = cellSize / 2;
 
+      for (const nutrient of currentNutrients) {
+        const dx = cellPosition.x - nutrient.x;
+        const dy = cellPosition.y - nutrient.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < currentCellRadius) {
+          nutrientsEaten++;
+        } else {
+          remaining.push(nutrient);
+        }
+      }
+
+      if (nutrientsEaten > 0) {
+        setScore(s => s + 10 * nutrientsEaten);
+        setCellSize(s => s + 2 * nutrientsEaten);
+      }
+      return remaining.length > 0 ? remaining : [];
+    });
+    
+    // Using for...of loop for early exit
     for (const enemy of enemies) {
         const enemyRadius = 16;
+        const currentCellRadius = cellSize / 2;
         const dx = cellPosition.x - enemy.x;
         const dy = cellPosition.y - enemy.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < cellRadius + enemyRadius) {
+        if (dist < currentCellRadius + enemyRadius) {
             setIsGameOver(true);
-            break;
+            break; 
         }
     }
-
+    
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [cellPosition.x, cellPosition.y, cellSize, enemies, isGameOver, mousePosition.x, mousePosition.y]);
+  }, [isGameOver, cellSize, cellPosition.x, cellPosition.y, enemies]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);

@@ -12,7 +12,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
   return (
     <div className="relative z-10 p-8 flex flex-col items-center justify-center h-full w-full bg-gradient-to-b from-background/50 to-background">
       <h1
-        className="text-7xl md:text-8xl lg:text-9xl font-bold text-primary font-headline"
+        className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-primary font-headline text-center"
         style={{ filter: `drop-shadow(0 0 15px hsl(var(--primary)))` }}
       >
         MicroCosm
