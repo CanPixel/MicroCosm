@@ -24,8 +24,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
   
   const containerRef = useRef<HTMLDivElement>(null);
+  const cellRef = useRef<HTMLDivElement>(null);
   const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
-  const [cellPosition, setCellPosition] = useState<Position>({ x: 0, y: 0 });
   
   const [nutrients, setNutrients] = useState<Position[]>([]);
   const [enemies, setEnemies] = useState<Position[]>([]);
@@ -56,7 +56,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     const initialPosition = { x: width / 2, y: height / 2 };
     cellPositionRef.current = initialPosition;
-    setCellPosition(initialPosition);
+    if (cellRef.current) {
+        cellRef.current.style.transform = `translate(${initialPosition.x - (INITIAL_CELL_SIZE / 2)}px, ${initialPosition.y - (INITIAL_CELL_SIZE / 2)}px)`;
+    }
     keysPressedRef.current = {};
     
     setIsGameOver(false);
@@ -109,8 +111,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     
     cellPositionRef.current = { x, y };
-    setCellPosition({ x, y });
-
+    if (cellRef.current) {
+        const halfSize = cellSize / 2;
+        cellRef.current.style.transform = `translate(${x - halfSize}px, ${y - halfSize}px)`;
+    }
+    
     let nutrientsEaten = 0;
     const remainingNutrients: Position[] = [];
     const currentCellRadius = cellSize / 2;
@@ -157,8 +162,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [gameLoop]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background animate-fade-in">
-        <BioCell position={cellPosition} size={cellSize} />
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background animate-fade-in cursor-auto">
+        <BioCell ref={cellRef} size={cellSize} />
         {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
         {enemies.map((pos, i) => <Enemy key={`e-${i}`} position={pos} />)}
         
