@@ -7,7 +7,7 @@ import { Tardigrade } from './Tardigrade';
 import { SpikyVirus } from './SpikyVirus';
 import { RodBacteria } from './RodBacteria';
 
-const DEBRIS_COUNT = 40; // Increased count for more variety
+const DEBRIS_COUNT = 100; // Increased count for more variety
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
 
