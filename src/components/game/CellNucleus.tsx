@@ -50,3 +50,8 @@ export function CellNucleus({ position, size, duration, delay, opacity, initialR
         </div>
     );
 }
+
+CellNucleus.type = 'nucleus';
+CellNucleus.isOrganelle = true;
+
+    

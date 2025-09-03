@@ -61,3 +61,8 @@ export function GolgiApparatus({ position, size, duration, delay, opacity, initi
         </div>
     );
 }
+
+GolgiApparatus.type = 'golgi';
+GolgiApparatus.isOrganelle = true;
+
+    

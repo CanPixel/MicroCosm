@@ -59,3 +59,8 @@ export function Mitochondrion({ position, size, duration, delay, opacity, initia
         </div>
     );
 }
+
+Mitochondrion.type = 'mitochondrion';
+Mitochondrion.isOrganelle = true;
+
+    

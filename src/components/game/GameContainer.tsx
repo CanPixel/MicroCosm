@@ -7,7 +7,7 @@ import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { Sugar } from "./Sugar";
 import { Background } from "./Background";
-import { Debris } from "./Debris";
+import { Debris, DebrisItem } from "./Debris";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 
 const INITIAL_CELL_SIZE = 50;
@@ -62,6 +62,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const zoomRef = useRef(1);
   
   const [sugars, setSugars] = useState<SugarParticle[]>([]);
+  const [debris, setDebris] = useState<DebrisItem[]>([]);
+  const [collectedOrganelles, setCollectedOrganelles] = useState<Set<string>>(new Set());
   const [cameraForParallax, setCameraForParallax] = useState({ x: 0, y: 0 });
 
   const animationFrameId = useRef<number>();
@@ -158,6 +160,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setSugars([]);
     spawnSugars(15, true); 
     
+    // Set initial debris
+    setDebris(Debris());
+    setCollectedOrganelles(new Set());
+
     setIsGameOver(false);
   }, [spawnSugars]);
 
@@ -253,11 +259,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${zoom})`;
     
     // --- Collision & Consumption ---
+    const currentCellRadius = cellSize / 2;
+
+    // Sugars
     let totalScoreGained = 0;
     let totalEnergyGained = 0;
     let totalSizeGained = 0;
     const remainingSugars: SugarParticle[] = [];
-    const currentCellRadius = cellSize / 2;
 
     for (const sugar of sugars) {
         const dx = cellPositionRef.current.x - sugar.x;
@@ -282,11 +290,36 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setSugars(remainingSugars);
     }
     
+    // Organelles
+    const remainingDebris: DebrisItem[] = [];
+    let collectedAny = false;
+    for(const d of debris) {
+      const isOrganelle = (d.Component as any).isOrganelle;
+      if (isOrganelle) {
+        const dx = cellPositionRef.current.x - d.props.position.x;
+        const dy = cellPositionRef.current.y - d.props.position.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < currentCellRadius + d.props.size / 2) {
+          setCollectedOrganelles(prev => new Set(prev).add((d.Component as any).type));
+          collectedAny = true;
+        } else {
+          remainingDebris.push(d);
+        }
+      } else {
+        remainingDebris.push(d);
+      }
+    }
+
+    if (collectedAny) {
+      setDebris(remainingDebris);
+    }
+
     // --- Energy Drain ---
     setEnergy(e => Math.max(0, e - 0.01));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, sugars, score, spawnSugars]);
+  }, [isGameOver, cellSize, sugars, score, debris, spawnSugars]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -303,7 +336,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             <div className="absolute inset-0 z-10">
-                <Debris />
+                {debris.map(d => {
+                    if (d.isAutonomous) {
+                        return (
+                             <Autonomous key={d.id} initialPosition={d.initialPosition}>
+                                <d.Component {...d.props} />
+                            </Autonomous>
+                        )
+                    }
+                    return <d.Component key={d.id} {...d.props} />;
+                  })}
             </div>
             
             <div className="absolute inset-0 z-20">
@@ -323,9 +365,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             onFontChange={(newFont) => {
               if (newFont) setFont(newFont);
             }}
+            collectedOrganelles={collectedOrganelles}
         />
 
         <GameOverDialog score={score} isOpen={isGameOver} onRestart={onGameOver} />
     </div>
   );
 }
+
+    

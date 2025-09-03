@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -21,13 +22,22 @@ type GameUIProps = {
     energy: number;
     font: string;
     onFontChange: (font: string) => void;
+    collectedOrganelles: Set<string>;
 };
 
-export function GameUI({ cellSize, score, energy, font, onFontChange }: GameUIProps) {
+const abilities = [
+  { type: 'mitochondrion', icon: Zap, label: 'Boost Speed' },
+  { type: 'nucleus', icon: Shield, label: 'Evolve Shield' },
+  { type: 'golgi', icon: Dna, label: 'Genetic Code' },
+];
+
+export function GameUI({ cellSize, score, energy, font, onFontChange, collectedOrganelles }: GameUIProps) {
   const fonts = [
     { value: 'font-zcool-kuaile', label: 'ZCOOL KuaiLe' },
     { value: 'font-vibes', label: 'Vibes' },
   ];
+
+  const hasUnlockedAbilities = collectedOrganelles.size > 0;
 
   return (
     <>
@@ -72,17 +82,30 @@ export function GameUI({ cellSize, score, energy, font, onFontChange }: GameUIPr
       </div>
 
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
-        <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
+        <Card className={cn(
+            "bg-card/80 backdrop-blur-sm border-primary/20 transition-all",
+            !hasUnlockedAbilities && "bg-card/50 border-muted/20 backdrop-filter-none"
+        )}>
             <CardContent className="p-2">
                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" className="text-primary hover:bg-primary/10 hover:text-primary">
-                        <Shield />
-                        <span className="ml-2 hidden md:inline">Evolve Shield</span>
-                    </Button>
-                     <Button variant="ghost" className="text-primary hover:bg-primary/10 hover:text-primary">
-                        <Zap />
-                        <span className="ml-2 hidden md:inline">Boost Speed</span>
-                    </Button>
+                    {abilities.map(ability => {
+                        const isUnlocked = collectedOrganelles.has(ability.type);
+                        const Icon = ability.icon;
+                        return (
+                            <Button 
+                                key={ability.type}
+                                variant="ghost" 
+                                className={cn(
+                                    "text-primary hover:bg-primary/10 hover:text-primary",
+                                    !isUnlocked && "text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground/50"
+                                )}
+                                disabled={!isUnlocked}
+                            >
+                                <Icon className={cn(!hasUnlockedAbilities && !isUnlocked && "text-muted-foreground/30")} />
+                                {isUnlocked && <span className="ml-2 hidden md:inline">{ability.label}</span>}
+                            </Button>
+                        )
+                    })}
                 </div>
             </CardContent>
         </Card>
@@ -90,3 +113,5 @@ export function GameUI({ cellSize, score, energy, font, onFontChange }: GameUIPr
     </>
   );
 }
+
+    
