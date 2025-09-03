@@ -32,7 +32,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [energy, setEnergy] = useState(100);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
-  const [font, setFont] = useState("font-vibes");
+  const [font, setFont] = useState("font-zcool-kuaile");
   
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
