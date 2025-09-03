@@ -47,11 +47,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const cellWrapperRef = useRef<HTMLDivElement>(null);
   const cellApiRef = useRef<BioCellHandle>(null);
 
+  const keysPressedRef = useRef<{[key: string]: boolean}>({});
   const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
   const cameraPositionRef = useRef<Position>({ x: 0, y: 0 });
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   const zoomRef = useRef(1);
-  const keysPressedRef = useRef<{[key: string]: boolean}>({});
   
   const [nutrients, setNutrients] = useState<Position[]>([]);
 
