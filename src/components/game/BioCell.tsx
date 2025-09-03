@@ -8,31 +8,45 @@ type Point = { x: number; y: number };
 // Helper function to create a smooth path from points (Catmull-Rom spline)
 function catmullRomSpline(points: Point[], k: number = 1): string {
   if (points.length < 3) return '';
-  let d = `M${points[0].x},${points[0].y}`;
-  for (let i = 0; i < points.length; i++) {
-    const p0 = points[(i - 1 + points.length) % points.length];
-    const p1 = points[i];
-    const p2 = points[(i + 1) % points.length];
-    const p3 = points[(i + 2) % points.length];
+  
+  const pathData = [];
+  const loopedPoints = [...points, points[0], points[1], points[2]];
+
+  pathData.push(`M${loopedPoints[1].x},${loopedPoints[1].y}`);
+
+  for (let i = 1; i < loopedPoints.length - 2; i++) {
+    const p0 = loopedPoints[i-1];
+    const p1 = loopedPoints[i];
+    const p2 = loopedPoints[i+1];
+    const p3 = loopedPoints[i+2];
 
     const cp1x = p1.x + ((p2.x - p0.x) / 6) * k;
     const cp1y = p1.y + ((p2.y - p0.y) / 6) * k;
     const cp2x = p2.x - ((p3.x - p1.x) / 6) * k;
     const cp2y = p2.y - ((p3.y - p1.y) / 6) * k;
     
-    d += `C${cp1x},${cp1y},${cp2x},${cp2y},${p2.x},${p2.y}`;
+    pathData.push(`C${cp1x},${cp1y},${cp2x},${cp2y},${p2.x},${p2.y}`);
   }
-  return d;
+  return pathData.join('');
 }
+
+export type BioCellHandle = {
+  updateVelocity: (vx: number, vy: number) => void;
+};
 
 type BioCellProps = {
   size: number;
 };
 
-export const BioCell = forwardRef<HTMLDivElement, BioCellProps>(({ size }, ref) => {
+export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const localRef = useRef<HTMLDivElement>(null);
-  useImperativeHandle(ref, () => localRef.current as HTMLDivElement);
+  const velocityRef = useRef({ vx: 0, vy: 0 });
+
+  useImperativeHandle(ref, () => ({
+    updateVelocity: (vx, vy) => {
+      velocityRef.current = { vx, vy };
+    }
+  }));
   
   const numPoints = 12; // Number of points defining the cell shape
   const baseRadius = useMemo(() => size / 2, [size]);
@@ -64,17 +78,32 @@ export const BioCell = forwardRef<HTMLDivElement, BioCellProps>(({ size }, ref) 
     if (!path) return;
 
     const animate = (time: number) => {
+      const { vx, vy } = velocityRef.current;
+      const speed = Math.sqrt(vx * vx + vy * vy);
+      const movementAngle = Math.atan2(vy, vx);
+
       const newPoints = pointsRef.current.map(point => {
         // Smoothly move radius towards target
         point.radius += (point.targetRadius - point.radius) * 0.1;
 
         // Occasionally set a new target radius
         if (Math.random() < 0.01) {
-          point.targetRadius = baseRadius * (0.7 + Math.random() * 0.4);
+          point.targetRadius = baseRadius * (0.8 + Math.random() * 0.3);
+        }
+        
+        const pointAngle = point.angle + time / 5000;
+        let currentRadius = point.radius;
+
+        // Physics-based stretch
+        if (speed > 0.1) {
+            const angleDiff = Math.cos(pointAngle - movementAngle);
+            const stretchFactor = Math.min(speed / 10, 0.4); // max stretch
+            currentRadius += angleDiff * baseRadius * stretchFactor; // Stretch in direction of movement
+            currentRadius -= (1 - Math.abs(angleDiff)) * baseRadius * stretchFactor * 0.5; // Squash perpendicular to movement
         }
 
-        const x = baseRadius + point.radius * Math.cos(point.angle + time / 5000);
-        const y = baseRadius + point.radius * Math.sin(point.angle + time / 5000);
+        const x = baseRadius + currentRadius * Math.cos(pointAngle);
+        const y = baseRadius + currentRadius * Math.sin(pointAngle);
         return { x, y };
       });
       
@@ -88,7 +117,7 @@ export const BioCell = forwardRef<HTMLDivElement, BioCellProps>(({ size }, ref) 
     return () => cancelAnimationFrame(animationFrameId);
   }, [baseRadius]);
 
-  const svgSize = size * 1.2;
+  const svgSize = size * 1.5;
   const viewboxCenter = svgSize / 2;
 
   const cellStyle: React.CSSProperties = {
@@ -99,7 +128,7 @@ export const BioCell = forwardRef<HTMLDivElement, BioCellProps>(({ size }, ref) 
   };
 
   return (
-    <div ref={localRef} style={cellStyle} className="absolute">
+    <div style={cellStyle} className="absolute">
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
         {/* Cell Body */}
         <path

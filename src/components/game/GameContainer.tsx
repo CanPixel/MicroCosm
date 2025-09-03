@@ -2,16 +2,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { BioCell } from "./BioCell";
+import { BioCell, BioCellHandle } from "./BioCell";
 import { Nutrient } from "./Nutrient";
-import { Enemy } from "./Enemy";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 
 const INITIAL_CELL_SIZE = 50;
 const NUTRIENT_COUNT = 30;
-const ENEMY_COUNT = 5;
-const CELL_SPEED = 4;
+const MAX_SPEED = 8;
+const LERP_FACTOR = 0.08;
 
 type Position = { x: number; y: number };
 
@@ -25,11 +24,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
   
   const containerRef = useRef<HTMLDivElement>(null);
-  const cellRef = useRef<HTMLDivElement>(null);
+  const cellWrapperRef = useRef<HTMLDivElement>(null);
+  const cellApiRef = useRef<BioCellHandle>(null);
+
   const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
+  const velocityRef = useRef<Position>({ x: 0, y: 0 });
   
   const [nutrients, setNutrients] = useState<Position[]>([]);
-  const [enemies, setEnemies] = useState<Position[]>([]);
 
   const animationFrameId = useRef<number>();
   const keysPressedRef = useRef<{ [key: string]: boolean }>({});
@@ -48,18 +49,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         y: Math.random() * height,
       }))
     );
-    setEnemies(
-      Array.from({ length: ENEMY_COUNT }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-      }))
-    );
     
     const initialPosition = { x: width / 2, y: height / 2 };
     cellPositionRef.current = initialPosition;
-    if (cellRef.current) {
-        const halfSize = (INITIAL_CELL_SIZE * 1.2) / 2;
-        cellRef.current.style.transform = `translate(${initialPosition.x - halfSize}px, ${initialPosition.y - halfSize}px)`;
+    velocityRef.current = { x: 0, y: 0 };
+    if (cellWrapperRef.current) {
+        const halfSize = (INITIAL_CELL_SIZE * 1.5) / 2;
+        cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSize}px, ${initialPosition.y - halfSize}px)`;
     }
     keysPressedRef.current = {};
     
@@ -99,23 +95,36 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     lastUpdateTimeRef.current = timestamp;
 
+    let targetVx = 0;
+    let targetVy = 0;
+    if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= MAX_SPEED;
+    if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) targetVy += MAX_SPEED;
+    if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) targetVx -= MAX_SPEED;
+    if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) targetVx += MAX_SPEED;
+
+    // Smoothly interpolate velocity (Lerp)
+    velocityRef.current.x += (targetVx - velocityRef.current.x) * LERP_FACTOR;
+    velocityRef.current.y += (targetVy - velocityRef.current.y) * LERP_FACTOR;
+    
     let { x, y } = cellPositionRef.current;
-    if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) y -= CELL_SPEED;
-    if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) y += CELL_SPEED;
-    if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) x -= CELL_SPEED;
-    if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) x += CELL_SPEED;
+    x += velocityRef.current.x;
+    y += velocityRef.current.y;
+    
+    if (cellApiRef.current) {
+        cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
+    }
 
     if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        const radius = (cellSize * 1.2) / 2;
+        const radius = (cellSize * 1.5) / 2; // Use SVG size for boundary check
         x = Math.max(radius, Math.min(width - radius, x));
         y = Math.max(radius, Math.min(height - radius, y));
     }
     
     cellPositionRef.current = { x, y };
-    if (cellRef.current) {
-        const halfSize = (cellSize * 1.2) / 2;
-        cellRef.current.style.transform = `translate(${x - halfSize}px, ${y - halfSize}px)`;
+    if (cellWrapperRef.current) {
+        const halfSize = (cellSize * 1.5) / 2;
+        cellWrapperRef.current.style.transform = `translate(${x - halfSize}px, ${y - halfSize}px)`;
     }
     
     let nutrientsEaten = 0;
@@ -136,23 +145,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     if (nutrientsEaten > 0) {
       setScore(s => s + 10 * nutrientsEaten);
-      setCellSize(s => s + 2 * nutrientsEaten);
+      setCellSize(s => s + 1 * nutrientsEaten); // Reduced growth rate
       setNutrients(remainingNutrients);
     }
     
-    for (const enemy of enemies) {
-        const enemyRadius = 16;
-        const dx = cellPositionRef.current.x - enemy.x;
-        const dy = cellPositionRef.current.y - enemy.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < currentCellRadius + enemyRadius) {
-            setIsGameOver(true);
-            break; 
-        }
-    }
-    
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, nutrients, enemies]);
+  }, [isGameOver, cellSize, nutrients]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -165,9 +163,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background animate-fade-in">
-        <BioCell ref={cellRef} size={cellSize} />
+        <div ref={cellWrapperRef} className="absolute">
+            <BioCell ref={cellApiRef} size={cellSize} />
+        </div>
         {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
-        {enemies.map((pos, i) => <Enemy key={`e-${i}`} position={pos} />)}
         
         <GameUI cellSize={cellSize} score={score} />
 
