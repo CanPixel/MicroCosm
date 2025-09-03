@@ -9,11 +9,10 @@ type CiliateProps = {
   opacity: number;
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
+  rotation?: number;
 };
 
-const NUM_CILIA = 30;
-
-export function Ciliate({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: CiliateProps) {
+export function Ciliate({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: CiliateProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
     
     const animationStyle: React.CSSProperties = {
@@ -28,7 +27,7 @@ export function Ciliate({ position, size, duration, delay, opacity, initialRotat
         width: `${size}px`,
         height: `${size * 0.7}px`, // Make it more pill-shaped
         opacity: opacity,
-        transform: `rotate(${initialRotation}deg)`,
+        transform: `rotate(${rotation + 90}deg)`,
     };
 
     return (
@@ -36,9 +35,9 @@ export function Ciliate({ position, size, duration, delay, opacity, initialRotat
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size * 0.7} viewBox="0 0 20 14">
                     {/* Cilia */}
-                    {Array.from({ length: NUM_CILIA }).map((_, i) => {
+                    {Array.from({ length: 30 }).map((_, i) => {
                         const perimeter = 2 * Math.PI * (10-2) + 2 * Math.PI * (7-2); // Approximation of pill shape perimeter
-                        const progress = (i / NUM_CILIA);
+                        const progress = (i / 30);
                         
                         let x1, y1, angle;
                         const halfPerimeter = perimeter/2;

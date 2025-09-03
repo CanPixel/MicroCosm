@@ -9,9 +9,10 @@ type FlagellateProtistProps = {
   opacity: number;
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
+  rotation?: number;
 };
 
-export function FlagellateProtist({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: FlagellateProtistProps) {
+export function FlagellateProtist({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: FlagellateProtistProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
 
     const animationStyle: React.CSSProperties = {
@@ -26,7 +27,7 @@ export function FlagellateProtist({ position, size, duration, delay, opacity, in
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
-        transform: `rotate(${initialRotation}deg)`,
+        transform: `rotate(${rotation + 90}deg)`,
     };
 
     const flagellaAnimationStyle1: React.CSSProperties = {

@@ -9,9 +9,10 @@ type RodBacteriaProps = {
   opacity: number;
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
+  rotation?: number;
 };
 
-export function RodBacteria({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: RodBacteriaProps) {
+export function RodBacteria({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: RodBacteriaProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
     
     const animationStyle: React.CSSProperties = {
@@ -26,7 +27,7 @@ export function RodBacteria({ position, size, duration, delay, opacity, initialR
         width: `${size}px`,
         height: `${size / 2}px`,
         opacity: opacity,
-        transform: `rotate(${initialRotation}deg)`,
+        transform: `rotate(${rotation + 90}deg)`,
     };
 
     return (

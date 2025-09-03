@@ -9,9 +9,10 @@ type BacteriophageProps = {
   opacity: number;
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
+  rotation?: number; // New prop for facing direction
 };
 
-export function Bacteriophage({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: BacteriophageProps) {
+export function Bacteriophage({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: BacteriophageProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
 
     const animationStyle: React.CSSProperties = {
@@ -26,7 +27,9 @@ export function Bacteriophage({ position, size, duration, delay, opacity, initia
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
-        transform: `rotate(${initialRotation}deg)`,
+        // The rotation prop from Autonomous now controls the facing direction. 
+        // We add 90 degrees because the SVG is drawn pointing "up".
+        transform: `rotate(${rotation + 90}deg)`,
     };
 
     return (

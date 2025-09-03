@@ -12,6 +12,7 @@ type AutonomousProps = {
 
 export function Autonomous({ children, initialPosition }: AutonomousProps) {
   const [position, setPosition] = useState(initialPosition);
+  const [rotation, setRotation] = useState(0);
   const velocityRef = useRef({ x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2 });
   const speed = useMemo(() => Math.random() * 0.5 + 0.25, []); // Random speed for variety
 
@@ -42,6 +43,10 @@ export function Autonomous({ children, initialPosition }: AutonomousProps) {
             velocityRef.current.x = Math.cos(newAngle);
             velocityRef.current.y = Math.sin(newAngle);
         }
+        
+        // Update rotation
+        const angle = Math.atan2(velocityRef.current.y, velocityRef.current.x) * (180 / Math.PI);
+        setRotation(angle);
 
         return { x: newX, y: newY };
       });
@@ -56,12 +61,10 @@ export function Autonomous({ children, initialPosition }: AutonomousProps) {
     };
   }, [speed]);
   
-  // We need to clone the child to inject the new position prop
+  // We need to clone the child to inject the new position and rotation props
   const childWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-      // The child's `position` prop will be overridden by the state managed here.
-      // The original position passed to the child is effectively its spawn point.
-      return React.cloneElement(child as React.ReactElement<any>, { position });
+      return React.cloneElement(child as React.ReactElement<any>, { position, rotation });
     }
     return child;
   });

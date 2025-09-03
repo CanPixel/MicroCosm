@@ -9,10 +9,11 @@ type TardigradeProps = {
   opacity: number;
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
+  rotation?: number;
 };
 
 // A simplified tardigrade
-export function Tardigrade({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: TardigradeProps) {
+export function Tardigrade({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: TardigradeProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
 
     const animationStyle: React.CSSProperties = {
@@ -27,14 +28,14 @@ export function Tardigrade({ position, size, duration, delay, opacity, initialRo
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
-        transform: `rotate(${initialRotation}deg)`,
+        transform: `rotate(${rotation - 90}deg)`, // Facing right, so -90
     };
 
     return (
         <div style={style} className="absolute">
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 40 40">
-                    <g transform="rotate(45 20 20)">
+                    <g>
                         {/* Body */}
                         <path d="M 15,5 C 5,15 5,25 15,35 L 25,35 C 35,25 35,15 25,5 Z" 
                             fill="hsl(var(--chart-3) / 0.4)" 
@@ -52,7 +53,7 @@ export function Tardigrade({ position, size, duration, delay, opacity, initialRo
                         {/* Legs */}
                         <path d="M 12,12 C 8,12 6,10 6,14" fill="none" stroke="hsl(var(--chart-3))" strokeWidth="1.5" />
                         <path d="M 12,18 C 6,18 4,16 4,20" fill="none" stroke="hsl(var(--chart-3))" strokeWidth="1.5" />
-                        <path d_ci d="M 12,24 C 8,24 6,26 6,30" fill="none" stroke="hsl(var(--chart-3))" strokeWidth="1.5" />
+                        <path d="M 12,24 C 8,24 6,26 6,30" fill="none" stroke="hsl(var(--chart-3))" strokeWidth="1.5" />
                         
                         <path d="M 28,12 C 32,12 34,10 34,14" fill="none" stroke="hsl(var(--chart-3))" strokeWidth="1.5" />
                         <path d="M 28,18 C 34,18 36,16 36,20" fill="none" stroke="hsl(var(--chart-3))" strokeWidth="1.5" />
