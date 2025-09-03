@@ -125,7 +125,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     // Camera and zoom logic
     const { width, height } = containerRef.current.getBoundingClientRect();
-    const zoomOutFactor = 0.005;
+    const zoomOutFactor = 0.01;
     const initialZoom = 1.5;
     const zoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
 
@@ -156,7 +156,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     if (nutrientsEaten > 0) {
       setScore(s => s + 10 * nutrientsEaten);
-      setCellSize(s => s + 1 * nutrientsEaten); // Reduced growth rate
+      setCellSize(s => s + 2 * nutrientsEaten);
       setNutrients(remainingNutrients);
     }
     
