@@ -57,40 +57,40 @@ export function Debris(): DebrisItem[] {
         opacity = Math.random() * 0.2 + 0.3; // Low opacity for background
       }
       // Active organisms
-      else if (type < 0.32) { // 2% chance for Fungi
+      else if (type < 0.35) { // 5% chance for Fungi
         Component = FungiWall;
         opacity = Math.random() * 0.1 + 0.9; // High opacity
         isAutonomous = false; // It's stationary
       }
-      else if (type < 0.35) { // 3% chance
+      else if (type < 0.40) { // 5% chance
         Component = CancerCell;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
         isAutonomous = true;
-      } else if (type < 0.38) { // 3% chance for giant amoeba
+      } else if (type < 0.45) { // 5% chance for giant amoeba
         Component = Amoeba;
         opacity = Math.random() * 0.3 + 0.7;
         isAutonomous = true;
       }
-      else if (type < 0.48) { // 10%
+      else if (type < 0.55) { // 10%
         Component = Tardigrade;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
         isAutonomous = true;
-      } else if (type < 0.58) { // 10%
+      } else if (type < 0.65) { // 10%
         Component = SpikyVirus;
         opacity = Math.random() * 0.2 + 0.6; // High opacity
-      } else if (type < 0.68) { // 10%
+      } else if (type < 0.75) { // 10%
         Component = RodBacteria;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
         isAutonomous = true;
-      } else if (type < 0.78) { // 10%
+      } else if (type < 0.85) { // 10%
         Component = FlagellateProtist;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
         isAutonomous = true;
-      } else if (type < 0.88) { // 10%
+      } else if (type < 0.95) { // 10%
         Component = Ciliate;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
         isAutonomous = true;
-      } else { // 12%
+      } else { // 5%
         Component = Bacteriophage;
         opacity = Math.random() * 0.3 + 0.6; // High opacity
         isAutonomous = true;

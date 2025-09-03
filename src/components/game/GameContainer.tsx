@@ -293,12 +293,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // Organelles & Harmful Collisions
     const newEligibleOrganelles = new Set<string>();
-    const allDebris = [...debris]; // Create a mutable copy for this frame
-    const remainingDebrisAfterFrame: DebrisItem[] = [];
+    let remainingDebrisInFrame = [...debris];
     const collectedOrganelleTypesThisFrame = new Set<string>();
 
     // First pass: check for organelle collection
-    for (const d of allDebris) {
+    const stillUncollectedDebris: DebrisItem[] = [];
+    for (const d of remainingDebrisInFrame) {
         if ((d.Component as any).isOrganelle) {
             const organismSize = d.props.size;
             const organismPosition = d.props.position;
@@ -313,24 +313,23 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
                 if (dist < collisionThreshold) {
                     collectedOrganelleTypesThisFrame.add((d.Component as any).type);
-                    // Don't add to remainingDebrisAfterFrame to "remove" it
+                    // Don't add to stillUncollectedDebris to "remove" it
                 } else {
-                    remainingDebrisAfterFrame.push(d); // Not collected, keep it
+                    stillUncollectedDebris.push(d); // Not collected, keep it
                 }
             } else {
-                remainingDebrisAfterFrame.push(d); // Not eligible, keep it
+                stillUncollectedDebris.push(d); // Not eligible, keep it
             }
         } else {
             // This is not an organelle, it might be harmful. Keep it for the next pass.
-            remainingDebrisAfterFrame.push(d);
+            stillUncollectedDebris.push(d);
         }
     }
     
     // Second pass: check for harmful collisions with what's left
-    const finalDebrisList: DebrisItem[] = [];
-    for (const d of remainingDebrisAfterFrame) {
+    for (const d of stillUncollectedDebris) {
         // Organelles are already handled and filtered, so we only need to check non-organelles.
-        if (!(d.Component as any).isOrganelle) {
+        if ((d.Component as any).isHarmful) {
             const organismSize = d.props.size;
             const organismPosition = d.props.position;
             const dx = cellPositionRef.current.x - organismPosition.x;
@@ -352,12 +351,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 }
             }
         }
-        finalDebrisList.push(d); // Keep all non-organelles in the list for now
     }
 
     // Update state based on collections
     if (collectedOrganelleTypesThisFrame.size > 0) {
-      setDebris(remainingDebrisAfterFrame); // Update debris list with collected organelles removed
+      setDebris(stillUncollectedDebris);
       setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
     }
     

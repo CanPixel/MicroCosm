@@ -84,3 +84,5 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
         </div>
     );
 }
+
+FungiWall.isHarmful = true;

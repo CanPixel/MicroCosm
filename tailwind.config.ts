@@ -179,7 +179,11 @@ export default {
         'tentacle-whip': {
             '0%': { transform: 'rotate(-10deg) scaleY(0.9)' },
             '100%': { transform: 'rotate(10deg) scaleY(1.1)' },
-        }
+        },
+        'sine-wave': {
+          '0%': { transform: 'translateX(-5px)' },
+          '100%': { transform: 'translateX(5px)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
