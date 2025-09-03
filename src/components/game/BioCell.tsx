@@ -81,8 +81,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     let animationFrameId: number;
     const path = svgRef.current?.querySelector('path');
     const particleElements = svgRef.current?.querySelectorAll('.internal-particle');
-    const nucleus = svgRef.current?.querySelector('.nucleus') as SVGCircleElement | null;
-    if (!path || !particleElements || !nucleus) return;
+    const nucleusGroup = svgRef.current?.querySelector('.nucleus-group') as SVGGElement | null;
+    const nucleus = nucleusGroup?.querySelector('.nucleus') as SVGCircleElement | null;
+
+    if (!path || !particleElements || !nucleus || !nucleusGroup) return;
 
     const animate = (time: number) => {
       const currentSize = sizeRef.current;
@@ -93,10 +95,15 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       const currentBaseRadius = currentSize / 2;
       const currentViewboxCenter = (currentSize * 2.5) / 2;
       
+      const inertiaOffsetX = -vx * 0.5;
+      const inertiaOffsetY = -vy * 0.5;
+
       // Animate nucleus
       const nucleusScale = 1 + Math.sin(time / 1000) * 0.05;
       nucleus.setAttribute('r', `${currentSize * 0.15 * nucleusScale}`);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${currentSize * 0.1 * nucleusScale}`);
+      nucleusGroup.setAttribute('transform', `translate(${inertiaOffsetX}, ${inertiaOffsetY})`);
+
 
       // Animate particles
       particlesRef.current.forEach((p, i) => {
@@ -108,8 +115,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         
         const particleEl = particleElements[i] as SVGCircleElement;
         if (particleEl) {
-            particleEl.setAttribute('cx', `${currentViewboxCenter + p.x * currentBaseRadius}`);
-            particleEl.setAttribute('cy', `${currentViewboxCenter + p.y * currentBaseRadius}`);
+            particleEl.setAttribute('cx', `${currentViewboxCenter + p.x * currentBaseRadius + inertiaOffsetX}`);
+            particleEl.setAttribute('cy', `${currentViewboxCenter + p.y * currentBaseRadius + inertiaOffsetY}`);
         }
       });
 
@@ -167,8 +174,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         />
 
         {/* Nucleus */}
-        <circle className="nucleus" cx={viewboxCenter} cy={viewboxCenter} r={size * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
-        <circle cx={viewboxCenter} cy={viewboxCenter} r={size * 0.1} fill="hsl(var(--accent) / 0.5)" />
+        <g className="nucleus-group">
+            <circle className="nucleus" cx={viewboxCenter} cy={viewboxCenter} r={size * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
+            <circle cx={viewboxCenter} cy={viewboxCenter} r={size * 0.1} fill="hsl(var(--accent) / 0.5)" />
+        </g>
 
         {/* Internal Particles */}
         {particlesRef.current.map((p, i) => (
