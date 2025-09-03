@@ -18,9 +18,11 @@ function lerpAngle(a: number, b: number, t: number): number {
 type AutonomousProps = {
   children: React.ReactNode;
   initialPosition: { x: number; y: number };
+  onPositionChange: (newPosition: { x: number, y: number }) => void;
+  size: number;
 };
 
-export function Autonomous({ children, initialPosition }: AutonomousProps) {
+export function Autonomous({ children, initialPosition, onPositionChange, size }: AutonomousProps) {
   const [position, setPosition] = useState(initialPosition);
   const [rotation, setRotation] = useState(0);
   const [isMoving, setIsMoving] = useState(false);
@@ -63,7 +65,9 @@ export function Autonomous({ children, initialPosition }: AutonomousProps) {
         const currentSpeed = Math.sqrt(velocityRef.current.x**2 + velocityRef.current.y**2);
         setIsMoving(currentSpeed * speed > MOVEMENT_THRESHOLD);
 
-        return { x: newX, y: newY };
+        const newPosition = { x: newX, y: newY };
+        onPositionChange(newPosition); // Report new position up to the parent
+        return newPosition;
       });
 
       animationFrameId = requestAnimationFrame(move);
@@ -74,12 +78,13 @@ export function Autonomous({ children, initialPosition }: AutonomousProps) {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speed]);
   
   // We need to clone the child to inject the new position and rotation props
   const childWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-      return React.cloneElement(child as React.ReactElement<any>, { position, rotation, isMoving });
+      return React.cloneElement(child as React.ReactElement<any>, { position, rotation, isMoving, size });
     }
     return child;
   });

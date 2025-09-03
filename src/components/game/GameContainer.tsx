@@ -19,15 +19,21 @@ const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const MAX_SUGAR = 200;
-const SUGAR_SPAWN_INTERVAL = 1000; // ms
+const MAX_SUGAR = 100; // Reduced density
+const BASE_SUGAR_SPAWN_INTERVAL = 2000; // ms
+const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 0.5; // Lose 50% of size difference
 const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
 const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
 
 type Position = { x: number; y: number };
-type SugarParticle = Position & { size: number };
+type SugarParticle = Position & { size: number, createdAt: number };
+type OrganismState = {
+    position: Position;
+    size: number;
+};
+type OrganismStateMap = { [id: string]: OrganismState };
 
 
 type GameContainerProps = {
@@ -69,6 +75,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   
   const [sugars, setSugars] = useState<SugarParticle[]>([]);
   const [debris, setDebris] = useState<DebrisItem[]>([]);
+  const [organismStates, setOrganismStates] = useState<OrganismStateMap>({});
   const [collectedOrganelles, setCollectedOrganelles] = useState<Set<string>>(new Set());
   const [eligibleOrganelles, setEligibleOrganelles] = useState<Set<string>>(new Set());
   const [cameraForParallax, setCameraForParallax] = useState({ x: 0, y: 0 });
@@ -101,26 +108,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const newSugars: SugarParticle[] = [];
     const { width, height } = containerRef.current.getBoundingClientRect();
     const spawnPadding = 100;
+    const now = Date.now();
 
     for (let i = 0; i < count; i++) {
         const camX = cameraPositionRef.current.x;
         const camY = cameraPositionRef.current.y;
         
         let x, y;
+        
+        // Spawn randomly just off-screen in a circle
+        const angle = Math.random() * 2 * Math.PI;
+        const spawnRadius = immediate ? 
+            Math.random() * Math.min(width, height) * 0.7 :
+            Math.max(width, height) / (2 * zoomRef.current) + spawnPadding;
 
-        if (immediate) {
-             // Spawn within a radius of the screen center for the initial set
-             const angle = Math.random() * 2 * Math.PI;
-             const radius = Math.random() * Math.min(width, height) * 0.7;
-             x = camX + Math.cos(angle) * radius;
-             y = camY + Math.sin(angle) * radius;
-        } else {
-            // Spawn randomly just off-screen
-            const angle = Math.random() * 2 * Math.PI;
-            const spawnRadius = Math.max(width, height) / (2 * zoomRef.current) + spawnPadding;
-            x = camX + Math.cos(angle) * spawnRadius;
-            y = camY + Math.sin(angle) * spawnRadius;
-        }
+        x = camX + Math.cos(angle) * spawnRadius;
+        y = camY + Math.sin(angle) * spawnRadius;
         
         const size = Math.round(Math.random() * 8 + 4); // size between 4px and 12px
 
@@ -128,6 +131,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
             y: Math.max(0, Math.min(WORLD_HEIGHT, y)),
             size,
+            createdAt: now,
         });
     }
 
@@ -159,7 +163,18 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     spawnSugars(30, true); 
     
     // Set initial debris
-    setDebris(Debris());
+    const initialDebris = Debris();
+    setDebris(initialDebris);
+    
+    const initialOrganismStates: OrganismStateMap = {};
+    initialDebris.forEach(d => {
+        initialOrganismStates[d.id] = {
+            position: d.initialPosition,
+            size: d.props.size,
+        };
+    });
+    setOrganismStates(initialOrganismStates);
+
     setCollectedOrganelles(new Set());
     setEligibleOrganelles(new Set());
 
@@ -187,6 +202,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     };
   }, []);
 
+  const handleOrganismPositionChange = useCallback((id: string, newPosition: Position) => {
+    setOrganismStates(prev => ({
+        ...prev,
+        [id]: { ...prev[id], position: newPosition },
+    }));
+  }, []);
+
   const gameLoop = useCallback((timestamp: number) => {
     if (isGameOver || !containerRef.current || !worldRef.current) {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
@@ -194,6 +216,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     const elapsed = timestamp - lastUpdateTimeRef.current;
+    const now = Date.now();
 
     if (elapsed < updateInterval) {
         animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -201,13 +224,31 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     lastUpdateTimeRef.current = timestamp;
 
-    // --- Sugar Spawning ---
-    if (timestamp - lastSugarSpawnTimeRef.current > SUGAR_SPAWN_INTERVAL) {
+    // --- Sugar Spawning & Despawning ---
+    const growthFactor = Math.max(1, (cellSize - INITIAL_CELL_SIZE) / 100);
+    const dynamicSpawnInterval = BASE_SUGAR_SPAWN_INTERVAL * growthFactor;
+
+    if (timestamp - lastSugarSpawnTimeRef.current > dynamicSpawnInterval) {
         if (sugars.length < MAX_SUGAR) {
-            spawnSugars(5); // Spawn 5 new sugars
+            spawnSugars(5);
         }
         lastSugarSpawnTimeRef.current = timestamp;
     }
+    
+    const { width, height } = containerRef.current.getBoundingClientRect();
+    const despawnPadding = 200;
+    const viewLeft = cameraPositionRef.current.x - (width / (2 * zoomRef.current)) - despawnPadding;
+    const viewRight = cameraPositionRef.current.x + (width / (2 * zoomRef.current)) + despawnPadding;
+    const viewTop = cameraPositionRef.current.y - (height / (2 * zoomRef.current)) - despawnPadding;
+    const viewBottom = cameraPositionRef.current.y + (height / (2 * zoomRef.current)) + despawnPadding;
+
+    setSugars(currentSugars => currentSugars.filter(sugar => {
+        const isOffScreen = sugar.x < viewLeft || sugar.x > viewRight || sugar.y < viewTop || sugar.y > viewBottom;
+        if (isOffScreen && (now - sugar.createdAt > SUGAR_LIFETIME)) {
+            return false; // Despawn
+        }
+        return true;
+    }));
 
     // --- Player Movement ---
     const currentMaxSpeed = isStarving ? MAX_SPEED * 0.1 : MAX_SPEED;
@@ -234,7 +275,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     // --- Camera and Zoom ---
-    const { width, height } = containerRef.current.getBoundingClientRect();
     const zoomOutFactor = 0.02;
     const initialZoom = 2.0;
     const targetZoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
@@ -255,11 +295,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // --- Collision & Consumption ---
     const currentCellRadius = cellSize / 2;
 
-    // Sugars
+    // Sugars (Player)
     let totalScoreGained = 0;
     let totalEnergyGained = 0;
     let totalSizeGained = 0;
-    const remainingSugars: SugarParticle[] = [];
+    let remainingSugars: SugarParticle[] = [];
 
     for (const sugar of sugars) {
         const dx = cellPositionRef.current.x - sugar.x;
@@ -289,7 +329,50 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         setIsStarving(false);
       }
       setSugars(remainingSugars);
+    } else {
+      setSugars(remainingSugars);
     }
+
+    // Sugars (Debris)
+    let stillRemainingSugars: SugarParticle[] = [];
+    let organismSizeChanges: {[id: string]: number} = {};
+
+    for (const sugar of sugars) {
+        let eaten = false;
+        for (const d of debris) {
+            if (d.isAutonomous) {
+                const organismState = organismStates[d.id];
+                if (!organismState) continue;
+
+                const dx = organismState.position.x - sugar.x;
+                const dy = organismState.position.y - sugar.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const collisionThreshold = organismState.size / 2;
+
+                if (dist < collisionThreshold) {
+                    const sizeMultiplier = sugar.size / 8;
+                    organismSizeChanges[d.id] = (organismSizeChanges[d.id] || 0) + (1 * sizeMultiplier);
+                    eaten = true;
+                    break;
+                }
+            }
+        }
+        if (!eaten) {
+            stillRemainingSugars.push(sugar);
+        }
+    }
+
+    if (Object.keys(organismSizeChanges).length > 0) {
+        setOrganismStates(prev => {
+            const newStates = { ...prev };
+            for (const id in organismSizeChanges) {
+                newStates[id] = { ...newStates[id], size: newStates[id].size + organismSizeChanges[id] };
+            }
+            return newStates;
+        });
+        setSugars(stillRemainingSugars);
+    }
+    
     
     // Organelles & Harmful Collisions
     const newEligibleOrganelles = new Set<string>();
@@ -300,16 +383,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const stillUncollectedDebris: DebrisItem[] = [];
     for (const d of remainingDebrisInFrame) {
         if ((d.Component as any).isOrganelle) {
-            const organismSize = d.props.size;
-            const organismPosition = d.props.position;
-            const isEligible = cellSize > organismSize;
+            const organismState = organismStates[d.id];
+            if (!organismState) {
+                stillUncollectedDebris.push(d);
+                continue;
+            }
+            const isEligible = cellSize > organismState.size;
             
             if (isEligible) {
                 newEligibleOrganelles.add(d.id);
-                const dx = cellPositionRef.current.x - organismPosition.x;
-                const dy = cellPositionRef.current.y - organismPosition.y;
+                const dx = cellPositionRef.current.x - organismState.position.x;
+                const dy = cellPositionRef.current.y - organismState.position.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                const collisionThreshold = currentCellRadius + organismSize / 2;
+                const collisionThreshold = currentCellRadius + organismState.size / 2;
 
                 if (dist < collisionThreshold) {
                     collectedOrganelleTypesThisFrame.add((d.Component as any).type);
@@ -330,15 +416,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     for (const d of stillUncollectedDebris) {
         // Organelles are already handled and filtered, so we only need to check non-organelles.
         if ((d.Component as any).isHarmful) {
-            const organismSize = d.props.size;
-            const organismPosition = d.props.position;
-            const dx = cellPositionRef.current.x - organismPosition.x;
-            const dy = cellPositionRef.current.y - organismPosition.y;
+            const organismState = organismStates[d.id];
+            if (!organismState) continue;
+
+            const dx = cellPositionRef.current.x - organismState.position.x;
+            const dy = cellPositionRef.current.y - organismState.position.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const collisionThreshold = currentCellRadius + organismSize / 2;
+            const collisionThreshold = currentCellRadius + organismState.size / 2;
             
-            if (dist < collisionThreshold && cellSize < organismSize) {
-                const sizeDifference = organismSize - cellSize;
+            if (dist < collisionThreshold && cellSize < organismState.size) {
+                const sizeDifference = organismState.size - cellSize;
                 const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
                 const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
 
@@ -391,7 +478,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, isStarving, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles]);
+  }, [isGameOver, isStarving, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -415,22 +502,31 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             {/* Layer for Passive/Background Organelles */}
             <div className="absolute inset-0 z-10">
                 {passiveDebris.map(d => {
-                     if (eligibleOrganelles.has(d.id)) return null; // Render in the foreground layer
-                     return <d.Component key={d.id} {...d.props} />;
+                     const organismState = organismStates[d.id];
+                     if (!organismState || eligibleOrganelles.has(d.id)) return null; // Render in the foreground layer
+                     return <d.Component key={d.id} {...d.props} position={organismState.position} size={organismState.size} />;
                 })}
             </div>
 
             {/* Layer for Active Organisms */}
             <div className="absolute inset-0 z-10">
                 {activeDebris.map(d => {
+                    const organismState = organismStates[d.id];
+                    if (!organismState) return null;
+
                     if (d.isAutonomous) {
                         return (
-                             <Autonomous key={d.id} initialPosition={d.initialPosition}>
+                             <Autonomous 
+                                key={d.id} 
+                                initialPosition={d.initialPosition}
+                                onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
+                                size={organismState.size}
+                             >
                                 <d.Component {...d.props} />
                             </Autonomous>
                         )
                     }
-                    return <d.Component key={d.id} {...d.props} />;
+                    return <d.Component key={d.id} {...d.props} position={organismState.position} size={organismState.size}/>;
                   })}
             </div>
             
@@ -438,18 +534,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             <div className="absolute inset-0 z-20">
                 {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} size={sugar.size} />)}
                 {passiveDebris.map(d => {
-                     if (!eligibleOrganelles.has(d.id)) return null;
+                     const organismState = organismStates[d.id];
+                     if (!organismState || !eligibleOrganelles.has(d.id)) return null;
                      const glowStyle: React.CSSProperties = {
                        filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))',
                        position: 'absolute',
-                       top: d.props.position.y,
-                       left: d.props.position.x,
-                       width: d.props.size,
-                       height: d.props.size,
+                       top: organismState.position.y,
+                       left: organismState.position.x,
+                       width: organismState.size,
+                       height: organismState.size,
                      };
                      return (
                         <div key={d.id} style={glowStyle}>
-                           <d.Component {...d.props} opacity={1} position={{x:0, y:0}}/>
+                           <d.Component {...d.props} opacity={1} position={{x:0, y:0}} size={organismState.size}/>
                         </div>
                      )
                 })}
