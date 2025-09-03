@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -57,7 +58,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const initialPosition = { x: width / 2, y: height / 2 };
     cellPositionRef.current = initialPosition;
     if (cellRef.current) {
-        cellRef.current.style.transform = `translate(${initialPosition.x - (INITIAL_CELL_SIZE / 2)}px, ${initialPosition.y - (INITIAL_CELL_SIZE / 2)}px)`;
+        const halfSize = (INITIAL_CELL_SIZE * 1.2) / 2;
+        cellRef.current.style.transform = `translate(${initialPosition.x - halfSize}px, ${initialPosition.y - halfSize}px)`;
     }
     keysPressedRef.current = {};
     
@@ -105,14 +107,14 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        const radius = cellSize / 2;
+        const radius = (cellSize * 1.2) / 2;
         x = Math.max(radius, Math.min(width - radius, x));
         y = Math.max(radius, Math.min(height - radius, y));
     }
     
     cellPositionRef.current = { x, y };
     if (cellRef.current) {
-        const halfSize = cellSize / 2;
+        const halfSize = (cellSize * 1.2) / 2;
         cellRef.current.style.transform = `translate(${x - halfSize}px, ${y - halfSize}px)`;
     }
     
@@ -162,7 +164,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [gameLoop]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background animate-fade-in cursor-auto">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background animate-fade-in">
         <BioCell ref={cellRef} size={cellSize} />
         {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
         {enemies.map((pos, i) => <Enemy key={`e-${i}`} position={pos} />)}
