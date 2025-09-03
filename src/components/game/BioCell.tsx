@@ -5,6 +5,8 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo } fr
 
 type Point = { x: number; y: number };
 
+const INITIAL_SIZE = 50;
+
 // Helper function to create a smooth path from points (Catmull-Rom spline)
 function catmullRomSpline(points: Point[], k: number = 1): string {
   if (points.length < 3) return '';
@@ -55,6 +57,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   const svgSize = useMemo(() => size * 2.5, [size]);
   const baseRadius = useMemo(() => size / 2, [size]);
   const viewboxCenter = useMemo(() => svgSize / 2, [svgSize]);
+  
+  const initialBaseRadius = useMemo(() => INITIAL_SIZE / 2, []);
+
 
   // Points for the cell wall, with some randomness
   const pointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
@@ -64,18 +69,19 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       x: Math.random() * 0.6 - 0.3, // range -0.3 to 0.3
       y: Math.random() * 0.6 - 0.3, // range -0.3 to 0.3
       r: Math.random() * 0.05 + 0.02, // radius relative to cell size
-      vx: (Math.random() - 0.5) * 0.005,
-      vy: (Math.random() - 0.5) * 0.005,
+      vx: (Math.random() - 0.5) * 0.01,
+      vy: (Math.random() - 0.5) * 0.01,
   })));
 
   useEffect(() => {
     // Initialize points
     pointsRef.current = Array.from({ length: numPoints }, (_, i) => {
       const angle = (i / numPoints) * 2 * Math.PI;
-      const initialRadius = (size/2) * (0.8 + Math.random() * 0.2);
-      return { angle, radius: initialRadius, targetRadius: initialRadius };
+      const initialRadiusVal = (size/2) * (0.8 + Math.random() * 0.2);
+      return { angle, radius: initialRadiusVal, targetRadius: initialRadiusVal };
     });
-  }, [size, numPoints]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [numPoints]);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -99,9 +105,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       const inertiaOffsetY = -vy * 0.5;
 
       // Animate nucleus
-      const nucleusScale = 1 + Math.sin(time / 500) * 0.08;
-      nucleus.setAttribute('r', `${currentSize * 0.15 * nucleusScale}`);
-      (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${currentSize * 0.1 * nucleusScale}`);
+      const nucleusScale = 1 + Math.sin(time / 400) * 0.15;
+      nucleus.setAttribute('r', `${INITIAL_SIZE * 0.15 * nucleusScale}`);
+      (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
       nucleusGroup.setAttribute('transform', `translate(${inertiaOffsetX}, ${inertiaOffsetY})`);
 
 
@@ -115,8 +121,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         
         const particleEl = particleElements[i] as SVGCircleElement;
         if (particleEl) {
-            particleEl.setAttribute('cx', `${currentViewboxCenter + p.x * currentBaseRadius + inertiaOffsetX}`);
-            particleEl.setAttribute('cy', `${currentViewboxCenter + p.y * currentBaseRadius + inertiaOffsetY}`);
+            particleEl.setAttribute('cx', `${currentViewboxCenter + p.x * initialBaseRadius + inertiaOffsetX}`);
+            particleEl.setAttribute('cy', `${currentViewboxCenter + p.y * initialBaseRadius + inertiaOffsetY}`);
         }
       });
 
@@ -175,8 +181,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
         {/* Nucleus */}
         <g className="nucleus-group">
-            <circle className="nucleus" cx={viewboxCenter} cy={viewboxCenter} r={size * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
-            <circle cx={viewboxCenter} cy={viewboxCenter} r={size * 0.1} fill="hsl(var(--accent) / 0.5)" />
+            <circle className="nucleus" cx={viewboxCenter} cy={viewboxCenter} r={INITIAL_SIZE * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
+            <circle cx={viewboxCenter} cy={viewboxCenter} r={INITIAL_SIZE * 0.1} fill="hsl(var(--accent) / 0.5)" />
         </g>
 
         {/* Internal Particles */}
@@ -184,9 +190,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
           <circle
             key={i}
             className="internal-particle"
-            cx={viewboxCenter + p.x * baseRadius}
-            cy={viewboxCenter + p.y * baseRadius}
-            r={p.r * baseRadius}
+            cx={viewboxCenter + p.x * initialBaseRadius}
+            cy={viewboxCenter + p.y * initialBaseRadius}
+            r={p.r * initialBaseRadius}
             fill="hsl(var(--primary) / 0.3)"
           />
         ))}
