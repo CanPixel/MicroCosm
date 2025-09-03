@@ -5,7 +5,7 @@ type FloatingDebrisProps = {
 };
 
 export function FloatingDebris({ position }: FloatingDebrisProps) {
-  const animationDuration = Math.random() * 5 + 8; // 8s to 13s
+  const animationDuration = Math.random() * 10 + 15; // 15s to 25s for a very slow drift
   const style: React.CSSProperties = {
     top: `${position.y}px`,
     left: `${position.x}px`,
@@ -16,5 +16,3 @@ export function FloatingDebris({ position }: FloatingDebrisProps) {
 
   return <div style={style} className="absolute w-3 h-3 bg-primary/40 rounded-full animate-sway" />;
 }
-
-    
