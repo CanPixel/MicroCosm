@@ -46,6 +46,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const zoomRef = useRef(1);
   
   const [sugars, setSugars] = useState<SugarParticle[]>([]);
+  const [cameraForParallax, setCameraForParallax] = useState({ x: 0, y: 0 });
 
   const animationFrameId = useRef<number>();
   const lastUpdateTimeRef = useRef(0);
@@ -107,6 +108,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const initialPosition = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
     cellPositionRef.current = initialPosition;
     cameraPositionRef.current = initialPosition;
+    setCameraForParallax(initialPosition);
+
     velocityRef.current = { x: 0, y: 0 };
     if (cellWrapperRef.current) {
         const halfSvgSize = (INITIAL_CELL_SIZE * 2.5) / 2;
@@ -204,6 +207,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     cameraPositionRef.current.x += (cellPositionRef.current.x - cameraPositionRef.current.x) * CAMERA_LERP_FACTOR;
     cameraPositionRef.current.y += (cellPositionRef.current.y - cameraPositionRef.current.y) * CAMERA_LERP_FACTOR;
+    
+    setCameraForParallax({ x: cameraPositionRef.current.x, y: cameraPositionRef.current.y });
 
     const camX = -cameraPositionRef.current.x * zoom + width / 2;
     const camY = -cameraPositionRef.current.y * zoom + height / 2;
@@ -251,7 +256,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background">
-        <Background />
+        <Background cameraPosition={cameraForParallax} />
 
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             <Debris />

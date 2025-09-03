@@ -14,9 +14,16 @@ type MovingPoint = {
   vy: number;
 };
 
-export function Background() {
+type BackgroundProps = {
+  cameraPosition: { x: number; y: number };
+};
+
+export function Background({ cameraPosition }: BackgroundProps) {
   const pathRef = useRef<SVGPathElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const pointsRef = useRef<MovingPoint[]>([]);
+
+  const parallaxFactor = 0.5; // Move background at 50% of camera speed
 
   useEffect(() => {
     // Initialize points with random velocities for movement
@@ -60,13 +67,23 @@ export function Background() {
     };
   }, []);
 
+  useEffect(() => {
+    if (svgRef.current) {
+      const offsetX = -cameraPosition.x * parallaxFactor;
+      const offsetY = -cameraPosition.y * parallaxFactor;
+      svgRef.current.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    }
+  }, [cameraPosition]);
+
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
       <svg
+        ref={svgRef}
         width={WORLD_WIDTH}
         height={WORLD_HEIGHT}
         viewBox={`0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`}
         className="absolute top-0 left-0"
+        style={{ willChange: 'transform' }}
       >
       <path
         ref={pathRef}
