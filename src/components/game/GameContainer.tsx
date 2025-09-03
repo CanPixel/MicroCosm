@@ -12,6 +12,7 @@ import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { Autonomous } from "./Autonomous";
 
 const INITIAL_CELL_SIZE = 50;
+const MAX_CELL_SCORE = 600;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
@@ -265,7 +266,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // --- Collision & Consumption ---
     const currentCellRadius = cellSize / 2;
-    const newDebris = [...debris]; // Create a mutable copy
 
     // Sugars
     let totalScoreGained = 0;
@@ -289,9 +289,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         }
     }
     
-    if (totalScoreGained > 0) {
-      setScore(s => s + Math.round(totalScoreGained));
-      setCellSize(cs => cs + totalSizeGained);
+    if (totalScoreGained > 0 && score < MAX_CELL_SCORE) {
+      const newScore = Math.min(MAX_CELL_SCORE, score + totalScoreGained);
+      const newSize = Math.min(INITIAL_CELL_SIZE + (MAX_CELL_SCORE - INITIAL_CELL_SIZE), cellSize + totalSizeGained);
+      
+      setScore(Math.round(newScore));
+      setCellSize(newSize);
       setEnergy(e => Math.min(100, e + totalEnergyGained));
       setSugars(remainingSugars);
     }
@@ -332,6 +335,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 setCellSize(cs => Math.max(INITIAL_CELL_SIZE / 2, cs - sizePenalty));
                 setScore(s => Math.max(0, s - sizePenalty));
                 setEnergy(e => Math.max(0, e - energyPenalty));
+
+                if (cellApiRef.current) {
+                    cellApiRef.current.takeDamage();
+                }
             }
             remainingDebris.push(d);
         }
@@ -351,7 +358,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setEnergy(e => Math.max(0, e - 0.01));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, sugars, score, debris, spawnSugars, eligibleOrganelles]);
+  }, [isGameOver, cellSize, score, sugars, debris, spawnSugars, eligibleOrganelles]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);

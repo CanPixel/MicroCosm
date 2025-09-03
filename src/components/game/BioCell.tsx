@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, useState, useCallback } from 'react';
 
 type Point = { x: number; y: number };
 
@@ -36,6 +36,7 @@ function catmullRomSpline(points: Point[], k: number = 1): string {
 
 export type BioCellHandle = {
   updateVelocity: (vx: number, vy: number) => void;
+  takeDamage: () => void;
 };
 
 type BioCellProps = {
@@ -53,6 +54,16 @@ type Particle = {
   color: 'primary' | 'foreground' | 'accent';
 };
 
+type DamageParticle = {
+    id: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    opacity: number;
+    size: number;
+}
+
 export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
@@ -60,12 +71,37 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
   sizeRef.current = size;
 
   const [hasEvolved, setHasEvolved] = useState(false);
+  const [damageParticles, setDamageParticles] = useState<DamageParticle[]>([]);
   const evolutionFactorRef = useRef(1);
+  const damageAnimationRef = useRef(0);
+
+  const takeDamage = useCallback(() => {
+    damageAnimationRef.current = 1; // Start the damage animation
+    
+    const newParticles: DamageParticle[] = [];
+    const numParticles = 8 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < numParticles; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3 + 1;
+        newParticles.push({
+            id: Math.random(),
+            x: 0, // start at center
+            y: 0,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            opacity: 1,
+            size: Math.random() * 4 + 2,
+        });
+    }
+    setDamageParticles(d => [...d, ...newParticles]);
+
+  }, []);
 
   useImperativeHandle(ref, () => ({
     updateVelocity: (vx, vy) => {
       velocityRef.current = { vx, vy };
-    }
+    },
+    takeDamage,
   }));
   
   const numPoints = 12; // Number of points defining the cell shape
@@ -168,6 +204,16 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
       if (hasEvolved && evolutionFactorRef.current < EVOLUTION_SIZE_MULTIPLIER) {
         evolutionFactorRef.current += (EVOLUTION_SIZE_MULTIPLIER - evolutionFactorRef.current) * 0.05;
       }
+      
+      // Damage animation
+      let damageScale = 1;
+      if (damageAnimationRef.current > 0) {
+          // A sine wave makes a nice deflate/reinflate effect
+          damageScale = 1 - Math.sin(damageAnimationRef.current * Math.PI) * 0.3;
+          damageAnimationRef.current -= 0.05; // speed of animation
+      } else {
+          damageAnimationRef.current = 0;
+      }
 
       // Animate nucleus
       const nucleusBaseRadius = INITIAL_SIZE * 0.15;
@@ -205,6 +251,15 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
             particleEl.setAttribute('cy', `${currentViewboxCenter + p.y * initialBaseRadius + inertiaOffsetY}`);
         }
       });
+      
+      setDamageParticles(prev => 
+        prev.map(p => ({
+            ...p,
+            x: p.x + p.vx,
+            y: p.y + p.vy,
+            opacity: p.opacity - 0.02,
+        })).filter(p => p.opacity > 0)
+      );
 
       // Physics-based stretch logic
       const stretchFactor = speed > 0.1 ? Math.min(speed / 10, 0.4) : 0;
@@ -224,7 +279,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
           }
           
           const pointAngle = point.angle + time / (5000 + (currentSize - INITIAL_SIZE) * 10); // Rotation slows down
-          let currentRadius = point.radius * radiusMultiplier;
+          let currentRadius = point.radius * radiusMultiplier * damageScale;
   
           // Apply physics-based stretch
           if (stretchFactor > 0) {
@@ -323,11 +378,23 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
                 />
             )
         })}
+        
+        {/* Damage Particles */}
+        {damageParticles.map(p => (
+            <rect 
+                key={p.id}
+                x={viewboxCenter + p.x}
+                y={viewboxCenter + p.y}
+                width={p.size}
+                height={p.size}
+                fill="hsl(var(--destructive))"
+                opacity={p.opacity}
+            />
+        ))}
+
       </svg>
     </div>
   );
 });
 
 BioCell.displayName = 'BioCell';
-
-    

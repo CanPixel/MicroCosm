@@ -13,6 +13,7 @@ import { CancerCell } from './CancerCell';
 import { Mitochondrion } from './Mitochondrion';
 import { GolgiApparatus } from './GolgiApparatus';
 import { CellNucleus } from './CellNucleus';
+import { Amoeba } from './Amoeba';
 
 const DEBRIS_COUNT = 100; // Increased count for more variety
 const WORLD_WIDTH = 4000;
@@ -43,45 +44,55 @@ export function Debris(): DebrisItem[] {
       let isAutonomous = false;
 
       // Organelles
-      if (type < 0.15) {
+      if (type < 0.1) {
         Component = Mitochondrion;
         opacity = Math.random() * 0.2 + 0.3; // Low opacity for background
-      } else if (type < 0.3) {
+      } else if (type < 0.2) {
         Component = GolgiApparatus;
         opacity = Math.random() * 0.2 + 0.3; // Low opacity for background
       }
-      else if (type < 0.45) {
+      else if (type < 0.3) {
         Component = CellNucleus;
         opacity = Math.random() * 0.2 + 0.3; // Low opacity for background
       }
       // Active organisms
-      else if (type < 0.47) { // 2% chance
+      else if (type < 0.33) { // 3% chance
         Component = CancerCell;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
         isAutonomous = true;
-      } else if (type < 0.55) { // 8%
+      } else if (type < 0.36) { // 3% chance for giant amoeba
+        Component = Amoeba;
+        opacity = Math.random() * 0.3 + 0.7;
+        isAutonomous = true;
+      }
+      else if (type < 0.46) { // 10%
         Component = Tardigrade;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
         isAutonomous = true;
-      } else if (type < 0.63) { // 8%
+      } else if (type < 0.56) { // 10%
         Component = SpikyVirus;
         opacity = Math.random() * 0.2 + 0.6; // High opacity
-      } else if (type < 0.71) { // 8%
+      } else if (type < 0.66) { // 10%
         Component = RodBacteria;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
         isAutonomous = true;
-      } else if (type < 0.79) { // 8%
+      } else if (type < 0.76) { // 10%
         Component = FlagellateProtist;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
         isAutonomous = true;
-      } else if (type < 0.87) { // 8%
+      } else if (type < 0.86) { // 10%
         Component = Ciliate;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
         isAutonomous = true;
-      } else { // 13%
+      } else { // 14%
         Component = Bacteriophage;
         opacity = Math.random() * 0.3 + 0.6; // High opacity
         isAutonomous = true;
+      }
+      
+      const propsOverride: any = {};
+      if (Component === Amoeba) {
+        propsOverride.size = Math.random() * 150 + 250; // 250-400
       }
       
       const initialPosition = { x, y };
@@ -99,6 +110,7 @@ export function Debris(): DebrisItem[] {
             opacity,
             initialRotation,
             animationDirection,
+            ...propsOverride
         }
       };
     });
