@@ -1,14 +1,13 @@
 {
   "hosting": {
-    "site": "MicroCosm",
-    "public": "out",
-    "cleanUrls": true,
-    "trailingSlash": false,
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "europe-west1"
+    }
   }
 }
