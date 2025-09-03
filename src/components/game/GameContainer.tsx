@@ -263,7 +263,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} />)}
 
             <div ref={cellWrapperRef} className="absolute">
-                <BioCell ref={cellApiRef} size={cellSize} />
+                <BioCell ref={cellApiRef} size={cellSize} score={score} />
             </div>
         </div>
         

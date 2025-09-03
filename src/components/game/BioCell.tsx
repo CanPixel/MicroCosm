@@ -1,11 +1,12 @@
-
 "use client";
 
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, useState } from 'react';
 
 type Point = { x: number; y: number };
 
 const INITIAL_SIZE = 50;
+const EVOLUTION_SCORE_THRESHOLD = 100;
+const EVOLUTION_SIZE_MULTIPLIER = 1.4;
 
 // Helper function to create a smooth path from points (Catmull-Rom spline)
 function catmullRomSpline(points: Point[], k: number = 1): string {
@@ -38,6 +39,7 @@ export type BioCellHandle = {
 
 type BioCellProps = {
   size: number;
+  score: number;
 };
 
 type Particle = {
@@ -50,11 +52,14 @@ type Particle = {
   color: 'primary' | 'foreground' | 'accent';
 };
 
-export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) => {
+export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const sizeRef = useRef(size);
   sizeRef.current = size;
+
+  const [hasEvolved, setHasEvolved] = useState(false);
+  const evolutionFactorRef = useRef(1);
 
   useImperativeHandle(ref, () => ({
     updateVelocity: (vx, vy) => {
@@ -72,9 +77,19 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
   // Points for the cell wall, with some randomness
   const pointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
+  const outerPointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
   
   // Internal particles
   const particlesRef = useRef<Particle[]>([]);
+
+  useEffect(() => {
+    if (score >= EVOLUTION_SCORE_THRESHOLD && !hasEvolved) {
+      setHasEvolved(true);
+      
+      // Initialize points for the new outer wall
+      outerPointsRef.current = pointsRef.current.map(p => ({ ...p }));
+    }
+  }, [score, hasEvolved]);
 
 
   useEffect(() => {
@@ -120,16 +135,19 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
   useEffect(() => {
     let animationFrameId: number;
-    const path = svgRef.current?.querySelector('path');
+    const innerPath = svgRef.current?.querySelector('.inner-wall') as SVGPathElement | null;
+    const outerPath = svgRef.current?.querySelector('.outer-wall') as SVGPathElement | null;
     const particleElements = svgRef.current?.querySelectorAll('.internal-particle');
     const nucleusGroup = svgRef.current?.querySelector('.nucleus-group') as SVGGElement | null;
     const nucleus = nucleusGroup?.querySelector('.nucleus') as SVGCircleElement | null;
     const radiatingCircle1 = nucleusGroup?.querySelector('.radiating-circle-1') as SVGCircleElement | null;
     const radiatingCircle2 = nucleusGroup?.querySelector('.radiating-circle-2') as SVGCircleElement | null;
 
-    if (!path || !particleElements || !nucleus || !nucleusGroup || !radiatingCircle1 || !radiatingCircle2) return;
+    if (!innerPath || !particleElements || !nucleus || !nucleusGroup || !radiatingCircle1 || !radiatingCircle2) return;
+    if (hasEvolved && !outerPath) return;
 
     let animatedWallPoints: Point[] = [];
+    let animatedOuterWallPoints: Point[] = [];
     let radiationTime1 = 0;
     let radiationTime2 = 1.5; // Stagger the second circle
 
@@ -144,6 +162,11 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       
       const inertiaOffsetX = -vx * 0.5;
       const inertiaOffsetY = -vy * 0.5;
+
+      // Evolution animation
+      if (hasEvolved && evolutionFactorRef.current < EVOLUTION_SIZE_MULTIPLIER) {
+        evolutionFactorRef.current += (EVOLUTION_SIZE_MULTIPLIER - evolutionFactorRef.current) * 0.05;
+      }
 
       // Animate nucleus
       const nucleusBaseRadius = INITIAL_SIZE * 0.15;
@@ -188,33 +211,42 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
       // Wobble factor decreases as the cell gets bigger
       const wobbleFactor = Math.max(0.2, 1 - (currentSize - INITIAL_SIZE) / 500);
 
-      animatedWallPoints = pointsRef.current.map(point => {
-        // Smoothly move radius towards target
-        point.radius += (point.targetRadius - point.radius) * 0.1;
-
-        // Occasionally set a new target radius
-        if (Math.random() < 0.02 * wobbleFactor) { // Chance decreases as it grows
-          const randomFactor = (0.7 + Math.random() * 0.6 * wobbleFactor); // Range of change decreases
-          point.targetRadius = currentBaseRadius * randomFactor;
-        }
-        
-        const pointAngle = point.angle + time / (5000 + (currentSize - INITIAL_SIZE) * 10); // Rotation slows down
-        let currentRadius = point.radius;
-
-        // Apply physics-based stretch
-        if (stretchFactor > 0) {
-            const angleDiff = Math.cos(pointAngle - movementAngle);
-            currentRadius += angleDiff * currentBaseRadius * stretchFactor; // Stretch in direction of movement
-            currentRadius -= (1 - Math.abs(angleDiff)) * currentBaseRadius * stretchFactor * 0.5; // Squash perpendicular to movement
-        }
-
-        const x = currentViewboxCenter + currentRadius * Math.cos(pointAngle);
-        const y = currentViewboxCenter + currentRadius * Math.sin(pointAngle);
-        return { x, y };
-      });
+      const updateWallPoints = (points: typeof pointsRef.current, radiusMultiplier: number) => {
+        return points.map(point => {
+          // Smoothly move radius towards target
+          point.radius += (point.targetRadius - point.radius) * 0.1;
+  
+          // Occasionally set a new target radius
+          if (Math.random() < 0.02 * wobbleFactor) { // Chance decreases as it grows
+            const randomFactor = (0.7 + Math.random() * 0.6 * wobbleFactor); // Range of change decreases
+            point.targetRadius = currentBaseRadius * randomFactor;
+          }
+          
+          const pointAngle = point.angle + time / (5000 + (currentSize - INITIAL_SIZE) * 10); // Rotation slows down
+          let currentRadius = point.radius * radiusMultiplier;
+  
+          // Apply physics-based stretch
+          if (stretchFactor > 0) {
+              const angleDiff = Math.cos(pointAngle - movementAngle);
+              currentRadius += angleDiff * currentBaseRadius * stretchFactor * radiusMultiplier; // Stretch in direction of movement
+              currentRadius -= (1 - Math.abs(angleDiff)) * currentBaseRadius * stretchFactor * 0.5 * radiusMultiplier; // Squash perpendicular to movement
+          }
+  
+          const x = currentViewboxCenter + currentRadius * Math.cos(pointAngle);
+          const y = currentViewboxCenter + currentRadius * Math.sin(pointAngle);
+          return { x, y };
+        });
+      };
       
-      const svgPath = catmullRomSpline(animatedWallPoints);
-      path.setAttribute('d', svgPath);
+      animatedWallPoints = updateWallPoints(pointsRef.current, 1);
+      const innerSvgPath = catmullRomSpline(animatedWallPoints);
+      innerPath.setAttribute('d', innerSvgPath);
+
+      if(hasEvolved && outerPath) {
+        animatedOuterWallPoints = updateWallPoints(outerPointsRef.current, evolutionFactorRef.current);
+        const outerSvgPath = catmullRomSpline(animatedOuterWallPoints);
+        outerPath.setAttribute('d', outerSvgPath);
+      }
       
       animationFrameId = requestAnimationFrame(animate);
     };
@@ -222,20 +254,28 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasEvolved]);
 
   const cellStyle: React.CSSProperties = {
     width: `${svgSize}px`,
     height: `${svgSize}px`,
-    filter: 'drop-shadow(0 0 10px hsl(var(--primary) / 0.8))'
+    filter: `drop-shadow(0 0 10px hsl(var(--primary) / 0.8))`
   };
 
   return (
     <div style={cellStyle} className="absolute">
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
-        {/* Cell Body */}
+        {hasEvolved && (
+            <path
+                className="outer-wall"
+                fill="hsl(var(--primary) / 0.2)"
+                stroke="hsl(var(--foreground))"
+                strokeWidth="3"
+            />
+        )}
         <path
-          fill="hsl(var(--primary) / 0.2)"
+          className="inner-wall"
+          fill={hasEvolved ? "transparent" : "hsl(var(--primary) / 0.2)"}
           stroke="hsl(var(--foreground))"
           strokeWidth="3"
         />
