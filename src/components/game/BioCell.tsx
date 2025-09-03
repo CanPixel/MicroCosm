@@ -276,7 +276,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
         )}
         <path
           className="inner-wall"
-          fill={hasEvolved ? "transparent" : "hsl(var(--primary) / 0.2)"}
+          fill="hsl(var(--primary) / 0.2)"
           stroke="hsl(var(--foreground))"
           strokeWidth={hasEvolved ? "0" : "3"}
         />
@@ -329,3 +329,5 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
 });
 
 BioCell.displayName = 'BioCell';
+
+    
