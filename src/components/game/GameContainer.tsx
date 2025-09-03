@@ -98,10 +98,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     lastUpdateTimeRef.current = timestamp;
 
     let { x, y } = cellPositionRef.current;
-    if (keysPressedRef.current['w']) y -= CELL_SPEED;
-    if (keysPressedRef.current['s']) y += CELL_SPEED;
-    if (keysPressedRef.current['a']) x -= CELL_SPEED;
-    if (keysPressedRef.current['d']) x += CELL_SPEED;
+    if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) y -= CELL_SPEED;
+    if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) y += CELL_SPEED;
+    if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) x -= CELL_SPEED;
+    if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) x += CELL_SPEED;
 
     if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
