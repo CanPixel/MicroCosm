@@ -1,10 +1,12 @@
-## MicroCosm
+# MicroCosm
 
-Welcome to MicroCosm, an interactive cellular ecosystem simulation built with Next.js and prototyped in Firebase Studio.
+Welcome to **MicroCosm**, an interactive cellular ecosystem simulation built with Next.js and prototyped in Firebase Studio. Dive into a mesmerizing, microscopic world and guide your cell from a simple organism to a complex life form.
 
 ## About The Game
 
-You are a single biological cell adrift in a vast, primordial soup. Your only goals are to survive and to thrive. Navigate a microscopic world teeming with energy, consume what you can to grow larger, and evolve into a more complex organism. The ecosystem is alive and constantly shifting around you—adapt or be absorbed.
+You are a single biological cell adrift in a vast, primordial soup. Your only goals are to survive and to thrive. Navigate a dynamic, microscopic world teeming with energy, consume what you can to grow larger, and evolve into a more complex organism. The ecosystem is alive and constantly shifting around you—adapt or be absorbed.
+
+The world is rendered with a beautiful, animated Voronoi pattern that shifts with a parallax effect as you move, creating a deep, immersive experience.
 
 ## How to Play
 
