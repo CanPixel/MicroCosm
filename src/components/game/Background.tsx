@@ -1,51 +1,44 @@
 
 "use client";
 
-import { cn } from "@/lib/utils";
+import { useMemo } from 'react';
+import { Delaunay } from 'd3-delaunay';
 
-const VORONOI_COLORS = [
-  "hsl(var(--foreground) / 0.1)",
-  "hsl(var(--foreground) / 0.1)",
-  "hsl(var(--foreground) / 0.1)",
-  "hsl(var(--foreground) / 0.1)",
-  "hsl(var(--foreground) / 0.15)",
-  "hsl(var(--foreground) / 0.15)",
-];
-
-const generateGradients = (count: number, color: string) => {
-  return Array.from({ length: count }, () => {
-    const size = Math.floor(Math.random() * 250) + 100;
-    const x = Math.floor(Math.random() * 120) - 10;
-    const y = Math.floor(Math.random() * 120) - 10;
-    const innerSize = size - 2;
-    return `radial-gradient(circle at ${x}% ${y}%, transparent ${innerSize}px, ${color} ${innerSize}px, ${color} ${size}px, transparent ${size}px)`;
-  }).join(", ");
-};
+const WORLD_WIDTH = 4000;
+const WORLD_HEIGHT = 4000;
+const NUM_POINTS = 50;
 
 export function Background() {
+  const voronoiPath = useMemo(() => {
+    // Generate static points. Using a seeded random would also work.
+    const points: [number, number][] = Array.from({ length: NUM_POINTS }, (_, i) => {
+        // Simple pseudo-randomness to keep points static across renders
+        const x = (Math.sin(i * 0.3) + 1) * (WORLD_WIDTH / 2);
+        const y = (Math.cos(i * 0.7) + 1) * (WORLD_HEIGHT / 2);
+        return [x, y];
+    });
+
+    const delaunay = Delaunay.from(points);
+    const voronoi = delaunay.voronoi([0, 0, WORLD_WIDTH, WORLD_HEIGHT]);
+    
+    return voronoi.render();
+  }, []);
+
   return (
-    <div className="absolute inset-0 z-0">
-      <div
-        className="absolute inset-0 bg-repeat"
-        style={{
-          backgroundImage: generateGradients(15, VORONOI_COLORS[0]),
-          backgroundSize: "2000px 2000px",
-        }}
-      />
-      <div
-        className="absolute inset-0 bg-repeat"
-        style={{
-          backgroundImage: generateGradients(15, VORONOI_COLORS[1]),
-          backgroundSize: "1800px 1800px",
-        }}
-      />
-       <div
-        className="absolute inset-0 bg-repeat"
-        style={{
-          backgroundImage: generateGradients(10, VORONOI_COLORS[2]),
-          backgroundSize: "2200px 2200px",
-        }}
-      />
+    <div className="absolute inset-0 z-0 overflow-hidden">
+      <svg
+        width={WORLD_WIDTH}
+        height={WORLD_HEIGHT}
+        viewBox={`0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`}
+        className="absolute top-0 left-0"
+      >
+        <path
+          d={voronoiPath}
+          fill="none"
+          stroke="hsl(var(--foreground) / 0.1)"
+          strokeWidth="2"
+        />
+      </svg>
     </div>
   );
 }
