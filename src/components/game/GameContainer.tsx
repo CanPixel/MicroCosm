@@ -173,18 +173,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [resetGame]);
   
   useEffect(() => {
-    if (isGameOver) return;
-
-    if (energy <= 0 && !isStarving) {
-      setIsStarving(true);
-    }
-    
-    if (isStarving && score <= 0) {
-      setIsGameOver(true);
-    }
-  }, [energy, score, isGameOver, isStarving]);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       keysPressedRef.current[event.key.toLowerCase()] = true;
     };
@@ -358,16 +346,30 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
 
-    // --- Energy Drain ---
+    // --- Energy Drain & Starvation Logic ---
+    let currentEnergy = energy;
+    let currentScore = score;
+    let currentCellSize = cellSize;
+
     if (isStarving) {
-      const newScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
-      const newSize = Math.max(1, cellSize - STARVATION_SIZE_DRAIN);
-      setScore(newScore);
-      setCellSize(newSize);
+      currentScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
+      currentCellSize = Math.max(1, cellSize - STARVATION_SIZE_DRAIN);
+      setScore(currentScore);
+      setCellSize(currentCellSize);
     } else {
-      setEnergy(e => Math.max(0, e - 0.01));
+      currentEnergy = Math.max(0, energy - 0.01);
+      setEnergy(currentEnergy);
     }
     
+    // --- Game State Checks (Starvation, Game Over) ---
+    if (currentEnergy <= 0 && !isStarving) {
+      setIsStarving(true);
+    }
+
+    if (isStarving && currentScore <= 0) {
+      setIsGameOver(true);
+    }
+
     animationFrameId.current = requestAnimationFrame(gameLoop);
   }, [isGameOver, isStarving, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles]);
 
