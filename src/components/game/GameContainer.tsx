@@ -18,9 +18,9 @@ const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const MAX_SUGAR = 200; // Increased sugar limit
+const MAX_SUGAR = 200;
 const SUGAR_SPAWN_INTERVAL = 1000; // ms
-const MAX_THEME_SIZE = 300; // The cell size at which the theme transition is complete
+const MAX_THEME_SIZE = 300;
 
 type Position = { x: number; y: number };
 type SugarParticle = Position & { size: number };
@@ -65,6 +65,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [sugars, setSugars] = useState<SugarParticle[]>([]);
   const [debris, setDebris] = useState<DebrisItem[]>([]);
   const [collectedOrganelles, setCollectedOrganelles] = useState<Set<string>>(new Set());
+  const [eligibleOrganelles, setEligibleOrganelles] = useState<Set<string>>(new Set());
   const [cameraForParallax, setCameraForParallax] = useState({ x: 0, y: 0 });
 
   const animationFrameId = useRef<number>();
@@ -164,6 +165,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // Set initial debris
     setDebris(Debris());
     setCollectedOrganelles(new Set());
+    setEligibleOrganelles(new Set());
 
     setIsGameOver(false);
   }, [spawnSugars]);
@@ -294,14 +296,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // Organelles
     const remainingDebris: DebrisItem[] = [];
     let collectedAny = false;
+    const newEligibleOrganelles = new Set<string>();
+
     for(const d of debris) {
       const isOrganelle = (d.Component as any).isOrganelle;
       if (isOrganelle) {
+        // Check for eligibility
+        if(cellSize > d.props.size) {
+            newEligibleOrganelles.add(d.id);
+        }
+
         const dx = cellPositionRef.current.x - d.initialPosition.x;
         const dy = cellPositionRef.current.y - d.initialPosition.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist < currentCellRadius + d.props.size / 2) {
+        // Check for collection
+        if (eligibleOrganelles.has(d.id) && dist < currentCellRadius + d.props.size / 2) {
           setCollectedOrganelles(prev => new Set(prev).add((d.Component as any).type));
           collectedAny = true;
         } else {
@@ -316,11 +326,17 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setDebris(remainingDebris);
     }
 
+    // Update eligible organelles state if it has changed
+    if (newEligibleOrganelles.size !== eligibleOrganelles.size || ![...newEligibleOrganelles].every(id => eligibleOrganelles.has(id))) {
+        setEligibleOrganelles(newEligibleOrganelles);
+    }
+
+
     // --- Energy Drain ---
     setEnergy(e => Math.max(0, e - 0.01));
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, sugars, score, debris, spawnSugars]);
+  }, [isGameOver, cellSize, sugars, score, debris, spawnSugars, eligibleOrganelles]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -330,14 +346,28 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       }
     };
   }, [gameLoop]);
+  
+  const passiveDebris = debris.filter(d => (d.Component as any).isOrganelle);
+  const activeDebris = debris.filter(d => !(d.Component as any).isOrganelle);
+
 
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background">
         <Background cameraPosition={cameraForParallax} />
 
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
+
+            {/* Layer for Passive/Background Organelles */}
             <div className="absolute inset-0 z-10">
-                {debris.map(d => {
+                {passiveDebris.map(d => {
+                     if (eligibleOrganelles.has(d.id)) return null; // Render in the foreground layer
+                     return <d.Component key={d.id} {...d.props} />;
+                })}
+            </div>
+
+            {/* Layer for Active Organisms */}
+            <div className="absolute inset-0 z-10">
+                {activeDebris.map(d => {
                     if (d.isAutonomous) {
                         return (
                              <Autonomous key={d.id} initialPosition={d.initialPosition}>
@@ -349,8 +379,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                   })}
             </div>
             
+            {/* Layer for Eligible Organelles & Sugar */}
             <div className="absolute inset-0 z-20">
                 {sugars.map((sugar, i) => <Sugar key={`s-${i}`} position={sugar} size={sugar.size} />)}
+                {passiveDebris.map(d => {
+                     if (!eligibleOrganelles.has(d.id)) return null; // Render in the background layer
+                     return <d.Component key={d.id} {...d.props} opacity={1} />; // Render with full opacity
+                })}
             </div>
 
             <div ref={cellWrapperRef} className="absolute z-30">
@@ -374,4 +409,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   );
 }
 
-    
