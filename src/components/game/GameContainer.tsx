@@ -54,8 +54,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     cellPositionRef.current = initialPosition;
     velocityRef.current = { x: 0, y: 0 };
     if (cellWrapperRef.current) {
-        const halfSize = (INITIAL_CELL_SIZE * 1.5) / 2;
-        cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSize}px, ${initialPosition.y - halfSize}px)`;
+        const halfSvgSize = (INITIAL_CELL_SIZE * 1.5) / 2;
+        cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSvgSize}px, ${initialPosition.y - halfSvgSize}px)`;
     }
     keysPressedRef.current = {};
     
@@ -114,17 +114,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
     }
 
+    const halfSvgSize = (cellSize * 1.5) / 2;
     if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        const radius = (cellSize * 1.5) / 2; // Use SVG size for boundary check
-        x = Math.max(radius, Math.min(width - radius, x));
-        y = Math.max(radius, Math.min(height - radius, y));
+        x = Math.max(halfSvgSize, Math.min(width - halfSvgSize, x));
+        y = Math.max(halfSvgSize, Math.min(height - halfSvgSize, y));
     }
     
     cellPositionRef.current = { x, y };
     if (cellWrapperRef.current) {
-        const halfSize = (cellSize * 1.5) / 2;
-        cellWrapperRef.current.style.transform = `translate(${x - halfSize}px, ${y - halfSize}px)`;
+        cellWrapperRef.current.style.transform = `translate(${x - halfSvgSize}px, ${y - halfSvgSize}px)`;
     }
     
     let nutrientsEaten = 0;
