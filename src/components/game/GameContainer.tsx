@@ -292,33 +292,52 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     
     // Organelles & Harmful Collisions
-    const remainingDebris: DebrisItem[] = [];
-    let collectedAny = false;
     const newEligibleOrganelles = new Set<string>();
+    const allDebris = [...debris]; // Create a mutable copy for this frame
+    const remainingDebrisAfterFrame: DebrisItem[] = [];
+    const collectedOrganelleTypesThisFrame = new Set<string>();
 
-    for(const d of debris) {
-        const isOrganelle = (d.Component as any).isOrganelle;
-        const organismSize = d.props.size;
-        const organismPosition = d.props.position;
-        const dx = cellPositionRef.current.x - organismPosition.x;
-        const dy = cellPositionRef.current.y - organismPosition.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const collisionThreshold = currentCellRadius + organismSize / 2;
-
-        if (isOrganelle) {
-            // Check for eligibility
-            if(cellSize > organismSize) {
+    // First pass: check for organelle collection
+    for (const d of allDebris) {
+        if ((d.Component as any).isOrganelle) {
+            const organismSize = d.props.size;
+            const organismPosition = d.props.position;
+            const isEligible = cellSize > organismSize;
+            
+            if (isEligible) {
                 newEligibleOrganelles.add(d.id);
-            }
+                const dx = cellPositionRef.current.x - organismPosition.x;
+                const dy = cellPositionRef.current.y - organismPosition.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const collisionThreshold = currentCellRadius + organismSize / 2;
 
-            // Check for collection only if eligible in this frame
-            if (newEligibleOrganelles.has(d.id) && dist < collisionThreshold) {
-                setCollectedOrganelles(prev => new Set(prev).add((d.Component as any).type));
-                collectedAny = true;
+                if (dist < collisionThreshold) {
+                    collectedOrganelleTypesThisFrame.add((d.Component as any).type);
+                    // Don't add to remainingDebrisAfterFrame to "remove" it
+                } else {
+                    remainingDebrisAfterFrame.push(d); // Not collected, keep it
+                }
             } else {
-                remainingDebris.push(d);
+                remainingDebrisAfterFrame.push(d); // Not eligible, keep it
             }
-        } else { // It's another organism, check for harmful collision
+        } else {
+            // This is not an organelle, it might be harmful. Keep it for the next pass.
+            remainingDebrisAfterFrame.push(d);
+        }
+    }
+    
+    // Second pass: check for harmful collisions with what's left
+    const finalDebrisList: DebrisItem[] = [];
+    for (const d of remainingDebrisAfterFrame) {
+        // Organelles are already handled and filtered, so we only need to check non-organelles.
+        if (!(d.Component as any).isOrganelle) {
+            const organismSize = d.props.size;
+            const organismPosition = d.props.position;
+            const dx = cellPositionRef.current.x - organismPosition.x;
+            const dy = cellPositionRef.current.y - organismPosition.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const collisionThreshold = currentCellRadius + organismSize / 2;
+            
             if (dist < collisionThreshold && cellSize < organismSize) {
                 const sizeDifference = organismSize - cellSize;
                 const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
@@ -332,14 +351,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     cellApiRef.current.takeDamage();
                 }
             }
-            remainingDebris.push(d);
         }
+        finalDebrisList.push(d); // Keep all non-organelles in the list for now
     }
 
-    if (collectedAny) {
-      setDebris(remainingDebris);
+    // Update state based on collections
+    if (collectedOrganelleTypesThisFrame.size > 0) {
+      setDebris(remainingDebrisAfterFrame); // Update debris list with collected organelles removed
+      setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
     }
-
+    
     // Update eligible organelles state if it has changed
     if (newEligibleOrganelles.size !== eligibleOrganelles.size || ![...newEligibleOrganelles].every(id => eligibleOrganelles.has(id))) {
         setEligibleOrganelles(newEligibleOrganelles);
@@ -368,6 +389,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     if (isStarving && currentScore <= 0) {
       setIsGameOver(true);
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     }
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
