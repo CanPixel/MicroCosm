@@ -37,6 +37,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const cameraPositionRef = useRef<Position>({ x: 0, y: 0 });
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   const zoomRef = useRef(1);
+  const keysPressedRef = useRef<{[key: string]: boolean}>({});
   
   const [nutrients, setNutrients] = useState<Position[]>([]);
 
