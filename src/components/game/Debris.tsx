@@ -8,6 +8,7 @@ import { RodBacteria } from './RodBacteria';
 import { FlagellateProtist } from './FlagellateProtist';
 import { Ciliate } from './Ciliate';
 import { Bacteriophage } from './Bacteriophage';
+import { Autonomous } from './Autonomous';
 
 const DEBRIS_COUNT = 100; // Increased count for more variety
 const WORLD_WIDTH = 4000;
@@ -28,36 +29,46 @@ export function Debris() {
 
       let Component;
       let opacity;
+      let isAutonomous = false;
 
       if (type < 0.1) {
         Component = Tardigrade;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
+        isAutonomous = true;
       } else if (type < 0.2) {
         Component = SpikyVirus;
         opacity = Math.random() * 0.2 + 0.6; // High opacity
       } else if (type < 0.3) {
         Component = RodBacteria;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
+        isAutonomous = true;
       } else if (type < 0.4) {
         Component = FlagellateProtist;
         opacity = Math.random() * 0.2 + 0.7; // High opacity
+        isAutonomous = true;
       } else if (type < 0.5) {
         Component = Ciliate;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
+        isAutonomous = true;
       } else if (type < 0.6) {
         Component = Bacteriophage;
         opacity = Math.random() * 0.3 + 0.6; // High opacity
+        isAutonomous = true;
       }
       else {
         Component = FloatingDebris;
         opacity = Math.random() * 0.1 + 0.05; // Keep these very low opacity for atmosphere
       }
       
+      const initialPosition = { x, y };
+
       return {
         id: `debris-${i}`,
         Component,
+        isAutonomous,
+        initialPosition,
         props: {
-            position: { x, y },
+            position: initialPosition,
             size,
             duration,
             delay,
@@ -71,9 +82,16 @@ export function Debris() {
 
   return (
     <div className="absolute inset-0 w-full h-full pointer-events-none">
-      {debrisList.map(debris => (
-        <debris.Component key={debris.id} {...debris.props} />
-      ))}
+      {debrisList.map(debris => {
+        if (debris.isAutonomous) {
+            return (
+                 <Autonomous key={debris.id} initialPosition={debris.initialPosition}>
+                    <debris.Component {...debris.props} />
+                </Autonomous>
+            )
+        }
+        return <debris.Component key={debris.id} {...debris.props} />;
+      })}
     </div>
   );
 }
