@@ -9,6 +9,7 @@ import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { Sugar } from "./Sugar";
+import { Background } from "./Background";
 
 const INITIAL_CELL_SIZE = 50;
 const FLOATING_DEBRIS_COUNT = 30;
@@ -292,7 +293,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [gameLoop]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-voronoi animate-fade-in">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden animate-fade-in">
+        <Background />
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
             {debris.map((d, i) => <Debris key={`d-${i}`} {...d} />)}
             {floatingDebris.map((pos, i) => <FloatingDebris key={`fd-${i}`} position={pos} />)}
@@ -321,6 +323,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
 
     
+
 
 
 

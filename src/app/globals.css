@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,12 +6,6 @@
 body {
   font-family: 'Space Grotesk', sans-serif;
   background-color: hsl(var(--background));
-  background-image:
-    radial-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
-    radial-gradient(hsl(var(--accent) / 0.08) 1px, transparent 1px);
-  background-position: 0 0, 25px 25px;
-  background-size: 50px 50px;
-  background-attachment: fixed;
 }
 
 @layer base {

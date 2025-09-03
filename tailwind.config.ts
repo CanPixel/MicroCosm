@@ -91,6 +91,18 @@ export default {
             height: '0',
           },
         },
+        'bg-pan-1': {
+          '0%': { transform: 'translateX(0) translateY(0)' },
+          '100%': { transform: 'translateX(-200px) translateY(-200px)' },
+        },
+        'bg-pan-2': {
+           '0%': { transform: 'translateX(0) translateY(0)' },
+          '100%': { transform: 'translateX(300px) translateY(0px)' },
+        },
+        'bg-pan-3': {
+           '0%': { transform: 'translateX(0) translateY(0)' },
+          '100%': { transform: 'translateX(0px) translateY(400px)' },
+        },
         'morph': {
           '0%, 100%': { borderRadius: '42% 58% 70% 30% / 45% 45% 55% 55%' },
           '25%': { borderRadius: '58% 42% 43% 57% / 53% 51% 49% 47%' },
@@ -140,6 +152,9 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'bg-pan-1': 'bg-pan-1 45s linear infinite alternate',
+        'bg-pan-2': 'bg-pan-2 60s linear infinite alternate',
+        'bg-pan-3': 'bg-pan-3 90s linear infinite alternate',
         'morph': 'morph 8s ease-in-out infinite',
         'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
         'fade-in': 'fade-in 0.5s ease-in-out',
