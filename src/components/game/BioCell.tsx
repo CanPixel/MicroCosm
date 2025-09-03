@@ -51,8 +51,10 @@ type Particle = {
 };
 
 type Speck = {
-    x: number;
-    y: number;
+    x: number; // initial relative x
+    y: number; // initial relative y
+    angle: number; // angle from center
+    dist: number; // distance from center
     r: number;
     opacity: number;
 };
@@ -129,10 +131,12 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     specksRef.current = Array.from({ length: 40 }).map(() => {
         const angle = Math.random() * 2 * Math.PI;
         // Distribute up to the edge of the cell
-        const radius = Math.random() * 0.95; 
+        const dist = Math.random() * 0.95; 
         return {
-            x: Math.cos(angle) * radius,
-            y: Math.sin(angle) * radius,
+            x: Math.cos(angle) * dist,
+            y: Math.sin(angle) * dist,
+            angle: angle,
+            dist: dist,
             r: Math.random() * 0.015 + 0.005, // very small radius
             opacity: Math.random() * 0.4 + 0.1, // low opacity
         };
@@ -184,12 +188,26 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         }
       });
 
+      // Physics-based stretch logic
+      const stretchFactor = speed > 0.1 ? Math.min(speed / 10, 0.4) : 0;
+
       // Animate specks (passive drift only)
       specksRef.current.forEach((s, i) => {
           const speckEl = speckElements[i] as SVGCircleElement;
           if (speckEl) {
-              speckEl.setAttribute('cx', `${currentViewboxCenter + s.x * currentBaseRadius + inertiaOffsetX}`);
-              speckEl.setAttribute('cy', `${currentViewboxCenter + s.y * currentBaseRadius + inertiaOffsetY}`);
+              let speckRadius = s.dist * currentBaseRadius;
+
+              if (stretchFactor > 0) {
+                const angleDiff = Math.cos(s.angle - movementAngle);
+                speckRadius += angleDiff * currentBaseRadius * stretchFactor * s.dist; // Stretch in direction of movement
+                speckRadius -= (1 - Math.abs(angleDiff)) * currentBaseRadius * stretchFactor * 0.5 * s.dist; // Squash perpendicular
+              }
+              
+              const x = currentViewboxCenter + speckRadius * Math.cos(s.angle) + inertiaOffsetX;
+              const y = currentViewboxCenter + speckRadius * Math.sin(s.angle) + inertiaOffsetY;
+              
+              speckEl.setAttribute('cx', `${x}`);
+              speckEl.setAttribute('cy', `${y}`);
           }
       });
 
@@ -210,10 +228,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         const pointAngle = point.angle + time / (5000 + (currentSize - INITIAL_SIZE) * 10); // Rotation slows down
         let currentRadius = point.radius;
 
-        // Physics-based stretch
-        if (speed > 0.1) {
+        // Apply physics-based stretch
+        if (stretchFactor > 0) {
             const angleDiff = Math.cos(pointAngle - movementAngle);
-            const stretchFactor = Math.min(speed / 10, 0.4); // max stretch
             currentRadius += angleDiff * currentBaseRadius * stretchFactor; // Stretch in direction of movement
             currentRadius -= (1 - Math.abs(angleDiff)) * currentBaseRadius * stretchFactor * 0.5; // Squash perpendicular to movement
         }
