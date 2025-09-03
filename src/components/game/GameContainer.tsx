@@ -10,6 +10,7 @@ import { GameOverDialog } from "./GameOverDialog";
 const INITIAL_CELL_SIZE = 50;
 const NUTRIENT_COUNT = 30;
 const ENEMY_COUNT = 5;
+const CELL_SPEED = 4;
 
 type Position = { x: number; y: number };
 
@@ -21,13 +22,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
   const [cellPosition, setCellPosition] = useState<Position>({ x: 0, y: 0 });
+  
   const [nutrients, setNutrients] = useState<Position[]>([]);
   const [enemies, setEnemies] = useState<Position[]>([]);
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameId = useRef<number>();
-  const mousePositionRef = useRef<Position>({ x: 0, y: 0 });
+  const keysPressedRef = useRef<{ [key: string]: boolean }>({});
   const lastUpdateTimeRef = useRef(0);
   const updateInterval = 1000 / 60; // 60 FPS
 
@@ -51,8 +55,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     );
     
     const initialPosition = { x: width / 2, y: height / 2 };
+    cellPositionRef.current = initialPosition;
     setCellPosition(initialPosition);
-    mousePositionRef.current = initialPosition;
+    keysPressedRef.current = {};
     
     setIsGameOver(false);
   }, []);
@@ -64,14 +69,18 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [resetGame]);
 
   useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        mousePositionRef.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      keysPressedRef.current[event.key.toLowerCase()] = true;
     };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    const handleKeyUp = (event: KeyboardEvent) => {
+      keysPressedRef.current[event.key.toLowerCase()] = false;
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, []);
 
   const gameLoop = useCallback((timestamp: number) => {
@@ -86,50 +95,48 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     lastUpdateTimeRef.current = timestamp;
 
-    setCellPosition((currentPos) => {
-      const dx = mousePositionRef.current.x - currentPos.x;
-      const dy = mousePositionRef.current.y - currentPos.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const speed = Math.max(1, dist / 20); // Speed is proportional to distance
-      
-      if (dist < 5) return currentPos;
+    let { x, y } = cellPositionRef.current;
+    if (keysPressedRef.current['w']) y -= CELL_SPEED;
+    if (keysPressedRef.current['s']) y += CELL_SPEED;
+    if (keysPressedRef.current['a']) x -= CELL_SPEED;
+    if (keysPressedRef.current['d']) x += CELL_SPEED;
 
-      return {
-        x: currentPos.x + (dx / dist) * speed,
-        y: currentPos.y + (dy / dist) * speed,
-      };
-    });
+    if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        const radius = cellSize / 2;
+        x = Math.max(radius, Math.min(width - radius, x));
+        y = Math.max(radius, Math.min(height - radius, y));
+    }
+    
+    cellPositionRef.current = { x, y };
+    setCellPosition({ x, y });
 
-    setNutrients(currentNutrients => {
-      let nutrientsEaten = 0;
-      const remaining: Position[] = [];
-      const currentCellRadius = cellSize / 2;
+    let nutrientsEaten = 0;
+    const remainingNutrients: Position[] = [];
+    const currentCellRadius = cellSize / 2;
 
-      for (const nutrient of currentNutrients) {
-        const dx = cellPosition.x - nutrient.x;
-        const dy = cellPosition.y - nutrient.y;
+    for (const nutrient of nutrients) {
+        const dx = cellPositionRef.current.x - nutrient.x;
+        const dy = cellPositionRef.current.y - nutrient.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < currentCellRadius) {
-          nutrientsEaten++;
+            nutrientsEaten++;
         } else {
-          remaining.push(nutrient);
+            remainingNutrients.push(nutrient);
         }
-      }
-
-      if (nutrientsEaten > 0) {
-        setScore(s => s + 10 * nutrientsEaten);
-        setCellSize(s => s + 2 * nutrientsEaten);
-      }
-      return remaining.length > 0 ? remaining : [];
-    });
+    }
     
-    // Using for...of loop for early exit
+    if (nutrientsEaten > 0) {
+      setScore(s => s + 10 * nutrientsEaten);
+      setCellSize(s => s + 2 * nutrientsEaten);
+      setNutrients(remainingNutrients);
+    }
+    
     for (const enemy of enemies) {
         const enemyRadius = 16;
-        const currentCellRadius = cellSize / 2;
-        const dx = cellPosition.x - enemy.x;
-        const dy = cellPosition.y - enemy.y;
+        const dx = cellPositionRef.current.x - enemy.x;
+        const dy = cellPositionRef.current.y - enemy.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < currentCellRadius + enemyRadius) {
             setIsGameOver(true);
@@ -138,7 +145,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, cellSize, cellPosition.x, cellPosition.y, enemies]);
+  }, [isGameOver, cellSize, nutrients, enemies]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -150,7 +157,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, [gameLoop]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background cursor-none animate-fade-in">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background animate-fade-in">
         <BioCell position={cellPosition} size={cellSize} />
         {nutrients.map((pos, i) => <Nutrient key={`n-${i}`} position={pos} />)}
         {enemies.map((pos, i) => <Enemy key={`e-${i}`} position={pos} />)}
