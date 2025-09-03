@@ -50,8 +50,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
   
   const numPoints = 12; // Number of points defining the cell shape
   
-  const svgSize = useMemo(() => size * 1.5, [size]);
-  const baseRadius = useMemo(() => svgSize / 2, [svgSize]);
+  const svgSize = useMemo(() => size * 2.5, [size]);
+  const baseRadius = useMemo(() => size / 2, [size]);
   const viewboxCenter = svgSize / 2;
 
   // Points for the cell wall, with some randomness
@@ -70,10 +70,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
     // Initialize points
     pointsRef.current = Array.from({ length: numPoints }, (_, i) => {
       const angle = (i / numPoints) * 2 * Math.PI;
-      const initialRadius = viewboxCenter * (0.8 + Math.random() * 0.2);
+      const initialRadius = baseRadius * (0.8 + Math.random() * 0.2);
       return { angle, radius: initialRadius, targetRadius: initialRadius };
     });
-  }, [viewboxCenter, numPoints]);
+  }, [baseRadius, numPoints]);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -91,7 +91,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
         // Occasionally set a new target radius
         if (Math.random() < 0.01) {
-          point.targetRadius = viewboxCenter * (0.8 + Math.random() * 0.3);
+          point.targetRadius = baseRadius * (0.8 + Math.random() * 0.3);
         }
         
         const pointAngle = point.angle + time / 5000;
@@ -101,8 +101,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
         if (speed > 0.1) {
             const angleDiff = Math.cos(pointAngle - movementAngle);
             const stretchFactor = Math.min(speed / 10, 0.4); // max stretch
-            currentRadius += angleDiff * viewboxCenter * stretchFactor; // Stretch in direction of movement
-            currentRadius -= (1 - Math.abs(angleDiff)) * viewboxCenter * stretchFactor * 0.5; // Squash perpendicular to movement
+            currentRadius += angleDiff * baseRadius * stretchFactor; // Stretch in direction of movement
+            currentRadius -= (1 - Math.abs(angleDiff)) * baseRadius * stretchFactor * 0.5; // Squash perpendicular to movement
         }
 
         const x = viewboxCenter + currentRadius * Math.cos(pointAngle);
@@ -118,7 +118,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size }, ref) =
 
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [viewboxCenter]);
+  }, [baseRadius, viewboxCenter]);
 
   const cellStyle: React.CSSProperties = {
     width: `${svgSize}px`,
