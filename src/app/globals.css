@@ -14,7 +14,7 @@ body {
     color: hsl(var(--foreground));
   }
   :root {
-    --background: 224 71% 4%; /* #050E18 */
+    --background: 224 71% 8%; /* #0D1625 */
     --foreground: 210 40% 98%;
     --card: 224 71% 8%;
     --card-foreground: 210 40% 98%;
@@ -41,7 +41,7 @@ body {
     --radius: 0.8rem;
   }
   .dark {
-    --background: 224 71% 4%;
+    --background: 224 71% 8%;
     --foreground: 210 40% 98%;
     --card: 224 71% 8%;
     --card-foreground: 210 40% 98%;
