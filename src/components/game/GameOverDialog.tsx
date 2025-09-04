@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -9,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 type GameOverDialogProps = {
   score: number;
@@ -22,13 +24,21 @@ export function GameOverDialog({ score, isOpen, onRestart }: GameOverDialogProps
         <AlertDialog open={isOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle className="font-headline text-2xl">Game Over</AlertDialogTitle>
+            <AlertDialogTitle className="font-zcool-kuaile text-3xl">Game Over</AlertDialogTitle>
             <AlertDialogDescription>
-                Your BioCell has run out of energy. Your final size was {Math.round(score)}μm.
+                Your BioCell has starved.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogAction onClick={onRestart}>Restart Simulation</AlertDialogAction>
+            <AlertDialogAction 
+                onClick={onRestart}
+                className={cn(
+                    "font-zcool-kuaile text-lg",
+                    "bg-accent text-accent-foreground hover:bg-accent/90"
+                )}
+            >
+                Revive
+            </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
         </AlertDialog>
