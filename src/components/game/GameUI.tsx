@@ -7,14 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Dna, Gauge, Shield, Zap } from "lucide-react";
 import { Logo } from "./Logo";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "../ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type GameUIProps = {
@@ -36,11 +28,6 @@ const abilities = [
 export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange, collectedOrganelles }: GameUIProps) {
   const isMobile = useIsMobile();
 
-  const fonts = [
-    { value: 'font-zcool-kuaile', label: 'ZCOOL KuaiLe' },
-    { value: 'font-headline', label: 'Space Grotesk' },
-  ];
-
   const hasUnlockedAbilities = collectedOrganelles.size > 0;
 
   if (isMobile) {
@@ -54,7 +41,7 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
                         <div className="w-px h-6 bg-border mx-2"></div>
                         <div className="flex flex-col w-24">
                            <span className={cn("text-center", energy < 20 && "text-red-500", isStarving && "text-red-500 font-bold")}>{isStarving ? 'STARVING' : `${energy.toFixed(0)}%`}</span>
-                           <Progress value={energy} className={cn("h-1.5 [&>div]:bg-primary", isStarving && "[&>div]:bg-red-500")} />
+                           <Progress value={energy} className={cn("h-1.5", (isStarving || energy < 20) ? "[&>div]:bg-red-500" : "[&>div]:bg-primary")} />
                         </div>
                     </div>
                 </CardContent>
@@ -98,7 +85,9 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
       <div className="fixed top-4 left-4 w-64 text-foreground z-20">
         <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
           <CardHeader>
-            <Logo font={font} />
+            <div className="w-full">
+                <Logo font="font-zcool-kuaile" />
+            </div>
             <CardTitle className="flex items-center gap-2 text-md text-primary font-headline pt-2">
                 <Dna />
                 <span>BioCell Status</span>
@@ -114,22 +103,7 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
                     <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-foreground/70"/> Energy</span>
                     <span className={cn(energy < 20 && "text-red-500", isStarving && "text-red-500 font-bold")}>{isStarving ? 'STARVING' : `${energy.toFixed(0)}%`}</span>
                 </div>
-                <Progress value={energy} className={cn("h-2 [&>div]:bg-primary", isStarving && "[&>div]:bg-red-500")} />
-            </div>
-             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Title Font</Label>
-              <Select value={font} onValueChange={onFontChange}>
-                <SelectTrigger className="w-full h-8 text-xs">
-                  <SelectValue placeholder="Select font" />
-                </SelectTrigger>
-                <SelectContent>
-                  {fonts.map((f) => (
-                    <SelectItem key={f.value} value={f.value} className={f.value}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Progress value={energy} className={cn("h-2", (isStarving || energy < 20) ? "[&>div]:bg-red-500" : "[&>div]:bg-primary")} />
             </div>
           </CardContent>
         </Card>
@@ -171,5 +145,3 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
     </>
   );
 }
-
-    
