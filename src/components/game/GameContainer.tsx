@@ -12,6 +12,7 @@ import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { Autonomous } from "./Autonomous";
 import { SpikyVirus } from "./SpikyVirus";
 import { FungiWall } from "./FungiWall";
+import { cn } from "@/lib/utils";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_CELL_SCORE = 600;
@@ -29,8 +30,11 @@ const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 0.1; // Lose 10% of size difference
 const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
 const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
-const DAMAGE_COOLDOWN = 3000; // 3 second invulnerability
+const DAMAGE_COOLDOWN = 3000; // 3 second solid invulnerability
+const FLICKER_DURATION = 2000; // 2 second flicker period
+const TOTAL_INVINCIBILITY_DURATION = DAMAGE_COOLDOWN + FLICKER_DURATION;
 const RENDER_PADDING = 300; // The buffer around the viewport to render entities
+
 
 type Position = { x: number; y: number };
 type SugarParticle = Position & { id: string; size: number, createdAt: number };
@@ -65,6 +69,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [score, setScore] = useState(INITIAL_CELL_SIZE);
   const [energy, setEnergy] = useState(100);
   const [isInvulnerable, setIsInvulnerable] = useState(false);
+  const [isFlickering, setIsFlickering] = useState(false);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
   const [font, setFont] = useState("font-zcool-kuaile");
@@ -197,6 +202,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setCollectedOrganelles(new Set());
     setEligibleOrganelles(new Set());
     setIsInvulnerable(false);
+    setIsFlickering(false);
     lastDamageTimeRef.current = 0;
 
     setIsGameOver(false);
@@ -304,6 +310,18 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         return s.x > viewLeft && s.x < viewRight && s.y > viewTop && s.y < viewBottom;
     });
     setRenderedSugars(localSugars);
+
+    // --- Invulnerability/Flicker Check ---
+    if (isInvulnerable) {
+        const timeSinceDamage = now - lastDamageTimeRef.current;
+        if (timeSinceDamage > TOTAL_INVINCIBILITY_DURATION) {
+            setIsInvulnerable(false);
+            setIsFlickering(false);
+        } else if (timeSinceDamage > DAMAGE_COOLDOWN) {
+            setIsFlickering(true);
+        }
+    }
+
 
     // --- Sugar Spawning & Despawning ---
     const growthFactor = Math.max(1, (cellSize - INITIAL_CELL_SIZE) / 100);
@@ -469,7 +487,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     const handleCollision = (d: DebrisItem) => {
         const organismState = organismStates[d.id];
-        if (!organismState) return;
+        if (!organismState || isInvulnerable) return;
 
         const dx = cellPositionRef.current.x - organismState.position.x;
         const dy = cellPositionRef.current.y - organismState.position.y;
@@ -502,22 +520,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
             } else {
                 // Take damage from larger/hostile organism
-                if (now - lastDamageTimeRef.current > DAMAGE_COOLDOWN) {
-                    setIsInvulnerable(false);
-                    const sizeDifference = organismState.size - cellSize;
-                    const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
-                    const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
+                setIsInvulnerable(true);
+                lastDamageTimeRef.current = now;
 
-                    setCellSize(cs => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cs - sizePenalty));
-                    setScore(s => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, s - sizePenalty));
-                    setEnergy(e => Math.max(0, e - energyPenalty));
+                const sizeDifference = Math.max(0, organismState.size - cellSize);
+                const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
+                const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
 
-                    if (cellApiRef.current) {
-                        cellApiRef.current.takeDamage();
-                    }
-                    
-                    lastDamageTimeRef.current = now;
-                    setIsInvulnerable(true);
+                setCellSize(cs => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cs - sizePenalty));
+                setScore(s => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, s - sizePenalty));
+                setEnergy(e => Math.max(0, e - energyPenalty));
+
+                if (cellApiRef.current) {
+                    cellApiRef.current.takeDamage();
                 }
             }
         }
@@ -583,7 +598,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, isStarving, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange, isInvulnerable]);
+  }, [isGameOver, isStarving, isInvulnerable, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -680,8 +695,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
             <div 
                 ref={cellWrapperRef} 
-                className="absolute z-30 transition-opacity duration-300"
-                style={{ opacity: isInvulnerable ? 0.5 : 1 }}
+                className={cn(
+                    "absolute z-30 transition-opacity duration-100",
+                    isInvulnerable && !isFlickering && "opacity-50",
+                    isFlickering && "animate-flicker"
+                )}
             >
                 <BioCell ref={cellApiRef} size={cellSize} score={score} />
             </div>
@@ -703,6 +721,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
 
     
 
