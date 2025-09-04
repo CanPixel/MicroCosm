@@ -59,3 +59,5 @@ export function SpikyVirus({ position, size, duration, delay, opacity, initialRo
         </div>
     );
 }
+
+SpikyVirus.isHarmful = true;

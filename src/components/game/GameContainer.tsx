@@ -10,6 +10,8 @@ import { Background } from "./Background";
 import { Debris, DebrisItem } from "./Debris";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { Autonomous } from "./Autonomous";
+import { SpikyVirus } from "./SpikyVirus";
+import { FungiWall } from "./FungiWall";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_CELL_SCORE = 600;
@@ -457,50 +459,48 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     
     
-    // Organelles & Harmful Collisions - check against only local debris
+    // Debris Collisions (Harmful, Devour, Organelles)
     const newEligibleOrganelles = new Set<string>();
     const collectedOrganelleTypesThisFrame = new Set<string>();
     const collectedDebrisIds = new Set<string>();
 
-    for (const d of localDebris) {
+    const handleCollision = (d: DebrisItem) => {
         const organismState = organismStates[d.id];
-        if (!organismState) continue;
+        if (!organismState) return;
+
+        const dx = cellPositionRef.current.x - organismState.position.x;
+        const dy = cellPositionRef.current.y - organismState.position.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const collisionThreshold = currentCellRadius + organismState.collisionSize / 2;
         const componentType = d.Component as any;
 
-        // Check for organelle collection eligibility
+        if (dist > collisionThreshold) return; // No collision
+
+        // --- Organelle Collection ---
         if (componentType.isOrganelle) {
-            const isEligible = cellSize > organismState.size;
-            if (isEligible) {
-                newEligibleOrganelles.add(d.id);
-                const dx = cellPositionRef.current.x - organismState.position.x;
-                const dy = cellPositionRef.current.y - organismState.position.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const collisionThreshold = currentCellRadius;
-
-                if (dist < collisionThreshold) {
-                    collectedOrganelleTypesThisFrame.add(componentType.type);
-                    collectedDebrisIds.add(d.id);
-                }
+            if (cellSize > organismState.size) { // Can collect
+                collectedOrganelleTypesThisFrame.add(componentType.type);
+                collectedDebrisIds.add(d.id);
             }
+            return;
         }
-    }
-    
-    // Harmful collisions check
-    if (now - lastDamageTimeRef.current > DAMAGE_COOLDOWN) {
-        if (isInvulnerable) setIsInvulnerable(false);
 
-        for (const d of localDebris) {
-            const componentType = d.Component as any;
-            if (componentType.isHarmful) {
-                const organismState = organismStates[d.id];
-                if (!organismState) continue;
+        // --- Organism Interaction (Harmful or Devour) ---
+        const isPermanentlyHostile = componentType === SpikyVirus || componentType === FungiWall;
 
-                const dx = cellPositionRef.current.x - organismState.position.x;
-                const dy = cellPositionRef.current.y - organismState.position.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const collisionThreshold = currentCellRadius + organismState.collisionSize / 2;
-                
-                if (dist < collisionThreshold && cellSize < organismState.size) {
+        if (componentType.isHarmful || isPermanentlyHostile) {
+            if (cellSize > organismState.size && !isPermanentlyHostile) {
+                // Devour smaller organism
+                const sizeBonus = organismState.size * 0.2;
+                setScore(s => s + sizeBonus);
+                setCellSize(cs => cs + sizeBonus / 5);
+                setEnergy(e => Math.min(100, e + sizeBonus / 2));
+                collectedDebrisIds.add(d.id);
+
+            } else {
+                // Take damage from larger/hostile organism
+                if (now - lastDamageTimeRef.current > DAMAGE_COOLDOWN) {
+                    setIsInvulnerable(false);
                     const sizeDifference = organismState.size - cellSize;
                     const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
                     const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
@@ -508,7 +508,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     setCellSize(cs => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cs - sizePenalty));
                     setScore(s => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, s - sizePenalty));
                     setEnergy(e => Math.max(0, e - energyPenalty));
-                    
+
                     const bounceFactor = 15;
                     velocityRef.current.x = -(dx / dist) * bounceFactor;
                     velocityRef.current.y = -(dy / dist) * bounceFactor;
@@ -516,19 +516,37 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     if (cellApiRef.current) {
                         cellApiRef.current.takeDamage();
                     }
-
+                    
                     lastDamageTimeRef.current = now;
                     setIsInvulnerable(true);
-                    break; // Only handle one collision per frame
                 }
             }
         }
-    }
+    };
     
+    // Loop through interactive debris to check for collisions
+    const interactiveDebris = localDebris.filter(d => {
+        const componentType = d.Component as any;
+        return componentType.isOrganelle || componentType.isHarmful;
+    });
+
+    interactiveDebris.forEach(handleCollision);
+    
+    // Check for organelle collection eligibility (visuals only)
+    localDebris.forEach(d => {
+        const componentType = d.Component as any;
+        if (componentType.isOrganelle) {
+            const organismState = organismStates[d.id];
+            if (organismState && cellSize > organismState.size) {
+                newEligibleOrganelles.add(d.id);
+            }
+        }
+    });
+
     // Update state based on collections
     if (collectedDebrisIds.size > 0) {
-      setDebris(currentDebris => currentDebris.filter(d => !collectedDebrisIds.has(d.id)));
-      setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
+        setDebris(currentDebris => currentDebris.filter(d => !collectedDebrisIds.has(d.id)));
+        setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
     }
     
     if (newEligibleOrganelles.size !== eligibleOrganelles.size || ![...newEligibleOrganelles].every(id => eligibleOrganelles.has(id))) {
@@ -540,6 +558,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     let currentEnergy = energy;
     let currentScore = score;
     let currentCellSize = cellSize;
+    
+    const speed = Math.sqrt(velocityRef.current.x**2 + velocityRef.current.y**2);
+    const movementEnergyDrain = (speed / MAX_SPEED) * 0.05; // Drain more when moving fast
+    const baseEnergyDrain = 0.01;
 
     if (isStarving) {
       currentScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
@@ -547,7 +569,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setScore(currentScore);
       setCellSize(currentCellSize);
     } else {
-      currentEnergy = Math.max(0, energy - 0.01);
+      currentEnergy = Math.max(0, energy - baseEnergyDrain - movementEnergyDrain);
       setEnergy(currentEnergy);
     }
     
@@ -682,5 +704,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
