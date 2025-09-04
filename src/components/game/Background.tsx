@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useRef } from 'react';
@@ -97,7 +98,7 @@ export function Background({ cameraPosition }: BackgroundProps) {
           </defs>
         <path
           ref={pathRef}
-          stroke="hsla(152, 49.80%, 50.00%, 0.1)"
+          stroke="hsla(var(--primary), 0.2)"
           strokeWidth="2"
         />
         <rect
