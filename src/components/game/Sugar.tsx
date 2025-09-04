@@ -18,7 +18,7 @@ export function Sugar({ position, size }: SugarProps) {
     filter: `drop-shadow(0 0 8px hsl(var(--foreground) / 0.7))`,
   };
 
-  return <div style={style} className="absolute bg-foreground" />;
+  return <div style={style} className="absolute bg-foreground rounded-full" />;
 }
 
     
