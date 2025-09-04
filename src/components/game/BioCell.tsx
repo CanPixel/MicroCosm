@@ -79,7 +79,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
     damageAnimationRef.current = 1; // Start the damage animation
     
     const newParticles: DamageParticle[] = [];
-    const numParticles = 8 + Math.floor(Math.random() * 5);
+    const numParticles = 3 + Math.floor(Math.random() * 3); // Reduced particles
     for (let i = 0; i < numParticles; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 3 + 1;

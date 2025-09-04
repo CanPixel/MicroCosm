@@ -26,6 +26,7 @@ const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 0.5; // Lose 50% of size difference
 const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
 const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
+const DAMAGE_COOLDOWN = 1000; // 1 second invulnerability
 
 type Position = { x: number; y: number };
 type SugarParticle = Position & { size: number, createdAt: number };
@@ -58,6 +59,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isStarving, setIsStarving] = useState(false);
   const [score, setScore] = useState(0);
   const [energy, setEnergy] = useState(100);
+  const [isInvulnerable, setIsInvulnerable] = useState(false);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
   const [font, setFont] = useState("font-zcool-kuaile");
@@ -72,6 +74,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const cameraPositionRef = useRef<Position>({ x: 0, y: 0 });
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   const zoomRef = useRef(1);
+  const lastDamageTimeRef = useRef(0);
   
   const [sugars, setSugars] = useState<SugarParticle[]>([]);
   const [debris, setDebris] = useState<DebrisItem[]>([]);
@@ -177,6 +180,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     setCollectedOrganelles(new Set());
     setEligibleOrganelles(new Set());
+    setIsInvulnerable(false);
+    lastDamageTimeRef.current = 0;
 
     setIsGameOver(false);
   }, [spawnSugars]);
@@ -379,18 +384,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     let remainingDebrisInFrame = [...debris];
     const collectedOrganelleTypesThisFrame = new Set<string>();
 
+    const uncollectedDebrisAfterOrganelles: DebrisItem[] = [];
+
     // First pass: check for organelle collection
-    const stillUncollectedDebris: DebrisItem[] = [];
     for (const d of remainingDebrisInFrame) {
         if ((d.Component as any).isOrganelle) {
             const organismState = organismStates[d.id];
             if (!organismState) {
-                stillUncollectedDebris.push(d);
+                uncollectedDebrisAfterOrganelles.push(d);
                 continue;
             }
-            const isEligible = cellSize > organismState.size;
+            const isEligibleForCollection = cellSize > organismState.size;
             
-            if (isEligible) {
+            if (isEligibleForCollection) {
                 newEligibleOrganelles.add(d.id);
                 const dx = cellPositionRef.current.x - organismState.position.x;
                 const dy = cellPositionRef.current.y - organismState.position.y;
@@ -399,50 +405,65 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
                 if (dist < collisionThreshold) {
                     collectedOrganelleTypesThisFrame.add((d.Component as any).type);
-                    // Don't add to stillUncollectedDebris to "remove" it
+                    // Don't add to uncollectedDebrisAfterOrganelles to "remove" it
                 } else {
-                    stillUncollectedDebris.push(d); // Not collected, keep it
+                    uncollectedDebrisAfterOrganelles.push(d); // Not collected, keep it
                 }
             } else {
-                stillUncollectedDebris.push(d); // Not eligible, keep it
+                uncollectedDebrisAfterOrganelles.push(d); // Not eligible, keep it
             }
         } else {
-            // This is not an organelle, it might be harmful. Keep it for the next pass.
-            stillUncollectedDebris.push(d);
+            // Not an organelle, pass to the next check.
+            uncollectedDebrisAfterOrganelles.push(d);
         }
     }
     
-    // Second pass: check for harmful collisions with what's left
-    for (const d of stillUncollectedDebris) {
-        // Organelles are already handled and filtered, so we only need to check non-organelles.
-        if ((d.Component as any).isHarmful) {
-            const organismState = organismStates[d.id];
-            if (!organismState) continue;
+    // Second pass: check for harmful collisions
+    if (now - lastDamageTimeRef.current > DAMAGE_COOLDOWN) {
+        let tookDamage = false;
+        for (const d of uncollectedDebrisAfterOrganelles) {
+            if ((d.Component as any).isHarmful) {
+                const organismState = organismStates[d.id];
+                if (!organismState) continue;
 
-            const dx = cellPositionRef.current.x - organismState.position.x;
-            const dy = cellPositionRef.current.y - organismState.position.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const collisionThreshold = currentCellRadius + organismState.size / 2;
-            
-            if (dist < collisionThreshold && cellSize < organismState.size) {
-                const sizeDifference = organismState.size - cellSize;
-                const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
-                const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
+                const dx = cellPositionRef.current.x - organismState.position.x;
+                const dy = cellPositionRef.current.y - organismState.position.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const collisionThreshold = currentCellRadius + organismState.size / 2;
+                
+                if (dist < collisionThreshold && cellSize < organismState.size) {
+                    const sizeDifference = organismState.size - cellSize;
+                    const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
+                    const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
 
-                setCellSize(cs => Math.max(INITIAL_CELL_SIZE / 2, cs - sizePenalty));
-                setScore(s => Math.max(0, s - sizePenalty));
-                setEnergy(e => Math.max(0, e - energyPenalty));
+                    setCellSize(cs => Math.max(INITIAL_CELL_SIZE / 2, cs - sizePenalty));
+                    setScore(s => Math.max(0, s - sizePenalty));
+                    setEnergy(e => Math.max(0, e - energyPenalty));
+                    
+                    // Apply bounce-back
+                    const bounceFactor = 15;
+                    velocityRef.current.x = -velocityRef.current.x * bounceFactor;
+                    velocityRef.current.y = -velocityRef.current.y * bounceFactor;
 
-                if (cellApiRef.current) {
-                    cellApiRef.current.takeDamage();
+                    if (cellApiRef.current) {
+                        cellApiRef.current.takeDamage();
+                    }
+
+                    lastDamageTimeRef.current = now;
+                    setIsInvulnerable(true);
+                    tookDamage = true;
+                    break; // Only handle one collision per frame
                 }
             }
         }
+    } else {
+         if (isInvulnerable) setIsInvulnerable(false);
     }
+    
 
     // Update state based on collections
     if (collectedOrganelleTypesThisFrame.size > 0) {
-      setDebris(stillUncollectedDebris);
+      setDebris(uncollectedDebrisAfterOrganelles);
       setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
     }
     
@@ -478,7 +499,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, isStarving, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
+  }, [isGameOver, isStarving, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange, isInvulnerable]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
