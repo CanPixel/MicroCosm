@@ -132,9 +132,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         
         // Spawn randomly just off-screen in a circle
         const angle = Math.random() * 2 * Math.PI;
-        const spawnRadius = immediate ? 
-            Math.random() * Math.min(width, height) * 0.7 :
+        const baseRadius = immediate ? 
+            Math.min(width, height) * 0.7 :
             Math.max(width, height) / (2 * zoomRef.current) + spawnPadding;
+            
+        // Add randomness to radius to break patterns
+        const spawnRadius = baseRadius * (0.8 + Math.random() * 0.4);
 
         x = camX + Math.cos(angle) * spawnRadius;
         y = camY + Math.sin(angle) * spawnRadius;
@@ -175,7 +178,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // Initial sugar spawn
     setSugars([]);
-    spawnSugars(30, true); 
+    spawnSugars(20, true); 
     
     // Set initial debris
     const initialDebris = Debris();
@@ -700,3 +703,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
