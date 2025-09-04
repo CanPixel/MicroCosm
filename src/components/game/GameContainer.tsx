@@ -27,7 +27,7 @@ const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 0.1; // Lose 10% of size difference
 const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
 const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
-const DAMAGE_COOLDOWN = 1000; // 1 second invulnerability
+const DAMAGE_COOLDOWN = 3000; // 3 second invulnerability
 const RENDER_PADDING = 300; // The buffer around the viewport to render entities
 
 type Position = { x: number; y: number };
@@ -361,7 +361,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const zoomOutFactor = 0.02;
     const initialZoom = 2.0;
     const sizeForZoom = Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cellSize);
-    const targetZoom = Math.max(0.5, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
+    const targetZoom = Math.max(0.8, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
 
     zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
     const zoom = zoomRef.current;
@@ -657,7 +657,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 })}
             </div>
 
-            <div ref={cellWrapperRef} className="absolute z-30">
+            <div 
+                ref={cellWrapperRef} 
+                className="absolute z-30 transition-opacity duration-300"
+                style={{ opacity: isInvulnerable ? 0.5 : 1 }}
+            >
                 <BioCell ref={cellApiRef} size={cellSize} score={score} />
             </div>
         </div>
@@ -678,3 +682,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
