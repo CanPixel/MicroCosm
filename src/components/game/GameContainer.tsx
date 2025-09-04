@@ -544,20 +544,25 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const movementEnergyDrain = (speed / MAX_SPEED) * 0.08;
     const sizeDrainFactor = 1 + (cellSize - INITIAL_CELL_SIZE) / 200;
     const baseEnergyDrain = 0.02 * sizeDrainFactor;
+    const energyGain = energyFromSugar + energyFromDevouring;
+    const energyDrain = baseEnergyDrain + movementEnergyDrain + energyPenaltyFromDamage;
+    const newEnergy = Math.min(100, Math.max(0, energy + energyGain - energyDrain));
 
     if (isStarving) {
-      const newSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
-      setCellSize(newSize);
-      setScore(newSize);
-    } else {
-        const energyGain = energyFromSugar + energyFromDevouring;
-        const energyDrain = baseEnergyDrain + movementEnergyDrain + energyPenaltyFromDamage;
-        const newEnergy = Math.min(100, Math.max(0, energy + energyGain - energyDrain));
+      if (energyGain > 0) {
+        // Just ate, no longer starving!
+        setIsStarving(false);
         setEnergy(newEnergy);
-        
-        if (newEnergy <= 0) {
-            setIsStarving(true);
-        }
+      } else {
+        const newSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
+        setCellSize(newSize);
+        setScore(newSize);
+      }
+    } else {
+      setEnergy(newEnergy);
+      if (newEnergy <= 0) {
+          setIsStarving(true);
+      }
     }
     
     // --- Game State Checks (Game Over) ---
