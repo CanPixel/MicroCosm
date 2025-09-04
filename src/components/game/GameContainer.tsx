@@ -509,10 +509,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     setScore(s => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, s - sizePenalty));
                     setEnergy(e => Math.max(0, e - energyPenalty));
 
-                    const bounceFactor = 15;
-                    velocityRef.current.x = -(dx / dist) * bounceFactor;
-                    velocityRef.current.y = -(dy / dist) * bounceFactor;
-
                     if (cellApiRef.current) {
                         cellApiRef.current.takeDamage();
                     }
