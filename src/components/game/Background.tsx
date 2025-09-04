@@ -5,7 +5,7 @@ import { Delaunay } from 'd3-delaunay';
 
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const NUM_POINTS = 1000;
+const NUM_POINTS = 200;
 
 type MovingPoint = {
   x: number;
