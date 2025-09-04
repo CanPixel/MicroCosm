@@ -1,4 +1,4 @@
-# MicroCosm
+# MicroCosm (V1)
 
 Welcome to **MicroCosm**, an interactive cellular ecosystem simulation built with Next.js and prototyped in Firebase Studio. Dive into a mesmerizing, microscopic world and guide your cell from a simple organism to a complex life form.
 
@@ -34,4 +34,3 @@ npm run dev
 ```
 
 Open [http://localhost:9002](http://localhost:9002) with your browser to see the result. You can start editing the page by modifying `src/app/page.tsx`.
-
