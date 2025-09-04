@@ -82,8 +82,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const keysPressedRef = useRef<{[key: string]: boolean}>({});
   const isPointerDownRef = useRef(false);
   const pointerPositionRef = useRef({ x: 0, y: 0 });
-  const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
-  const cameraPositionRef = useRef<Position>({ x: 0, y: 0 });
+  const cellPositionRef = useRef<Position>({ x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 });
+  const cameraPositionRef = useRef<Position>({ x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 });
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   const lastDamageTimeRef = useRef(0);
@@ -176,8 +176,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     velocityRef.current = { x: 0, y: 0 };
     if (cellWrapperRef.current) {
-        const halfSvgSize = (INITIAL_CELL_SIZE * 2.5 * 1.5) / 2;
-        cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSvgSize}px, ${initialPosition.y - halfSvgSize}px)`;
+        cellWrapperRef.current.style.transform = `translate(${initialPosition.x}px, ${initialPosition.y}px)`;
     }
     keysPressedRef.current = {};
     
@@ -375,9 +374,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
     }
 
-    const halfSvgContainerSize = (cellSize * 2.5 * 1.5) / 2;
     if (cellWrapperRef.current) {
-      cellWrapperRef.current.style.transform = `translate(${cellPositionRef.current.x - halfSvgContainerSize}px, ${cellPositionRef.current.y - halfSvgContainerSize}px)`;
+      cellWrapperRef.current.style.transform = `translate(${cellPositionRef.current.x}px, ${cellPositionRef.current.y}px)`;
     }
 
     // --- Camera and Zoom ---

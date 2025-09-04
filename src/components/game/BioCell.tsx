@@ -409,7 +409,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
   const currentCenter = currentViewboxSize / 2;
 
   return (
-    <div style={cellStyle} className="absolute flex items-center justify-center">
+    <div style={cellStyle} className="absolute flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
         <defs>
             <filter id="organelle-glow" x="-50%" y="-50%" width="200%" height="200%">
