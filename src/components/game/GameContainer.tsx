@@ -276,7 +276,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setSugars(currentSugars => currentSugars.filter(sugar => {
         const isOutsideRender = sugar.x < viewLeft || sugar.x > viewRight || sugar.y < viewTop || sugar.y < viewBottom;
         if (isOutsideRender && (now - sugar.createdAt > SUGAR_LIFETIME)) {
-            return false; // Despawn
+            return false; // Despawn only if off-screen and expired
         }
         return true;
     }));
