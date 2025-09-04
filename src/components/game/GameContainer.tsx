@@ -416,9 +416,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         if (dist < currentCellRadius) {
             const sizeMultiplier = sugar.size / 8;
-            totalScoreGained += 3 * sizeMultiplier;
-            totalEnergyGained += 2.5 * sizeMultiplier;
-            totalSizeGained += 0.8 * sizeMultiplier;
+            totalScoreGained += 3.5 * sizeMultiplier;
+            totalEnergyGained += 3 * sizeMultiplier;
+            totalSizeGained += 1 * sizeMultiplier;
             eatenSugarIds.add(sugar.id);
         }
     }
@@ -435,51 +435,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         setIsStarving(false);
       }
     }
-
-    // Sugars (Debris) - check against only local sugars
-    let organismSizeChanges: {[id: string]: number} = {};
-
-    for (const sugar of localSugars) {
-        if (eatenSugarIds.has(sugar.id)) continue;
-
-        // Only check against local autonomous debris
-        for (const d of localDebris) {
-            if (d.isAutonomous) {
-                const organismState = organismStates[d.id];
-                if (!organismState) continue;
-
-                const dx = organismState.position.x - sugar.x;
-                const dy = organismState.position.y - sugar.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const collisionThreshold = organismState.size / 2;
-
-                if (dist < collisionThreshold) {
-                    const sizeMultiplier = sugar.size / 8;
-                    organismSizeChanges[d.id] = (organismSizeChanges[d.id] || 0) + (1 * sizeMultiplier);
-                    eatenSugarIds.add(sugar.id);
-                    break; 
-                }
-            }
-        }
-    }
     
     if (eatenSugarIds.size > 0) {
         setSugars(currentSugars => currentSugars.filter(s => !eatenSugarIds.has(s.id)));
     }
-
-
-    if (Object.keys(organismSizeChanges).length > 0) {
-        setOrganismStates(prev => {
-            const newStates = { ...prev };
-            for (const id in organismSizeChanges) {
-                if (newStates[id]) {
-                    newStates[id] = { ...newStates[id], size: newStates[id].size + organismSizeChanges[id] };
-                }
-            }
-            return newStates;
-        });
-    }
-    
     
     // Debris Collisions (Harmful, Devour, Organelles)
     const newEligibleOrganelles = new Set<string>();
