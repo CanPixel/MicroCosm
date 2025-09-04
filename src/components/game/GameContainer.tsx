@@ -361,7 +361,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const zoomOutFactor = 0.02;
     const initialZoom = 2.0;
     const sizeForZoom = Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cellSize);
-    const targetZoom = Math.max(0.4, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
+    const targetZoom = Math.max(0.5, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
 
     zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
     const zoom = zoomRef.current;
@@ -585,7 +585,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   });
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background select-none">
         <Background cameraPosition={cameraForParallax} />
 
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>

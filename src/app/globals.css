@@ -9,6 +9,10 @@ body {
 }
 
 @layer base {
+  ::selection {
+    background: hsl(140 80% 20%);
+    color: hsl(var(--foreground));
+  }
   :root {
     --background: 224 71% 4%; /* #050E18 */
     --foreground: 210 40% 98%;
