@@ -195,8 +195,13 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
       const { vx, vy } = velocityRef.current;
       const speed = Math.sqrt(vx * vx + vy * vy);
       const movementAngle = Math.atan2(vy, vx);
-
-      const currentBaseRadius = currentSize / 2;
+      
+      const nucleusBaseRadius = INITIAL_SIZE * 0.15;
+      const minCellRadius = nucleusBaseRadius * 1.5; // Ensure wall is always outside nucleus
+      
+      const baseRadiusFromSize = currentSize / 2;
+      const currentBaseRadius = Math.max(minCellRadius, baseRadiusFromSize);
+      
       const currentSvgSize = currentSize * 2.5;
       const currentViewboxCenter = currentSvgSize / 2;
 
@@ -223,7 +228,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
       }
 
       // Animate nucleus
-      const nucleusBaseRadius = INITIAL_SIZE * 0.15;
       const nucleusScale = 1 + Math.sin(time / 500) * 0.1;
       nucleus.setAttribute('r', `${nucleusBaseRadius * nucleusScale}`);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
