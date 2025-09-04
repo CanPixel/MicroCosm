@@ -306,7 +306,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // --- Camera and Zoom ---
     const zoomOutFactor = 0.02;
     const initialZoom = 2.0;
-    const targetZoom = Math.max(0.2, initialZoom / (1 + (cellSize - INITIAL_CELL_SIZE) * zoomOutFactor));
+    const sizeForZoom = Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cellSize);
+    const targetZoom = Math.max(0.2, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
 
     zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
     const zoom = zoomRef.current;
@@ -445,7 +446,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const collisionThreshold = currentCellRadius + organismState.size / 2;
                 
-                if (dist < collisionThreshold && cellSize < organismState.size) {
+                if (dist < collisionThreshold && cellSize > organismState.size) {
+                    // Player is bigger, can potentially "eat" harmful cell, for now, nothing happens.
+                }
+                else if (dist < collisionThreshold && cellSize < organismState.size) {
                     const sizeDifference = organismState.size - cellSize;
                     const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
                     const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
@@ -601,5 +605,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
