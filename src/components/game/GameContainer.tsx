@@ -62,7 +62,7 @@ const lerpHSL = (
 export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isStarving, setIsStarving] = useState(false);
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState(INITIAL_CELL_SIZE);
   const [energy, setEnergy] = useState(100);
   const [isInvulnerable, setIsInvulnerable] = useState(false);
 
@@ -107,7 +107,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, progress);
     const newPrimary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, progress);
-    const newAccent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, progress);
+    const newAccent = lerpHSL(THEME_CALM.accent, THEE_VIBRANT.accent, progress);
 
     const root = document.documentElement;
     root.style.setProperty('--background', `${newBg[0]} ${newBg[1]}% ${newBg[2]}%`);
@@ -160,7 +160,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     if (!containerRef.current) return;
     
     setCellSize(INITIAL_CELL_SIZE);
-    setScore(0);
+    setScore(INITIAL_CELL_SIZE);
     setEnergy(100);
     setIsStarving(false);
     
@@ -564,7 +564,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     if (isStarving) {
       currentScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
-      currentCellSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
+      currentCellSize = Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cellSize - STARVATION_SIZE_DRAIN);
       setScore(currentScore);
       setCellSize(currentCellSize);
     } else {
@@ -577,7 +577,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setIsStarving(true);
     }
 
-    if (isStarving && currentCellSize <= 0) {
+    if (isStarving && currentCellSize <= MIN_CELL_SIZE_FROM_DAMAGE) {
       setIsGameOver(true);
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     }
