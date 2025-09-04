@@ -45,6 +45,7 @@ export type BioCellHandle = {
 type BioCellProps = {
   size: number;
   score: number;
+  isDying: boolean;
   collectedOrganelles: Set<string>;
 };
 
@@ -87,7 +88,7 @@ const organelleMap: { [key: string]: React.FC<any> } = {
 };
 
 
-export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, collectedOrganelles }, ref) => {
+export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, isDying, collectedOrganelles }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const sizeRef = useRef(size);
@@ -98,6 +99,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
   const [internalOrganelles, setInternalOrganelles] = useState<InternalOrganelle[]>([]);
   const evolutionFactorRef = useRef(1);
   const damageAnimationRef = useRef(0);
+  const deathAnimationRef = useRef(0);
 
   const takeDamage = useCallback(() => {
     damageAnimationRef.current = 1; // Start the damage animation
@@ -263,6 +265,12 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
       const inertiaOffsetX = -vx * 0.5;
       const inertiaOffsetY = -vy * 0.5;
 
+      // Death animation
+      if (isDying && deathAnimationRef.current < 1) {
+          deathAnimationRef.current += 0.005; // speed of death animation
+      }
+      const deathProgress = deathAnimationRef.current;
+
       // Evolution animation
       if (hasEvolved && evolutionFactorRef.current < EVOLUTION_SIZE_MULTIPLIER) {
         evolutionFactorRef.current += (EVOLUTION_SIZE_MULTIPLIER - evolutionFactorRef.current) * 0.05;
@@ -279,8 +287,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
       }
 
       // Animate nucleus
-      const nucleusScale = 1 + Math.sin(time / 500) * 0.1;
+      const nucleusScale = isDying ? 1 : 1 + Math.sin(time / 500) * 0.1;
+      const nucleusColor = `hsl(var(--accent-hsl), ${1 - deathProgress})`; // Fade to black
       nucleus.setAttribute('r', `${nucleusBaseRadius * nucleusScale}`);
+      nucleus.setAttribute('fill', nucleusColor);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
       nucleusGroup.setAttribute('transform', `translate(${currentViewboxCenter + inertiaOffsetX}, ${currentViewboxCenter + inertiaOffsetY})`);
 
@@ -288,7 +298,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
       const animateRadiation = (circle: SVGCircleElement, rTime: number) => {
           const maxRadius = nucleusBaseRadius * 3;
           const currentRadius = (rTime % 3) / 3 * maxRadius;
-          const opacity = Math.max(0, 1 - (currentRadius / maxRadius));
+          const opacity = Math.max(0, 1 - (currentRadius / maxRadius) - deathProgress);
 
           circle.setAttribute('r', `${currentRadius}`);
           circle.setAttribute('opacity', `${opacity}`);
@@ -382,11 +392,15 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
       animatedWallPoints = updateWallPoints(pointsRef.current, 1);
       const innerSvgPath = catmullRomSpline(animatedWallPoints);
       innerPath.setAttribute('d', innerSvgPath);
+      innerPath.setAttribute('fill-opacity', `${Math.max(0, 0.2 - deathProgress * 0.2)}`);
+      innerPath.setAttribute('stroke-width', `${Math.max(0, (hasEvolved ? 0 : 3) * (1 - deathProgress))}`);
+
 
       if(hasEvolved && outerPath) {
         animatedOuterWallPoints = updateWallPoints(outerPointsRef.current, evolutionFactorRef.current);
         const outerSvgPath = catmullRomSpline(animatedOuterWallPoints);
         outerPath.setAttribute('d', outerSvgPath);
+        outerPath.setAttribute('stroke-width', `${Math.max(0, 3 * (1 - deathProgress))}`);
       }
       
       animationFrameId = requestAnimationFrame(animate);
@@ -395,14 +409,14 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEvolved, collectedOrganelles]);
+  }, [hasEvolved, collectedOrganelles, isDying]);
 
   const containerSize = svgSize * 1.5; // Make container larger than SVG to prevent clipping
 
   const cellStyle: React.CSSProperties = {
     width: `${containerSize}px`,
     height: `${containerSize}px`,
-    filter: `drop-shadow(0 0 10px hsl(var(--primary) / 0.8))`
+    filter: `drop-shadow(0 0 10px hsl(var(--primary) / ${0.8 * (1 - deathAnimationRef.current)}))`
   };
   
   const currentViewboxSize = size * 2.5;
@@ -437,7 +451,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
         />
 
         {/* Collected Organelles */}
-        <g>
+        <g opacity={1 - deathAnimationRef.current}>
             {internalOrganelles.map(({ id, Component, x, y, rotation, size }) => (
                 <g 
                     key={id} 
@@ -452,12 +466,13 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
         {/* Nucleus */}
         <g className="nucleus-group" transform={`translate(${viewboxCenter}, ${viewboxCenter})`}>
             <circle className="nucleus" cx={0} cy={0} r={INITIAL_SIZE * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
-            <circle cx={0} cy={0} r={INITIAL_SIZE * 0.1} fill="hsl(var(--accent) / 0.5)" />
+            <circle cx={0} cy={0} r={INITIAL_SIZE * 0.1} fill="hsl(var(--accent) / 0.5)" opacity={1-deathAnimationRef.current}/>
             <circle className="radiating-circle-1" cx={0} cy={0} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
             <circle className="radiating-circle-2" cx={0} cy={0} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
         </g>
 
         {/* Internal Particles */}
+        <g opacity={1 - deathAnimationRef.current}>
         {particlesRef.current.map((p, i) => {
             let fill = 'none';
             let stroke = 'none';
@@ -491,6 +506,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, c
                 />
             )
         })}
+        </g>
         
         {/* Damage Particles */}
         {damageParticles.map(p => (

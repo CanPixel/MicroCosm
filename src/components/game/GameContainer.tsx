@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_CELL_SCORE = 600;
-const MIN_CELL_SIZE_FROM_DAMAGE = 11;
+const MIN_CELL_SIZE_FOR_DEATH = 5;
 const MAX_SPEED = 6;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
@@ -27,12 +27,13 @@ const MAX_SUGAR = 100;
 const BASE_SUGAR_SPAWN_INTERVAL = 2000; // ms
 const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
-const COLLISION_PENALTY_FACTOR = 1.5; // Lose 10% of size difference
-const ENERGY_PENALTY_FACTOR = 2.5; // Lose energy equal to size difference
-const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
+const COLLISION_PENALTY_FACTOR = 1.5; 
+const ENERGY_PENALTY_FACTOR = 2.5;
+const STARVATION_SIZE_DRAIN = 0.15; // Points per frame
 const DAMAGE_COOLDOWN = 3000; // 3 second solid invulnerability
 const FLICKER_DURATION = 2000; // 2 second flicker period
 const TOTAL_INVINCIBILITY_DURATION = DAMAGE_COOLDOWN + FLICKER_DURATION;
+const DEATH_ANIMATION_DURATION = 2000; // ms
 const RENDER_PADDING = 300; // The buffer around the viewport to render entities
 
 
@@ -65,6 +66,7 @@ const lerpHSL = (
 
 export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isDying, setIsDying] = useState(false);
   const [isStarving, setIsStarving] = useState(false);
   const [score, setScore] = useState(INITIAL_CELL_SIZE);
   const [energy, setEnergy] = useState(100);
@@ -204,6 +206,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setIsFlickering(false);
     lastDamageTimeRef.current = 0;
 
+    setIsDying(false);
     setIsGameOver(false);
   }, [spawnSugars]);
 
@@ -272,7 +275,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, []);
 
   const gameLoop = useCallback((timestamp: number) => {
-    if (isGameOver || !containerRef.current || !worldRef.current) {
+    if (isGameOver || isDying ||!containerRef.current || !worldRef.current) {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
       return;
     }
@@ -381,7 +384,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // --- Camera and Zoom ---
     const zoomOutFactor = 0.02;
     const initialZoom = 2.0;
-    const sizeForZoom = Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cellSize);
+    const sizeForZoom = Math.max(MIN_CELL_SIZE_FOR_DEATH, cellSize);
     const targetZoom = Math.max(0.8, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
 
     zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
@@ -413,9 +416,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         if (dist < currentCellRadius) {
             const sizeMultiplier = sugar.size / 8;
-            totalScoreGained += 2 * sizeMultiplier;
-            totalEnergyGained += 1.5 * sizeMultiplier;
-            totalSizeGained += 0.5 * sizeMultiplier;
+            totalScoreGained += 2.5 * sizeMultiplier;
+            totalEnergyGained += 2 * sizeMultiplier;
+            totalSizeGained += 0.6 * sizeMultiplier;
             eatenSugarIds.add(sugar.id);
         }
     }
@@ -526,8 +529,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 const sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
                 const energyPenalty = (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
 
-                setCellSize(cs => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cs - sizePenalty));
-                setScore(s => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, s - sizePenalty));
+                setCellSize(cs => Math.max(0, cs - sizePenalty));
+                setScore(s => Math.max(0, s - sizePenalty));
                 setEnergy(e => Math.max(0, e - energyPenalty));
 
                 if (cellApiRef.current) {
@@ -581,7 +584,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     if (isStarving) {
       currentScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
-      currentCellSize = Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cellSize - STARVATION_SIZE_DRAIN);
+      currentCellSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
       setScore(currentScore);
       setCellSize(currentCellSize);
     } else {
@@ -594,13 +597,15 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setIsStarving(true);
     }
 
-    if (isStarving && currentCellSize <= MIN_CELL_SIZE_FROM_DAMAGE) {
-      setIsGameOver(true);
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+    if (isStarving && currentCellSize <= MIN_CELL_SIZE_FOR_DEATH && !isDying) {
+        setIsDying(true);
+        setTimeout(() => {
+            setIsGameOver(true);
+        }, DEATH_ANIMATION_DURATION);
     }
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, isStarving, isInvulnerable, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
+  }, [isGameOver, isDying, isStarving, isInvulnerable, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -703,10 +708,15 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     isFlickering && "animate-flicker"
                 )}
             >
-                <BioCell ref={cellApiRef} size={cellSize} score={score} collectedOrganelles={collectedOrganelles} />
+                <BioCell ref={cellApiRef} size={cellSize} score={score} isDying={isDying} collectedOrganelles={collectedOrganelles} />
             </div>
         </div>
         
+        <div className={cn(
+            "fixed inset-0 bg-black z-40 transition-opacity duration-1000",
+            isDying ? "opacity-100" : "opacity-0 pointer-events-none"
+        )} />
+
         <GameUI
             cellSize={cellSize}
             score={score}
@@ -723,5 +733,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    

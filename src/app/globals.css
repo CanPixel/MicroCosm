@@ -27,6 +27,7 @@ body {
     --muted: 215 28% 17%;
     --muted-foreground: 215 20% 65%;
     --accent: 263 90% 58%; /* #6E3FF4 - Purple */
+    --accent-hsl: 263, 90%, 58%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
