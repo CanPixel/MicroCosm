@@ -13,6 +13,7 @@ import { Autonomous } from "./Autonomous";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_CELL_SCORE = 600;
+const MIN_CELL_SIZE_FROM_DAMAGE = 11;
 const MAX_SPEED = 8;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
@@ -322,6 +323,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         }
     }
     
+    let sugarsThisFrame = remainingSugarsAfterPlayer;
     if (totalScoreGained > 0 && score < MAX_CELL_SCORE) {
       const newScore = Math.min(MAX_CELL_SCORE, score + totalScoreGained);
       const newSize = Math.min(INITIAL_CELL_SIZE + (MAX_CELL_SCORE - INITIAL_CELL_SIZE), cellSize + totalSizeGained);
@@ -333,16 +335,14 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       if (newEnergy > 0) {
         setIsStarving(false);
       }
-      setSugars(remainingSugarsAfterPlayer);
-    } else {
-      setSugars(remainingSugarsAfterPlayer);
     }
+    setSugars(sugarsThisFrame);
 
     // Sugars (Debris)
     let remainingSugarsAfterDebris: SugarParticle[] = [];
     let organismSizeChanges: {[id: string]: number} = {};
 
-    for (const sugar of sugars) {
+    for (const sugar of sugarsThisFrame) {
         let eaten = false;
         for (const d of debris) {
             if (d.isAutonomous) {
@@ -386,40 +386,33 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     let debrisThisFrame = [...debris];
     const collectedOrganelleTypesThisFrame = new Set<string>();
 
-    const uncollectedDebrisAfterOrganelles: DebrisItem[] = [];
-
     // First pass: check for organelle collection
-    for (const d of debrisThisFrame) {
-        if ((d.Component as any).isOrganelle) {
-            const organismState = organismStates[d.id];
-            if (!organismState) {
-                uncollectedDebrisAfterOrganelles.push(d);
-                continue;
-            }
-            const isEligibleForCollection = cellSize > organismState.size;
-            
-            if (isEligibleForCollection) {
-                newEligibleOrganelles.add(d.id);
-                const dx = cellPositionRef.current.x - organismState.position.x;
-                const dy = cellPositionRef.current.y - organismState.position.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const collisionThreshold = currentCellRadius + organismState.size / 2;
-
-                if (dist < collisionThreshold) {
-                    collectedOrganelleTypesThisFrame.add((d.Component as any).type);
-                    // Don't add to uncollectedDebrisAfterOrganelles to "remove" it
-                } else {
-                    uncollectedDebrisAfterOrganelles.push(d); // Not collected, keep it
-                }
-            } else {
-                uncollectedDebrisAfterOrganelles.push(d); // Not eligible, keep it
-            }
-        } else {
-            // Not an organelle, pass to the next check.
-            uncollectedDebrisAfterOrganelles.push(d);
+    const uncollectedDebrisAfterOrganelles = debrisThisFrame.filter(d => {
+        if (!(d.Component as any).isOrganelle) {
+            return true; // Keep non-organelles for the next check
         }
-    }
+
+        const organismState = organismStates[d.id];
+        if (!organismState) return true;
+
+        const isEligibleForCollection = cellSize > organismState.size;
+        if (isEligibleForCollection) {
+            newEligibleOrganelles.add(d.id);
+            const dx = cellPositionRef.current.x - organismState.position.x;
+            const dy = cellPositionRef.current.y - organismState.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const collisionThreshold = currentCellRadius; // Collect on touch
+
+            if (dist < collisionThreshold) {
+                collectedOrganelleTypesThisFrame.add((d.Component as any).type);
+                return false; // Remove from debris list
+            }
+        }
+        return true; // Keep if not eligible or not collected
+    });
     
+    let debrisToKeep = uncollectedDebrisAfterOrganelles;
+
     // Second pass: check for harmful collisions
     if (now - lastDamageTimeRef.current > DAMAGE_COOLDOWN) {
         if (isInvulnerable) setIsInvulnerable(false);
@@ -438,14 +431,14 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
                     const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
 
-                    setCellSize(cs => Math.max(INITIAL_CELL_SIZE / 2, cs - sizePenalty));
-                    setScore(s => Math.max(0, s - sizePenalty));
+                    setCellSize(cs => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cs - sizePenalty));
+                    setScore(s => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, s - sizePenalty));
                     setEnergy(e => Math.max(0, e - energyPenalty));
                     
                     // Apply bounce-back
                     const bounceFactor = 15;
-                    velocityRef.current.x = -velocityRef.current.x * bounceFactor;
-                    velocityRef.current.y = -velocityRef.current.y * bounceFactor;
+                    velocityRef.current.x = -(dx / dist) * bounceFactor;
+                    velocityRef.current.y = -(dy / dist) * bounceFactor;
 
                     if (cellApiRef.current) {
                         cellApiRef.current.takeDamage();
@@ -461,7 +454,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // Update state based on collections
     if (collectedOrganelleTypesThisFrame.size > 0) {
-      setDebris(uncollectedDebrisAfterOrganelles);
+      setDebris(debrisToKeep);
       setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
     }
     
@@ -478,7 +471,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     if (isStarving) {
       currentScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
-      currentCellSize = Math.max(1, cellSize - STARVATION_SIZE_DRAIN);
+      currentCellSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
       setScore(currentScore);
       setCellSize(currentCellSize);
     } else {
@@ -592,5 +585,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
