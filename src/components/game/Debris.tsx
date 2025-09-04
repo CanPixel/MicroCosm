@@ -18,6 +18,9 @@ import { FungiWall } from './FungiWall';
 const DEBRIS_COUNT = 100;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
+const PLAYER_SPAWN_X = WORLD_WIDTH / 2;
+const PLAYER_SPAWN_Y = WORLD_HEIGHT / 2;
+const NO_SPAWN_RADIUS = 800; // Don't spawn giant organisms within this radius of the player's start
 
 export type DebrisItem = {
     id: string;
@@ -30,8 +33,8 @@ export type DebrisItem = {
 
 export function Debris(): DebrisItem[] {
     return Array.from({ length: DEBRIS_COUNT }, (_, i) => {
-      const x = Math.random() * WORLD_WIDTH;
-      const y = Math.random() * WORLD_HEIGHT;
+      let x = Math.random() * WORLD_WIDTH;
+      let y = Math.random() * WORLD_HEIGHT;
       let size = Math.random() * 80 + 20; // Size between 20 and 100
       const duration = Math.random() * 40 + 20; // Animation duration between 20s and 60s
       const delay = Math.random() * -60; // Negative delay to start animations at different points
@@ -106,6 +109,8 @@ export function Debris(): DebrisItem[] {
       }
       
       const propsOverride: any = {};
+      const isGiant = Component === Amoeba || Component === FungiWall;
+
       if (Component === Amoeba) {
         size = Math.random() * 150 + 250; // 250-400
       }
@@ -113,9 +118,19 @@ export function Debris(): DebrisItem[] {
         size = Math.random() * 200 + 400; // 400-600
       }
       
+      // If it's a giant organism, make sure it doesn't spawn on top of the player
+      if (isGiant) {
+        let dist = Math.sqrt(Math.pow(x - PLAYER_SPAWN_X, 2) + Math.pow(y - PLAYER_SPAWN_Y, 2));
+        while (dist < NO_SPAWN_RADIUS + size) {
+          x = Math.random() * WORLD_WIDTH;
+          y = Math.random() * WORLD_HEIGHT;
+          dist = Math.sqrt(Math.pow(x - PLAYER_SPAWN_X, 2) + Math.pow(y - PLAYER_SPAWN_Y, 2));
+        }
+      }
+
       // Set a smaller collision size for very large organisms to feel more fair
       let collisionSize = size;
-      if (Component === Amoeba || Component === FungiWall) {
+      if (isGiant) {
         collisionSize *= 0.7; 
       }
       
