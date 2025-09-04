@@ -29,7 +29,7 @@ const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 1.5; 
 const ENERGY_PENALTY_FACTOR = 2.5;
-const STARVATION_SIZE_DRAIN = 0.05; // Points per frame
+const STARVATION_SIZE_DRAIN = 0.02; // Points per frame
 const DAMAGE_COOLDOWN = 3000; // 3 second solid invulnerability
 const FLICKER_DURATION = 2000; // 2 second flicker period
 const TOTAL_INVINCIBILITY_DURATION = DAMAGE_COOLDOWN + FLICKER_DURATION;
@@ -405,7 +405,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     // Sugars (Player) - check against only local sugars
     let totalScoreGained = 0;
-    let totalEnergyGained = 0;
+    let energyFromSugar = 0;
     let totalSizeGained = 0;
     let eatenSugarIds = new Set<string>();
 
@@ -417,23 +417,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         if (dist < currentCellRadius) {
             const sizeMultiplier = sugar.size / 8;
             totalScoreGained += 3.5 * sizeMultiplier;
-            totalEnergyGained += 3 * sizeMultiplier;
+            energyFromSugar += 3 * sizeMultiplier;
             totalSizeGained += 1 * sizeMultiplier;
             eatenSugarIds.add(sugar.id);
         }
-    }
-    
-    if (totalScoreGained > 0 && score < MAX_CELL_SCORE) {
-      const newScore = Math.min(MAX_CELL_SCORE, score + totalScoreGained);
-      const newSize = Math.min(INITIAL_CELL_SIZE + (MAX_CELL_SCORE - INITIAL_CELL_SIZE), cellSize + totalSizeGained);
-      
-      setScore(Math.round(newScore));
-      setCellSize(newSize);
-      const newEnergy = Math.min(100, energy + totalEnergyGained)
-      setEnergy(newEnergy);
-      if (newEnergy > 0) {
-        setIsStarving(false);
-      }
     }
     
     if (eatenSugarIds.size > 0) {
@@ -444,6 +431,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const newEligibleOrganelles = new Set<string>();
     const collectedOrganelleTypesThisFrame = new Set<string>();
     const collectedDebrisIds = new Set<string>();
+    
+    let energyFromDevouring = 0;
+    let energyPenaltyFromDamage = 0;
 
     const handleCollision = (d: DebrisItem) => {
         const organismState = organismStates[d.id];
@@ -473,9 +463,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             if (cellSize > organismState.size && !isPermanentlyHostile) {
                 // Devour smaller organism
                 const sizeBonus = organismState.size * 0.2;
-                setScore(s => s + sizeBonus);
-                setCellSize(cs => cs + sizeBonus / 5);
-                setEnergy(e => Math.min(100, e + sizeBonus / 2));
+                totalScoreGained += sizeBonus;
+                totalSizeGained += sizeBonus / 5;
+                energyFromDevouring += sizeBonus / 2;
                 collectedDebrisIds.add(d.id);
 
             } else {
@@ -486,12 +476,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 const basePenalty = isPermanentlyHostile ? organismState.size * 0.2 : 0;
                 const sizeDifference = Math.max(0, organismState.size - cellSize);
                 const sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
-                const energyPenalty = (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
+                energyPenaltyFromDamage += (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
                 
                 const newSize = Math.max(0, cellSize - sizePenalty);
                 setCellSize(newSize);
                 setScore(newSize);
-                setEnergy(e => Math.max(0, e - energyPenalty));
 
                 if (cellApiRef.current) {
                     cellApiRef.current.takeDamage();
@@ -518,7 +507,15 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             }
         }
     });
-
+    
+    // Update score and size from all sources
+    if (totalScoreGained > 0 && score < MAX_CELL_SCORE) {
+        const newScore = Math.min(MAX_CELL_SCORE, score + totalScoreGained);
+        const newSize = Math.min(INITIAL_CELL_SIZE + (MAX_CELL_SCORE - INITIAL_CELL_SIZE), cellSize + totalSizeGained);
+        setScore(Math.round(newScore));
+        setCellSize(newSize);
+    }
+    
     // Update state based on collections
     if (collectedDebrisIds.size > 0) {
         setDebris(currentDebris => currentDebris.filter(d => !collectedDebrisIds.has(d.id)));
@@ -531,12 +528,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
 
     // --- Energy Drain & Starvation Logic ---
-    let currentEnergy = energy;
-    
     const speed = Math.sqrt(velocityRef.current.x**2 + velocityRef.current.y**2);
     const movementEnergyDrain = (speed / MAX_SPEED) * 0.08;
-    
-    // Base drain increases with size
     const sizeDrainFactor = 1 + (cellSize - INITIAL_CELL_SIZE) / 200;
     const baseEnergyDrain = 0.02 * sizeDrainFactor;
 
@@ -545,15 +538,17 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setCellSize(newSize);
       setScore(newSize);
     } else {
-      currentEnergy = Math.max(0, energy - baseEnergyDrain - movementEnergyDrain);
-      setEnergy(currentEnergy);
+        const energyGain = energyFromSugar + energyFromDevouring;
+        const energyDrain = baseEnergyDrain + movementEnergyDrain + energyPenaltyFromDamage;
+        const newEnergy = Math.min(100, Math.max(0, energy + energyGain - energyDrain));
+        setEnergy(newEnergy);
+        
+        if (newEnergy <= 0) {
+            setIsStarving(true);
+        }
     }
     
-    // --- Game State Checks (Starvation, Game Over) ---
-    if (currentEnergy <= 0 && !isStarving) {
-      setIsStarving(true);
-    }
-
+    // --- Game State Checks (Game Over) ---
     if (cellSize <= 0 && !isDying) {
         setIsDying(true);
         setTimeout(() => {
@@ -690,5 +685,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
