@@ -23,7 +23,7 @@ const MAX_SUGAR = 100; // Reduced density
 const BASE_SUGAR_SPAWN_INTERVAL = 2000; // ms
 const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
-const COLLISION_PENALTY_FACTOR = 0.5; // Lose 50% of size difference
+const COLLISION_PENALTY_FACTOR = 0.1; // Lose 10% of size difference
 const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
 const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
 const DAMAGE_COOLDOWN = 1000; // 1 second invulnerability
@@ -304,7 +304,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     let totalScoreGained = 0;
     let totalEnergyGained = 0;
     let totalSizeGained = 0;
-    let remainingSugars: SugarParticle[] = [];
+    const remainingSugarsAfterPlayer: SugarParticle[] = [];
 
     for (const sugar of sugars) {
         const dx = cellPositionRef.current.x - sugar.x;
@@ -318,7 +318,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             totalEnergyGained += 5 * sizeMultiplier;
             totalSizeGained += 4 * sizeMultiplier;
         } else {
-            remainingSugars.push(sugar);
+            remainingSugarsAfterPlayer.push(sugar);
         }
     }
     
@@ -333,13 +333,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       if (newEnergy > 0) {
         setIsStarving(false);
       }
-      setSugars(remainingSugars);
+      setSugars(remainingSugarsAfterPlayer);
     } else {
-      setSugars(remainingSugars);
+      setSugars(remainingSugarsAfterPlayer);
     }
 
     // Sugars (Debris)
-    let stillRemainingSugars: SugarParticle[] = [];
+    let remainingSugarsAfterDebris: SugarParticle[] = [];
     let organismSizeChanges: {[id: string]: number} = {};
 
     for (const sugar of sugars) {
@@ -363,7 +363,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             }
         }
         if (!eaten) {
-            stillRemainingSugars.push(sugar);
+            remainingSugarsAfterDebris.push(sugar);
         }
     }
 
@@ -371,23 +371,25 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         setOrganismStates(prev => {
             const newStates = { ...prev };
             for (const id in organismSizeChanges) {
-                newStates[id] = { ...newStates[id], size: newStates[id].size + organismSizeChanges[id] };
+                if (newStates[id]) {
+                    newStates[id] = { ...newStates[id], size: newStates[id].size + organismSizeChanges[id] };
+                }
             }
             return newStates;
         });
-        setSugars(stillRemainingSugars);
+        setSugars(remainingSugarsAfterDebris);
     }
     
     
     // Organelles & Harmful Collisions
     const newEligibleOrganelles = new Set<string>();
-    let remainingDebrisInFrame = [...debris];
+    let debrisThisFrame = [...debris];
     const collectedOrganelleTypesThisFrame = new Set<string>();
 
     const uncollectedDebrisAfterOrganelles: DebrisItem[] = [];
 
     // First pass: check for organelle collection
-    for (const d of remainingDebrisInFrame) {
+    for (const d of debrisThisFrame) {
         if ((d.Component as any).isOrganelle) {
             const organismState = organismStates[d.id];
             if (!organismState) {
@@ -420,7 +422,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     
     // Second pass: check for harmful collisions
     if (now - lastDamageTimeRef.current > DAMAGE_COOLDOWN) {
-        let tookDamage = false;
+        if (isInvulnerable) setIsInvulnerable(false);
         for (const d of uncollectedDebrisAfterOrganelles) {
             if ((d.Component as any).isHarmful) {
                 const organismState = organismStates[d.id];
@@ -451,16 +453,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
                     lastDamageTimeRef.current = now;
                     setIsInvulnerable(true);
-                    tookDamage = true;
                     break; // Only handle one collision per frame
                 }
             }
         }
-    } else {
-         if (isInvulnerable) setIsInvulnerable(false);
     }
     
-
     // Update state based on collections
     if (collectedOrganelleTypesThisFrame.size > 0) {
       setDebris(uncollectedDebrisAfterOrganelles);
@@ -594,3 +592,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
