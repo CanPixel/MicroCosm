@@ -702,7 +702,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     isFlickering && "animate-flicker"
                 )}
             >
-                <BioCell ref={cellApiRef} size={cellSize} score={score} />
+                <BioCell ref={cellApiRef} size={cellSize} score={score} collectedOrganelles={collectedOrganelles} />
             </div>
         </div>
         

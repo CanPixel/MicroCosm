@@ -2,6 +2,9 @@
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, useState, useCallback } from 'react';
+import { InnerMitochondrion } from './InnerMitochondrion';
+import { InnerGolgiApparatus } from './InnerGolgiApparatus';
+import { InnerCellNucleus } from './InnerCellNucleus';
 
 type Point = { x: number; y: number };
 
@@ -42,6 +45,7 @@ export type BioCellHandle = {
 type BioCellProps = {
   size: number;
   score: number;
+  collectedOrganelles: Set<string>;
 };
 
 type Particle = {
@@ -64,7 +68,26 @@ type DamageParticle = {
     size: number;
 }
 
-export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score }, ref) => {
+type InternalOrganelle = {
+    id: string;
+    type: string;
+    Component: React.FC<any>;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    rotation: number;
+    size: number;
+};
+
+const organelleMap: { [key: string]: React.FC<any> } = {
+  mitochondrion: InnerMitochondrion,
+  golgi: InnerGolgiApparatus,
+  nucleus: InnerCellNucleus,
+};
+
+
+export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, collectedOrganelles }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const sizeRef = useRef(size);
@@ -72,6 +95,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
 
   const [hasEvolved, setHasEvolved] = useState(false);
   const [damageParticles, setDamageParticles] = useState<DamageParticle[]>([]);
+  const [internalOrganelles, setInternalOrganelles] = useState<InternalOrganelle[]>([]);
   const evolutionFactorRef = useRef(1);
   const damageAnimationRef = useRef(0);
 
@@ -118,6 +142,33 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
   
   // Internal particles
   const particlesRef = useRef<Particle[]>([]);
+  
+  // Add new organelles when collected
+  useEffect(() => {
+    const existingTypes = new Set(internalOrganelles.map(o => o.type));
+    const newOrganelles: InternalOrganelle[] = [];
+    
+    collectedOrganelles.forEach(type => {
+        if (!existingTypes.has(type) && organelleMap[type]) {
+            newOrganelles.push({
+                id: `${type}-${Date.now()}`,
+                type: type,
+                Component: organelleMap[type],
+                x: (Math.random() * 0.6 - 0.3), // Start away from center
+                y: (Math.random() * 0.6 - 0.3),
+                vx: (Math.random() - 0.5) * 0.015,
+                vy: (Math.random() - 0.5) * 0.015,
+                rotation: Math.random() * 360,
+                size: initialBaseRadius * 0.5,
+            });
+        }
+    });
+
+    if (newOrganelles.length > 0) {
+        setInternalOrganelles(prev => [...prev, ...newOrganelles]);
+    }
+  }, [collectedOrganelles, internalOrganelles, initialBaseRadius]);
+
 
   useEffect(() => {
     if (score >= EVOLUTION_SCORE_THRESHOLD && !hasEvolved) {
@@ -247,6 +298,29 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
       radiationTime1 = animateRadiation(radiatingCircle1, radiationTime1);
       radiationTime2 = animateRadiation(radiatingCircle2, radiationTime2);
 
+      setInternalOrganelles(prev => prev.map(o => {
+          let newX = o.x + o.vx;
+          let newY = o.y + o.vy;
+          let newVx = o.vx;
+          let newVy = o.vy;
+
+          // Bounce off cell walls (approximate)
+          if (newX < -0.4 || newX > 0.4) newVx *= -1;
+          if (newY < -0.4 || newY > 0.4) newVy *= -1;
+          
+          // Avoid nucleus (simple circular check)
+          const distToNucleus = Math.sqrt(newX*newX + newY*newY);
+          if (distToNucleus < 0.2) {
+              newVx *= -1;
+              newVy *= -1;
+              // Nudge it away
+              newX += newVx * 5;
+              newY += newVy * 5;
+          }
+
+          return { ...o, x: newX, y: newY, vx: newVx, vy: newVy, rotation: o.rotation + 0.5 };
+      }));
+
 
       // Animate particles
       particlesRef.current.forEach((p, i) => {
@@ -321,7 +395,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEvolved]);
+  }, [hasEvolved, collectedOrganelles]);
 
   const containerSize = svgSize * 1.5; // Make container larger than SVG to prevent clipping
 
@@ -330,10 +404,23 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
     height: `${containerSize}px`,
     filter: `drop-shadow(0 0 10px hsl(var(--primary) / 0.8))`
   };
+  
+  const currentViewboxSize = size * 2.5;
+  const currentCenter = currentViewboxSize / 2;
 
   return (
     <div style={cellStyle} className="absolute flex items-center justify-center">
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
+        <defs>
+            <filter id="organelle-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+                <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+
         {hasEvolved && (
             <path
                 className="outer-wall"
@@ -349,6 +436,19 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
           strokeWidth={hasEvolved ? "0" : "3"}
         />
 
+        {/* Collected Organelles */}
+        <g>
+            {internalOrganelles.map(({ id, Component, x, y, rotation, size }) => (
+                <g 
+                    key={id} 
+                    transform={`translate(${currentCenter + x * initialBaseRadius}, ${currentCenter + y * initialBaseRadius}) rotate(${rotation})`}
+                    style={{ filter: 'url(#organelle-glow)' }}
+                >
+                    <Component size={size} />
+                </g>
+            ))}
+        </g>
+        
         {/* Nucleus */}
         <g className="nucleus-group" transform={`translate(${viewboxCenter}, ${viewboxCenter})`}>
             <circle className="nucleus" cx={0} cy={0} r={INITIAL_SIZE * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
