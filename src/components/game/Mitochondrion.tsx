@@ -62,3 +62,5 @@ export function Mitochondrion({ position, size, duration, delay, opacity, initia
 
 Mitochondrion.type = 'mitochondrion';
 Mitochondrion.isOrganelle = true;
+
+    

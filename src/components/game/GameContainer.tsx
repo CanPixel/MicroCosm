@@ -627,16 +627,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     const organismState = organismStates[d.id];
                     if (!organismState) return null;
                     const componentType = d.Component as any;
+                    const isEligible = eligibleOrganelles.has(d.id);
+                    const isOrganelle = componentType.isOrganelle;
 
-                    const isEligible = componentType.isOrganelle && eligibleOrganelles.has(d.id);
-                    
                     const glowStyle: React.CSSProperties = {
-                       filter: isEligible ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))' : 'none',
-                       position: 'absolute',
-                       top: organismState.position.y,
-                       left: organismState.position.x,
-                       width: organismState.size,
-                       height: organismState.size,
+                       filter: isEligible && isOrganelle ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))' : 'none',
+                       transition: 'filter 0.3s ease-in-out',
                      };
                      
                      const componentToRender = d.isAutonomous ? (
@@ -652,12 +648,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                         <d.Component key={d.id} {...d.props} opacity={1} position={organismState.position} size={organismState.size}/>
                      );
                      
-                     // Add glow effect only to eligible organelles
-                     if (componentType.isOrganelle) {
-                        return <div key={d.id} style={glowStyle}>{componentToRender}</div>
-                     }
-                     
-                     return componentToRender;
+                     return (
+                        <div key={d.id} style={{ ...glowStyle, position: 'absolute', top: organismState.position.y, left: organismState.position.x, width: organismState.size, height: organismState.size }}>
+                            {componentToRender}
+                        </div>
+                     )
                 })}
             </div>
 
@@ -694,3 +689,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
