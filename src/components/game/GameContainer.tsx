@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 const INITIAL_CELL_SIZE = 50;
 const MAX_CELL_SCORE = 600;
 const MIN_CELL_SIZE_FROM_DAMAGE = 11;
-const MAX_SPEED = 8;
+const MAX_SPEED = 6;
 const LERP_FACTOR = 0.08;
 const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
@@ -507,9 +507,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         }
 
         // --- Organism Interaction (Harmful or Devour) ---
-        const isPermanentlyHostile = componentType === SpikyVirus || componentType === FungiWall;
+        const isPermanentlyHostile = componentType.isHarmful === true;
 
-        if (componentType.isHarmful || isPermanentlyHostile) {
+        if (componentType.isHarmful) {
             if (cellSize > organismState.size && !isPermanentlyHostile) {
                 // Devour smaller organism
                 const sizeBonus = organismState.size * 0.2;
@@ -722,6 +722,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
 
     
 
