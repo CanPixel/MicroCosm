@@ -44,19 +44,19 @@ export function Debris(): DebrisItem[] {
       let opacity;
       let isAutonomous = false;
 
-      // Organelles
+      // Organelles (always interactive)
       if (type < 0.1) {
         Component = Mitochondrion;
-        opacity = Math.random() * 0.2 + 0.3; // Low opacity for background
+        opacity = 1; // Rendered at full opacity when eligible
       } else if (type < 0.2) {
         Component = GolgiApparatus;
-        opacity = Math.random() * 0.2 + 0.3; // Low opacity for background
+        opacity = 1; // Rendered at full opacity when eligible
       }
       else if (type < 0.3) {
         Component = CellNucleus;
-        opacity = Math.random() * 0.2 + 0.3; // Low opacity for background
+        opacity = 1; // Rendered at full opacity when eligible
       }
-      // Active organisms
+      // Harmful Organisms (always interactive)
       else if (type < 0.35) { // 5% chance for Fungi
         Component = FungiWall;
         opacity = Math.random() * 0.1 + 0.9; // High opacity
@@ -66,33 +66,35 @@ export function Debris(): DebrisItem[] {
         Component = CancerCell;
         opacity = Math.random() * 0.2 + 0.8; // High opacity
         isAutonomous = true;
-      } else if (type < 0.45) { // 5% chance for giant amoeba
+      } 
+      // Ambient, non-interactive organisms (low opacity)
+      else if (type < 0.45) { // 5% chance for giant amoeba
         Component = Amoeba;
-        opacity = Math.random() * 0.3 + 0.7;
+        opacity = Math.random() * 0.2 + 0.2; // low opacity
         isAutonomous = true;
       }
       else if (type < 0.55) { // 10%
         Component = Tardigrade;
-        opacity = Math.random() * 0.2 + 0.7; // High opacity
+        opacity = Math.random() * 0.2 + 0.1; // low opacity
         isAutonomous = true;
       } else if (type < 0.65) { // 10%
         Component = SpikyVirus;
-        opacity = Math.random() * 0.2 + 0.6; // High opacity
+        opacity = Math.random() * 0.2 + 0.1; // low opacity
       } else if (type < 0.75) { // 10%
         Component = RodBacteria;
-        opacity = Math.random() * 0.2 + 0.8; // High opacity
+        opacity = Math.random() * 0.2 + 0.2; // low opacity
         isAutonomous = true;
       } else if (type < 0.85) { // 10%
         Component = FlagellateProtist;
-        opacity = Math.random() * 0.2 + 0.7; // High opacity
+        opacity = Math.random() * 0.2 + 0.1; // low opacity
         isAutonomous = true;
       } else if (type < 0.95) { // 10%
         Component = Ciliate;
-        opacity = Math.random() * 0.2 + 0.8; // High opacity
+        opacity = Math.random() * 0.2 + 0.2; // low opacity
         isAutonomous = true;
       } else { // 5%
         Component = Bacteriophage;
-        opacity = Math.random() * 0.3 + 0.6; // High opacity
+        opacity = Math.random() * 0.3 + 0.1; // low opacity
         isAutonomous = true;
       }
       

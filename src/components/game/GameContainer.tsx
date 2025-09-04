@@ -329,7 +329,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     let totalScoreGained = 0;
     let totalEnergyGained = 0;
     let totalSizeGained = 0;
-    const remainingSugarsAfterPlayer: SugarParticle[] = [];
+    let eatenSugarIds = new Set<string>();
 
     for (const sugar of localSugars) {
         const dx = cellPositionRef.current.x - sugar.x;
@@ -341,12 +341,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             totalScoreGained += 10 * sizeMultiplier;
             totalEnergyGained += 5 * sizeMultiplier;
             totalSizeGained += 4 * sizeMultiplier;
-        } else {
-            remainingSugarsAfterPlayer.push(sugar);
+            eatenSugarIds.add(sugar.id);
         }
     }
     
-    let consumedSugarIds = new Set(localSugars.filter(s => !remainingSugarsAfterPlayer.includes(s)).map(s => s.id));
     if (totalScoreGained > 0 && score < MAX_CELL_SCORE) {
       const newScore = Math.min(MAX_CELL_SCORE, score + totalScoreGained);
       const newSize = Math.min(INITIAL_CELL_SIZE + (MAX_CELL_SCORE - INITIAL_CELL_SIZE), cellSize + totalSizeGained);
@@ -363,8 +361,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // Sugars (Debris) - check against only local sugars
     let organismSizeChanges: {[id: string]: number} = {};
 
-    for (const sugar of remainingSugarsAfterPlayer) {
-        let eaten = false;
+    for (const sugar of localSugars) {
+        if (eatenSugarIds.has(sugar.id)) continue;
+
         // Only check against local autonomous debris
         for (const d of localDebris) {
             if (d.isAutonomous) {
@@ -379,16 +378,15 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 if (dist < collisionThreshold) {
                     const sizeMultiplier = sugar.size / 8;
                     organismSizeChanges[d.id] = (organismSizeChanges[d.id] || 0) + (1 * sizeMultiplier);
-                    consumedSugarIds.add(sugar.id);
-                    eaten = true;
-                    break;
+                    eatenSugarIds.add(sugar.id);
+                    break; 
                 }
             }
         }
     }
     
-    if (consumedSugarIds.size > 0) {
-        setSugars(currentSugars => currentSugars.filter(s => !consumedSugarIds.has(s.id)));
+    if (eatenSugarIds.size > 0) {
+        setSugars(currentSugars => currentSugars.filter(s => !eatenSugarIds.has(s.id)));
     }
 
 
@@ -410,34 +408,36 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const collectedOrganelleTypesThisFrame = new Set<string>();
     const collectedDebrisIds = new Set<string>();
 
-    const localPassiveDebris = localDebris.filter(d => (d.Component as any).isOrganelle);
-    const localActiveDebris = localDebris.filter(d => !(d.Component as any).isOrganelle);
-
-    // First pass: check for organelle collection
-    for (const d of localPassiveDebris) {
+    for (const d of localDebris) {
         const organismState = organismStates[d.id];
         if (!organismState) continue;
+        const componentType = d.Component as any;
 
-        const isEligibleForCollection = cellSize > organismState.size;
-        if (isEligibleForCollection) {
-            newEligibleOrganelles.add(d.id);
-            const dx = cellPositionRef.current.x - organismState.position.x;
-            const dy = cellPositionRef.current.y - organismState.position.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const collisionThreshold = currentCellRadius;
+        // Check for organelle collection eligibility
+        if (componentType.isOrganelle) {
+            const isEligible = cellSize > organismState.size;
+            if (isEligible) {
+                newEligibleOrganelles.add(d.id);
+                const dx = cellPositionRef.current.x - organismState.position.x;
+                const dy = cellPositionRef.current.y - organismState.position.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const collisionThreshold = currentCellRadius;
 
-            if (dist < collisionThreshold) {
-                collectedOrganelleTypesThisFrame.add((d.Component as any).type);
-                collectedDebrisIds.add(d.id);
+                if (dist < collisionThreshold) {
+                    collectedOrganelleTypesThisFrame.add(componentType.type);
+                    collectedDebrisIds.add(d.id);
+                }
             }
         }
     }
     
-    // Second pass: check for harmful collisions
+    // Harmful collisions check
     if (now - lastDamageTimeRef.current > DAMAGE_COOLDOWN) {
         if (isInvulnerable) setIsInvulnerable(false);
-        for (const d of localActiveDebris) {
-            if ((d.Component as any).isHarmful) {
+
+        for (const d of localDebris) {
+            const componentType = d.Component as any;
+            if (componentType.isHarmful) {
                 const organismState = organismStates[d.id];
                 if (!organismState) continue;
 
@@ -446,10 +446,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const collisionThreshold = currentCellRadius + organismState.size / 2;
                 
-                if (dist < collisionThreshold && cellSize > organismState.size) {
-                    // Player is bigger, can potentially "eat" harmful cell, for now, nothing happens.
-                }
-                else if (dist < collisionThreshold && cellSize < organismState.size) {
+                if (dist < collisionThreshold && cellSize < organismState.size) {
                     const sizeDifference = organismState.size - cellSize;
                     const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
                     const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
@@ -468,7 +465,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
                     lastDamageTimeRef.current = now;
                     setIsInvulnerable(true);
-                    break;
+                    break; // Only handle one collision per frame
                 }
             }
         }
@@ -522,8 +519,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     };
   }, [gameLoop]);
   
-  const passiveDebris = renderedDebris.filter(d => (d.Component as any).isOrganelle);
-  const activeDebris = renderedDebris.filter(d => !(d.Component as any).isOrganelle);
+  // Separate debris into background and interactive for rendering
+  const backgroundDebris = renderedDebris.filter(d => {
+    const componentType = d.Component as any;
+    return !componentType.isOrganelle && !componentType.isHarmful;
+  });
+
+  const interactiveDebris = renderedDebris.filter(d => {
+    const componentType = d.Component as any;
+    return componentType.isOrganelle || componentType.isHarmful;
+  });
 
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background">
@@ -531,22 +536,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
 
-            {/* Layer for Passive/Background Organelles */}
+            {/* Layer for ambient, non-interactive organisms */}
             <div className="absolute inset-0 z-10">
-                {passiveDebris.map(d => {
+                {backgroundDebris.map(d => {
                      const organismState = organismStates[d.id];
-                     if (!organismState || eligibleOrganelles.has(d.id)) return null; 
-                     return <d.Component key={d.id} {...d.props} position={organismState.position} size={organismState.size} />;
-                })}
-            </div>
+                     if (!organismState) return null;
 
-            {/* Layer for Active Organisms */}
-            <div className="absolute inset-0 z-10">
-                {activeDebris.map(d => {
-                    const organismState = organismStates[d.id];
-                    if (!organismState) return null;
-
-                    if (d.isAutonomous) {
+                     if (d.isAutonomous) {
                         return (
                              <Autonomous 
                                 key={d.id} 
@@ -559,16 +555,24 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                         )
                     }
                     return <d.Component key={d.id} {...d.props} position={organismState.position} size={organismState.size}/>;
-                  })}
+                })}
             </div>
-            
-            {/* Layer for Eligible Organelles & Sugar */}
+
+            {/* Layer for Sugar, Harmful Organisms, and Eligible Organelles */}
             <div className="absolute inset-0 z-20">
                 {renderedSugars.map((sugar) => <Sugar key={sugar.id} position={sugar} size={sugar.size} />)}
-                {passiveDebris.map(d => {
-                     const organismState = organismStates[d.id];
-                     if (!organismState || !eligibleOrganelles.has(d.id)) return null;
-                     const glowStyle: React.CSSProperties = {
+
+                {interactiveDebris.map(d => {
+                    const organismState = organismStates[d.id];
+                    if (!organismState) return null;
+                    const componentType = d.Component as any;
+
+                    // Don't render organelles unless they are eligible for collection
+                    if (componentType.isOrganelle && !eligibleOrganelles.has(d.id)) {
+                        return null;
+                    }
+                    
+                    const glowStyle: React.CSSProperties = {
                        filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))',
                        position: 'absolute',
                        top: organismState.position.y,
@@ -576,11 +580,26 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                        width: organismState.size,
                        height: organismState.size,
                      };
-                     return (
-                        <div key={d.id} style={glowStyle}>
-                           <d.Component {...d.props} opacity={1} position={{x:0, y:0}} size={organismState.size}/>
-                        </div>
-                     )
+                     
+                     const componentToRender = d.isAutonomous ? (
+                        <Autonomous 
+                            key={d.id} 
+                            initialPosition={d.initialPosition}
+                            onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
+                            size={organismState.size}
+                         >
+                            <d.Component {...d.props} opacity={1} position={{x:0, y:0}}/>
+                        </Autonomous>
+                     ) : (
+                        <d.Component key={d.id} {...d.props} opacity={1} position={organismState.position} size={organismState.size}/>
+                     );
+                     
+                     // Add glow effect only to eligible organelles
+                     if (componentType.isOrganelle && eligibleOrganelles.has(d.id)) {
+                        return <div key={d.id} style={glowStyle}>{componentToRender}</div>
+                     }
+                     
+                     return componentToRender;
                 })}
             </div>
 
