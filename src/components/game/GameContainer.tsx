@@ -163,7 +163,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     velocityRef.current = { x: 0, y: 0 };
     if (cellWrapperRef.current) {
-        const halfSvgSize = (INITIAL_CELL_SIZE * 2.5) / 2;
+        const halfSvgSize = (INITIAL_CELL_SIZE * 2.5 * 1.5) / 2;
         cellWrapperRef.current.style.transform = `translate(${initialPosition.x - halfSvgSize}px, ${initialPosition.y - halfSvgSize}px)`;
     }
     keysPressedRef.current = {};
@@ -298,16 +298,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
     }
 
-    const halfSvgSize = (cellSize * 2.5) / 2;
+    const halfSvgContainerSize = (cellSize * 2.5 * 1.5) / 2;
     if (cellWrapperRef.current) {
-        cellWrapperRef.current.style.transform = `translate(${cellPositionRef.current.x - halfSvgSize}px, ${cellPositionRef.current.y - halfSvgSize}px)`;
+      cellWrapperRef.current.style.transform = `translate(${cellPositionRef.current.x - halfSvgContainerSize}px, ${cellPositionRef.current.y - halfSvgContainerSize}px)`;
     }
 
     // --- Camera and Zoom ---
     const zoomOutFactor = 0.02;
     const initialZoom = 2.0;
     const sizeForZoom = Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cellSize);
-    const targetZoom = Math.max(0.2, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
+    const targetZoom = Math.max(0.4, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
 
     zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
     const zoom = zoomRef.current;
@@ -624,5 +624,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    

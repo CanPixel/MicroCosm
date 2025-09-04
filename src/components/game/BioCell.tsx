@@ -312,14 +312,16 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasEvolved]);
 
+  const containerSize = svgSize * 1.5; // Make container larger than SVG to prevent clipping
+
   const cellStyle: React.CSSProperties = {
-    width: `${svgSize}px`,
-    height: `${svgSize}px`,
+    width: `${containerSize}px`,
+    height: `${containerSize}px`,
     filter: `drop-shadow(0 0 10px hsl(var(--primary) / 0.8))`
   };
 
   return (
-    <div style={cellStyle} className="absolute">
+    <div style={cellStyle} className="absolute flex items-center justify-center">
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
         {hasEvolved && (
             <path
