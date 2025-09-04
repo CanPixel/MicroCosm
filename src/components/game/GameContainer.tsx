@@ -268,10 +268,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   }, []);
 
   const handleOrganismPositionChange = useCallback((id: string, newPosition: Position) => {
-    setOrganismStates(prev => ({
-        ...prev,
-        [id]: { ...prev[id], position: newPosition },
-    }));
+    setOrganismStates(prev => {
+        if (!prev[id]) return prev;
+        return {
+            ...prev,
+            [id]: { ...prev[id], position: newPosition },
+        }
+    });
   }, []);
 
   const gameLoop = useCallback((timestamp: number) => {
@@ -478,7 +481,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 const sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
                 energyPenaltyFromDamage += (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
                 
-                const newSize = Math.max(0, cellSize - sizePenalty);
+                const newSize = Math.max(MIN_CELL_SIZE_FOR_DEATH, cellSize - sizePenalty);
                 setCellSize(newSize);
                 setScore(newSize);
 
@@ -519,6 +522,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // Update state based on collections
     if (collectedDebrisIds.size > 0) {
         setDebris(currentDebris => currentDebris.filter(d => !collectedDebrisIds.has(d.id)));
+        setOrganismStates(prevStates => {
+            const newStates = { ...prevStates };
+            collectedDebrisIds.forEach(id => delete newStates[id]);
+            return newStates;
+        });
         setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
     }
     
@@ -549,7 +557,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     
     // --- Game State Checks (Game Over) ---
-    if (cellSize <= 0 && !isDying) {
+    if (cellSize <= MIN_CELL_SIZE_FOR_DEATH && !isDying) {
         setIsDying(true);
         setTimeout(() => {
             setIsGameOver(true);
@@ -685,3 +693,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    

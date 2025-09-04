@@ -109,3 +109,7 @@ export function CancerCell({ position, size, duration, opacity, rotation = 0 }: 
         </div>
     );
 }
+
+CancerCell.isHarmful = true;
+
+    

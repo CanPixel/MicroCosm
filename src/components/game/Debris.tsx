@@ -14,6 +14,7 @@ import { GolgiApparatus } from './GolgiApparatus';
 import { CellNucleus } from './CellNucleus';
 import { Amoeba } from './Amoeba';
 import { FungiWall } from './FungiWall';
+import { CancerCell } from './CancerCell';
 
 const DEBRIS_COUNT = 100;
 const WORLD_WIDTH = 4000;
@@ -51,21 +52,26 @@ export function Debris(): DebrisItem[] {
       const isAmbientActive = Math.random() < 0.15; // 15% chance to be active
 
       // Organelles (always interactive, never harmful)
-      if (type < 0.1) {
+      if (type < 0.08) {
         Component = Mitochondrion;
         opacity = 1;
-      } else if (type < 0.2) {
+      } else if (type < 0.16) {
         Component = GolgiApparatus;
         opacity = 1;
       }
-      else if (type < 0.3) {
+      else if (type < 0.24) {
         Component = CellNucleus;
         opacity = 1;
       }
       // Harmful Organisms (always interactive and harmful)
-      else if (type < 0.35) {
+      else if (type < 0.3) {
         Component = FungiWall;
         isAutonomous = false; // It's stationary
+        opacity = 1;
+      }
+      else if (type < 0.35) {
+        Component = CancerCell;
+        isAutonomous = true;
         opacity = 1;
       }
       // Ambient organisms (can be background or active)
@@ -153,5 +159,7 @@ export function Debris(): DebrisItem[] {
         },
         collisionSize,
       };
-    });
+    }).filter(d => d.Component); // Filter out any undefined components if logic fails
 }
+
+    
