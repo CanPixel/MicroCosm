@@ -73,6 +73,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const cellApiRef = useRef<BioCellHandle>(null);
 
   const keysPressedRef = useRef<{[key: string]: boolean}>({});
+  const isPointerDownRef = useRef(false);
+  const pointerPositionRef = useRef({ x: 0, y: 0 });
   const cellPositionRef = useRef<Position>({ x: 0, y: 0 });
   const cameraPositionRef = useRef<Position>({ x: 0, y: 0 });
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
@@ -208,11 +210,47 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const handleKeyUp = (event: KeyboardEvent) => {
       keysPressedRef.current[event.key.toLowerCase()] = false;
     };
+
+    const getPointerPosition = (event: PointerEvent) => {
+        return { x: event.clientX, y: event.clientY };
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+        isPointerDownRef.current = true;
+        pointerPositionRef.current = getPointerPosition(event);
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+        if (isPointerDownRef.current) {
+            pointerPositionRef.current = getPointerPosition(event);
+        }
+    };
+
+    const handlePointerUp = () => {
+        isPointerDownRef.current = false;
+    };
+
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    
+    const gameContainer = containerRef.current;
+    if (gameContainer) {
+        gameContainer.addEventListener('pointerdown', handlePointerDown);
+        gameContainer.addEventListener('pointermove', handlePointerMove);
+        gameContainer.addEventListener('pointerup', handlePointerUp);
+        gameContainer.addEventListener('pointerleave', handlePointerUp);
+    }
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      if (gameContainer) {
+        gameContainer.removeEventListener('pointerdown', handlePointerDown);
+        gameContainer.removeEventListener('pointermove', handlePointerMove);
+        gameContainer.removeEventListener('pointerup', handlePointerUp);
+        gameContainer.removeEventListener('pointerleave', handlePointerUp);
+      }
     };
   }, []);
 
@@ -285,10 +323,24 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const currentMaxSpeed = isStarving ? MAX_SPEED * 0.1 : MAX_SPEED;
     let targetVx = 0;
     let targetVy = 0;
-    if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= currentMaxSpeed;
-    if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) targetVy += currentMaxSpeed;
-    if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) targetVx -= currentMaxSpeed;
-    if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) targetVx += currentMaxSpeed;
+
+    if (isPointerDownRef.current) {
+        const screenCenterX = width / 2;
+        const screenCenterY = height / 2;
+        const dx = pointerPositionRef.current.x - screenCenterX;
+        const dy = pointerPositionRef.current.y - screenCenterY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 10) { // a small deadzone
+            targetVx = (dx / dist) * currentMaxSpeed;
+            targetVy = (dy / dist) * currentMaxSpeed;
+        }
+    } else {
+        if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= currentMaxSpeed;
+        if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) targetVy += currentMaxSpeed;
+        if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) targetVx -= currentMaxSpeed;
+        if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) targetVx += currentMaxSpeed;
+    }
 
     velocityRef.current.x += (targetVx - velocityRef.current.x) * LERP_FACTOR;
     velocityRef.current.y += (targetVy - velocityRef.current.y) * LERP_FACTOR;
