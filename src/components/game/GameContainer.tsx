@@ -72,7 +72,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isFlickering, setIsFlickering] = useState(false);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
-  const [font, setFont] = useState("font-zcool-kuaile");
+  const [font, setFont] = useState("font-headline");
   
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -415,9 +415,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         if (dist < currentCellRadius) {
             const sizeMultiplier = sugar.size / 8;
-            totalScoreGained += 10 * sizeMultiplier;
-            totalEnergyGained += 5 * sizeMultiplier;
-            totalSizeGained += 4 * sizeMultiplier;
+            totalScoreGained += 8 * sizeMultiplier;
+            totalEnergyGained += 4 * sizeMultiplier;
+            totalSizeGained += 3 * sizeMultiplier;
             eatenSugarIds.add(sugar.id);
         }
     }
@@ -721,6 +721,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
 
     
 
