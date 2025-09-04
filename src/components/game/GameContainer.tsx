@@ -464,7 +464,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         if (componentType.isHarmful) {
             if (cellSize > organismState.size && !isPermanentlyHostile) {
-                // Devour smaller organism
+                // Devour smaller, non-permanently hostile organism
                 const sizeBonus = organismState.size * 0.2;
                 totalScoreGained += sizeBonus;
                 totalSizeGained += sizeBonus / 5;
@@ -472,7 +472,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 collectedDebrisIds.add(d.id);
 
             } else {
-                // Take damage from larger/hostile organism
+                // Take damage from larger or permanently hostile organism
                 setIsInvulnerable(true);
                 lastDamageTimeRef.current = now;
 
@@ -480,8 +480,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 const sizeDifference = Math.max(0, organismState.size - cellSize);
                 let sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
                 
-                // Safeguard: Never lose more size than you have.
-                sizePenalty = Math.min(sizePenalty, cellSize);
+                // Safeguard: Never lose more size than you have, down to the minimum.
+                sizePenalty = Math.min(sizePenalty, cellSize - MIN_CELL_SIZE_FOR_DEATH);
 
                 energyPenaltyFromDamage += (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
                 
@@ -629,6 +629,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     const componentType = d.Component as any;
                     const isEligible = eligibleOrganelles.has(d.id);
                     const isOrganelle = componentType.isOrganelle;
+                    const opacity = (isOrganelle && !isEligible) ? 0.5 : 1;
 
                     const glowStyle: React.CSSProperties = {
                        filter: isEligible && isOrganelle ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))' : 'none',
@@ -642,14 +643,14 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                             onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
                             size={organismState.size}
                          >
-                            <d.Component {...d.props} opacity={1} position={{x:0, y:0}}/>
+                            <d.Component {...d.props} opacity={opacity} position={{x:0, y:0}}/>
                         </Autonomous>
                      ) : (
-                        <d.Component key={d.id} {...d.props} opacity={1} position={organismState.position} size={organismState.size}/>
+                        <d.Component key={d.id} {...d.props} opacity={opacity} position={organismState.position} size={organismState.size}/>
                      );
                      
                      return (
-                        <div key={d.id} style={{ ...glowStyle, position: 'absolute', top: organismState.position.y, left: organismState.position.x, width: organismState.size, height: organismState.size }}>
+                        <div key={d.id} style={{ ...glowStyle, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
                             {componentToRender}
                         </div>
                      )
@@ -689,5 +690,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    

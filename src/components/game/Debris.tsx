@@ -44,7 +44,7 @@ export function Debris(): DebrisItem[] {
       const type = Math.random();
 
       let Component: DebrisItem['Component'];
-      let opacity;
+      let opacity = 1;
       let isAutonomous = false;
 
       // Determine if a normally ambient organism should be "active" (interactive and harmful)
@@ -53,20 +53,16 @@ export function Debris(): DebrisItem[] {
       // Organelles (always interactive, never harmful)
       if (type < 0.08) {
         Component = Mitochondrion;
-        opacity = 1;
       } else if (type < 0.16) {
         Component = GolgiApparatus;
-        opacity = 1;
       }
       else if (type < 0.24) {
         Component = CellNucleus;
-        opacity = 1;
       }
       // Harmful Organisms (always interactive and harmful)
       else if (type < 0.3) {
         Component = FungiWall;
         isAutonomous = false; // It's stationary
-        opacity = 1;
       }
       // Ambient organisms (can be background or active)
       else if (type < 0.45) {
@@ -104,7 +100,10 @@ export function Debris(): DebrisItem[] {
             opacity = Math.random() * 0.2 + 0.1; // Low opacity for background
         }
       } else if (!Component.isOrganelle) {
-        // This handles guaranteed harmful entities like FungiWall
+        // This handles guaranteed harmful entities like FungiWall or SpikyVirus
+        opacity = 1;
+      } else {
+        // This handles organelles
         opacity = 1;
       }
       
