@@ -107,7 +107,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, progress);
     const newPrimary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, progress);
-    const newAccent = lerpHSL(THEME_CALM.accent, THEE_VIBRANT.accent, progress);
+    const newAccent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, progress);
 
     const root = document.documentElement;
     root.style.setProperty('--background', `${newBg[0]} ${newBg[1]}% ${newBg[2]}%`);
@@ -703,5 +703,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
 
     
