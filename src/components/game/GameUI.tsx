@@ -135,8 +135,8 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
         </Card>
       </div>
 
-      <div className="fixed bottom-4 right-4 z-20">
-         <div className="text-xs text-muted-foreground pb-2 font-headline">V1</div>
+      <div className="fixed top-4 right-4 z-20">
+         <div className="text-xs text-muted-foreground font-headline">V1</div>
       </div>
 
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
@@ -171,3 +171,5 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
     </>
   );
 }
+
+    

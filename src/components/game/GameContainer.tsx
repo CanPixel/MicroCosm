@@ -29,7 +29,7 @@ const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 1.5; 
 const ENERGY_PENALTY_FACTOR = 2.5;
-const STARVATION_SIZE_DRAIN = 0.15; // Points per frame
+const STARVATION_SIZE_DRAIN = 0.05; // Points per frame
 const DAMAGE_COOLDOWN = 3000; // 3 second solid invulnerability
 const FLICKER_DURATION = 2000; // 2 second flicker period
 const TOTAL_INVINCIBILITY_DURATION = DAMAGE_COOLDOWN + FLICKER_DURATION;
@@ -416,9 +416,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         if (dist < currentCellRadius) {
             const sizeMultiplier = sugar.size / 8;
-            totalScoreGained += 2.5 * sizeMultiplier;
-            totalEnergyGained += 2 * sizeMultiplier;
-            totalSizeGained += 0.6 * sizeMultiplier;
+            totalScoreGained += 3 * sizeMultiplier;
+            totalEnergyGained += 2.5 * sizeMultiplier;
+            totalSizeGained += 0.8 * sizeMultiplier;
             eatenSugarIds.add(sugar.id);
         }
     }
@@ -524,13 +524,14 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 setIsInvulnerable(true);
                 lastDamageTimeRef.current = now;
 
-                const basePenalty = organismState.size * 0.2; // Base penalty from hostile organism's size
+                const basePenalty = isPermanentlyHostile ? organismState.size * 0.2 : 0;
                 const sizeDifference = Math.max(0, organismState.size - cellSize);
                 const sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
                 const energyPenalty = (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
-
-                setCellSize(cs => Math.max(0, cs - sizePenalty));
-                setScore(s => Math.max(0, s - sizePenalty));
+                
+                const newSize = Math.max(0, cellSize - sizePenalty);
+                setCellSize(newSize);
+                setScore(newSize);
                 setEnergy(e => Math.max(0, e - energyPenalty));
 
                 if (cellApiRef.current) {
@@ -572,8 +573,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     // --- Energy Drain & Starvation Logic ---
     let currentEnergy = energy;
-    let currentScore = score;
-    let currentCellSize = cellSize;
     
     const speed = Math.sqrt(velocityRef.current.x**2 + velocityRef.current.y**2);
     const movementEnergyDrain = (speed / MAX_SPEED) * 0.08;
@@ -583,10 +582,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const baseEnergyDrain = 0.02 * sizeDrainFactor;
 
     if (isStarving) {
-      currentScore = Math.max(0, score - STARVATION_SIZE_DRAIN);
-      currentCellSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
-      setScore(currentScore);
-      setCellSize(currentCellSize);
+      const newSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
+      setCellSize(newSize);
+      setScore(newSize);
     } else {
       currentEnergy = Math.max(0, energy - baseEnergyDrain - movementEnergyDrain);
       setEnergy(currentEnergy);
@@ -597,7 +595,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setIsStarving(true);
     }
 
-    if (isStarving && currentCellSize <= MIN_CELL_SIZE_FOR_DEATH && !isDying) {
+    if (cellSize <= 0 && !isDying) {
         setIsDying(true);
         setTimeout(() => {
             setIsGameOver(true);
@@ -733,3 +731,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
