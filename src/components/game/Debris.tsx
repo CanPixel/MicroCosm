@@ -9,20 +9,19 @@ import { FlagellateProtist } from './FlagellateProtist';
 import { Ciliate } from './Ciliate';
 import { Bacteriophage } from './Bacteriophage';
 import { Autonomous } from './Autonomous';
-import { CancerCell } from './CancerCell';
 import { Mitochondrion } from './Mitochondrion';
 import { GolgiApparatus } from './GolgiApparatus';
 import { CellNucleus } from './CellNucleus';
 import { Amoeba } from './Amoeba';
 import { FungiWall } from './FungiWall';
 
-const DEBRIS_COUNT = 100; // Increased count for more variety
+const DEBRIS_COUNT = 100;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
 
 export type DebrisItem = {
     id: string;
-    Component: React.FC<any>;
+    Component: React.FC<any> & { isHarmful?: boolean, isOrganelle?: boolean };
     isAutonomous: boolean;
     initialPosition: { x: number; y: number };
     props: any;
@@ -40,62 +39,69 @@ export function Debris(): DebrisItem[] {
       
       const type = Math.random();
 
-      let Component;
+      let Component: DebrisItem['Component'];
       let opacity;
       let isAutonomous = false;
 
-      // Organelles (always interactive)
+      // Determine if a normally ambient organism should be "active" (interactive and harmful)
+      const isAmbientActive = Math.random() < 0.15; // 15% chance to be active
+
+      // Organelles (always interactive, never harmful)
       if (type < 0.1) {
         Component = Mitochondrion;
-        opacity = 1; // Rendered at full opacity when eligible
+        opacity = 1;
       } else if (type < 0.2) {
         Component = GolgiApparatus;
-        opacity = 1; // Rendered at full opacity when eligible
+        opacity = 1;
       }
       else if (type < 0.3) {
         Component = CellNucleus;
-        opacity = 1; // Rendered at full opacity when eligible
+        opacity = 1;
       }
-      // Harmful Organisms (always interactive)
-      else if (type < 0.35) { // 5% chance for Fungi
+      // Harmful Organisms (always interactive and harmful)
+      else if (type < 0.35) {
         Component = FungiWall;
-        opacity = Math.random() * 0.1 + 0.9; // High opacity
         isAutonomous = false; // It's stationary
+        opacity = 1;
       }
-      else if (type < 0.40) { // 5% chance
-        Component = CancerCell;
-        opacity = Math.random() * 0.2 + 0.8; // High opacity
-        isAutonomous = true;
-      } 
-      // Ambient, non-interactive organisms (low opacity)
-      else if (type < 0.45) { // 5% chance for giant amoeba
+      // Ambient organisms (can be background or active)
+      else if (type < 0.45) {
         Component = Amoeba;
-        opacity = Math.random() * 0.2 + 0.2; // low opacity
         isAutonomous = true;
       }
-      else if (type < 0.55) { // 10%
+      else if (type < 0.55) {
         Component = Tardigrade;
-        opacity = Math.random() * 0.2 + 0.1; // low opacity
         isAutonomous = true;
-      } else if (type < 0.65) { // 10%
+      } else if (type < 0.65) {
         Component = SpikyVirus;
-        opacity = Math.random() * 0.2 + 0.1; // low opacity
-      } else if (type < 0.75) { // 10%
+        isAutonomous = true;
+      } else if (type < 0.75) {
         Component = RodBacteria;
-        opacity = Math.random() * 0.2 + 0.2; // low opacity
         isAutonomous = true;
-      } else if (type < 0.85) { // 10%
+      } else if (type < 0.85) {
         Component = FlagellateProtist;
-        opacity = Math.random() * 0.2 + 0.1; // low opacity
         isAutonomous = true;
-      } else if (type < 0.95) { // 10%
+      } else if (type < 0.95) {
         Component = Ciliate;
-        opacity = Math.random() * 0.2 + 0.2; // low opacity
         isAutonomous = true;
-      } else { // 5%
+      } else {
         Component = Bacteriophage;
-        opacity = Math.random() * 0.3 + 0.1; // low opacity
         isAutonomous = true;
+      }
+
+      // If the organism is not an organelle or a guaranteed harmful one,
+      // check if it should become an active, harmful instance.
+      if (!Component.isOrganelle && !Component.isHarmful) {
+        if (isAmbientActive) {
+            Component.isHarmful = true; // Make this specific instance harmful
+            opacity = Math.random() * 0.2 + 0.8; // High opacity
+        } else {
+            Component.isHarmful = false; // Ensure it's not harmful
+            opacity = Math.random() * 0.2 + 0.1; // Low opacity for background
+        }
+      } else if (!Component.isOrganelle) {
+        // This handles guaranteed harmful entities like FungiWall
+        opacity = 1;
       }
       
       const propsOverride: any = {};
