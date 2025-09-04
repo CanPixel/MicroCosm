@@ -35,6 +35,7 @@ type SugarParticle = Position & { id: string; size: number, createdAt: number };
 type OrganismState = {
     position: Position;
     size: number;
+    collisionSize: number;
 };
 type OrganismStateMap = { [id: string]: OrganismState };
 
@@ -181,6 +182,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         initialOrganismStates[d.id] = {
             position: d.initialPosition,
             size: d.props.size,
+            collisionSize: d.collisionSize,
         };
     });
     setOrganismStates(initialOrganismStates);
@@ -444,7 +446,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 const dx = cellPositionRef.current.x - organismState.position.x;
                 const dy = cellPositionRef.current.y - organismState.position.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                const collisionThreshold = currentCellRadius + organismState.size / 2;
+                const collisionThreshold = currentCellRadius + organismState.collisionSize / 2;
                 
                 if (dist < collisionThreshold && cellSize < organismState.size) {
                     const sizeDifference = organismState.size - cellSize;

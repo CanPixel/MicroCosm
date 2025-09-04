@@ -25,13 +25,14 @@ export type DebrisItem = {
     isAutonomous: boolean;
     initialPosition: { x: number; y: number };
     props: any;
+    collisionSize: number;
 };
 
 export function Debris(): DebrisItem[] {
     return Array.from({ length: DEBRIS_COUNT }, (_, i) => {
       const x = Math.random() * WORLD_WIDTH;
       const y = Math.random() * WORLD_HEIGHT;
-      const size = Math.random() * 80 + 20; // Size between 20 and 100
+      let size = Math.random() * 80 + 20; // Size between 20 and 100
       const duration = Math.random() * 40 + 20; // Animation duration between 20s and 60s
       const delay = Math.random() * -60; // Negative delay to start animations at different points
       const initialRotation = Math.random() * 360;
@@ -91,12 +92,12 @@ export function Debris(): DebrisItem[] {
 
       // If the organism is not an organelle or a guaranteed harmful one,
       // check if it should become an active, harmful instance.
-      if (!Component.isOrganelle && !Component.isHarmful) {
+      if (!Component.isOrganelle && !(Component as any).isHarmful) {
         if (isAmbientActive) {
-            Component.isHarmful = true; // Make this specific instance harmful
+            (Component as any).isHarmful = true; // Make this specific instance harmful
             opacity = Math.random() * 0.2 + 0.8; // High opacity
         } else {
-            Component.isHarmful = false; // Ensure it's not harmful
+            (Component as any).isHarmful = false; // Ensure it's not harmful
             opacity = Math.random() * 0.2 + 0.1; // Low opacity for background
         }
       } else if (!Component.isOrganelle) {
@@ -106,10 +107,16 @@ export function Debris(): DebrisItem[] {
       
       const propsOverride: any = {};
       if (Component === Amoeba) {
-        propsOverride.size = Math.random() * 150 + 250; // 250-400
+        size = Math.random() * 150 + 250; // 250-400
       }
       if (Component === FungiWall) {
-        propsOverride.size = Math.random() * 200 + 400; // 400-600
+        size = Math.random() * 200 + 400; // 400-600
+      }
+      
+      // Set a smaller collision size for very large organisms to feel more fair
+      let collisionSize = size;
+      if (Component === Amoeba || Component === FungiWall) {
+        collisionSize *= 0.7; 
       }
       
       const initialPosition = { x, y };
@@ -128,7 +135,8 @@ export function Debris(): DebrisItem[] {
             initialRotation,
             animationDirection,
             ...propsOverride
-        }
+        },
+        collisionSize,
       };
     });
 }

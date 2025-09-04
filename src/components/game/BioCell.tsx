@@ -172,10 +172,12 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
 
   useEffect(() => {
     let animationFrameId: number;
-    const innerPath = svgRef.current?.querySelector('.inner-wall') as SVGPathElement | null;
-    const outerPath = svgRef.current?.querySelector('.outer-wall') as SVGPathElement | null;
-    const particleElements = svgRef.current?.querySelectorAll('.internal-particle');
-    const nucleusGroup = svgRef.current?.querySelector('.nucleus-group') as SVGGElement | null;
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const innerPath = svgEl.querySelector('.inner-wall') as SVGPathElement | null;
+    const outerPath = svgEl.querySelector('.outer-wall') as SVGPathElement | null;
+    const particleElements = svgEl.querySelectorAll('.internal-particle');
+    const nucleusGroup = svgEl.querySelector('.nucleus-group') as SVGGElement | null;
     const nucleus = nucleusGroup?.querySelector('.nucleus') as SVGCircleElement | null;
     const radiatingCircle1 = nucleusGroup?.querySelector('.radiating-circle-1') as SVGCircleElement | null;
     const radiatingCircle2 = nucleusGroup?.querySelector('.radiating-circle-2') as SVGCircleElement | null;
@@ -195,7 +197,12 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
       const movementAngle = Math.atan2(vy, vx);
 
       const currentBaseRadius = currentSize / 2;
-      const currentViewboxCenter = (currentSize * 2.5) / 2;
+      const currentSvgSize = currentSize * 2.5;
+      const currentViewboxCenter = currentSvgSize / 2;
+
+      svgEl.setAttribute('width', `${currentSvgSize}`);
+      svgEl.setAttribute('height', `${currentSvgSize}`);
+      svgEl.setAttribute('viewBox', `0 0 ${currentSvgSize} ${currentSvgSize}`);
       
       const inertiaOffsetX = -vx * 0.5;
       const inertiaOffsetY = -vy * 0.5;
@@ -220,7 +227,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
       const nucleusScale = 1 + Math.sin(time / 500) * 0.1;
       nucleus.setAttribute('r', `${nucleusBaseRadius * nucleusScale}`);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
-      nucleusGroup.setAttribute('transform', `translate(${inertiaOffsetX}, ${inertiaOffsetY})`);
+      nucleusGroup.setAttribute('transform', `translate(${currentViewboxCenter + inertiaOffsetX}, ${currentViewboxCenter + inertiaOffsetY})`);
 
       // Animate radiating circles
       const animateRadiation = (circle: SVGCircleElement, rTime: number) => {
@@ -339,11 +346,11 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score },
         />
 
         {/* Nucleus */}
-        <g className="nucleus-group">
-            <circle className="nucleus" cx={viewboxCenter} cy={viewboxCenter} r={INITIAL_SIZE * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
-            <circle cx={viewboxCenter} cy={viewboxCenter} r={INITIAL_SIZE * 0.1} fill="hsl(var(--accent) / 0.5)" />
-            <circle className="radiating-circle-1" cx={viewboxCenter} cy={viewboxCenter} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
-            <circle className="radiating-circle-2" cx={viewboxCenter} cy={viewboxCenter} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
+        <g className="nucleus-group" transform={`translate(${viewboxCenter}, ${viewboxCenter})`}>
+            <circle className="nucleus" cx={0} cy={0} r={INITIAL_SIZE * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
+            <circle cx={0} cy={0} r={INITIAL_SIZE * 0.1} fill="hsl(var(--accent) / 0.5)" />
+            <circle className="radiating-circle-1" cx={0} cy={0} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
+            <circle className="radiating-circle-2" cx={0} cy={0} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
         </g>
 
         {/* Internal Particles */}
