@@ -86,28 +86,10 @@ export function Background({ cameraPosition }: BackgroundProps) {
         className="absolute top-0 left-0"
         style={{ willChange: 'transform' }}
       >
-        <defs>
-            <radialGradient id="vignetteGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-              {/* Center of the vignette - mostly transparent */}
-              <stop offset="0%" stopColor="black" stopOpacity="0" />
-              {/* Mid-point - starts to become visible */}
-              <stop offset="50%" stopColor="black" stopOpacity="0" />
-              {/* Edge of the vignette - more opaque */}
-              <stop offset="100%" stopColor="black" stopOpacity="0.4" /> {/* Adjust opacity for strength */}
-            </radialGradient>
-          </defs>
         <path
           ref={pathRef}
-          stroke="hsla(var(--primary), 0.2)"
+          stroke="hsl(var(--primary) / 0.1)"
           strokeWidth="2"
-        />
-        <rect
-          x="0"
-          y="0"
-          width={WORLD_WIDTH}
-          height={WORLD_HEIGHT}
-          fill="url(#vignetteGradient)"
-          style={{ pointerEvents: 'none' }}
         />
       </svg>
     </div>
