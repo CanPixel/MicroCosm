@@ -27,8 +27,8 @@ const MAX_SUGAR = 100;
 const BASE_SUGAR_SPAWN_INTERVAL = 2000; // ms
 const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
-const COLLISION_PENALTY_FACTOR = 0.1; // Lose 10% of size difference
-const ENERGY_PENALTY_FACTOR = 1; // Lose energy equal to size difference
+const COLLISION_PENALTY_FACTOR = 0.8; // Lose 10% of size difference
+const ENERGY_PENALTY_FACTOR = 1.5; // Lose energy equal to size difference
 const STARVATION_SIZE_DRAIN = 0.5; // Points per frame
 const DAMAGE_COOLDOWN = 3000; // 3 second solid invulnerability
 const FLICKER_DURATION = 2000; // 2 second flicker period
@@ -415,9 +415,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         if (dist < currentCellRadius) {
             const sizeMultiplier = sugar.size / 8;
-            totalScoreGained += 8 * sizeMultiplier;
-            totalEnergyGained += 4 * sizeMultiplier;
-            totalSizeGained += 3 * sizeMultiplier;
+            totalScoreGained += 5 * sizeMultiplier;
+            totalEnergyGained += 2 * sizeMultiplier;
+            totalSizeGained += 1 * sizeMultiplier;
             eatenSugarIds.add(sugar.id);
         }
     }
@@ -523,9 +523,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 setIsInvulnerable(true);
                 lastDamageTimeRef.current = now;
 
+                const basePenalty = organismState.size * 0.2; // Base penalty from hostile organism's size
                 const sizeDifference = Math.max(0, organismState.size - cellSize);
-                const sizePenalty = sizeDifference * COLLISION_PENALTY_FACTOR;
-                const energyPenalty = sizeDifference * ENERGY_PENALTY_FACTOR;
+                const sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
+                const energyPenalty = basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR);
 
                 setCellSize(cs => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, cs - sizePenalty));
                 setScore(s => Math.max(MIN_CELL_SIZE_FROM_DAMAGE, s - sizePenalty));
@@ -574,7 +575,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     let currentCellSize = cellSize;
     
     const speed = Math.sqrt(velocityRef.current.x**2 + velocityRef.current.y**2);
-    const movementEnergyDrain = (speed / MAX_SPEED) * 0.05; // Drain more when moving fast
+    const movementEnergyDrain = (speed / MAX_SPEED) * 0.08; // Drain more when moving fast
     const baseEnergyDrain = 0.01;
 
     if (isStarving) {
@@ -721,6 +722,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
 
     
 
