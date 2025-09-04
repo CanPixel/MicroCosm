@@ -43,7 +43,8 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
   return (
     <>
       <div className="fixed top-4 left-4 w-50 text-foreground z-20">
-        <Card className="bg-card/80 backdrop-blur-sm border-primary/20 mt-2">
+        <div className="text-xs text-muted-foreground pb-2">V1</div>
+        <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
           <CardHeader>
             <Logo font={font} />
             <CardTitle className="flex items-center gap-2 text-md text-primary font-headline pt-2">

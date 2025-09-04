@@ -578,7 +578,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setIsStarving(true);
     }
 
-    if (isStarving && currentScore <= 0) {
+    if (isStarving && currentCellSize <= 0) {
       setIsGameOver(true);
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     }
