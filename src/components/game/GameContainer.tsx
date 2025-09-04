@@ -628,13 +628,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     if (!organismState) return null;
                     const componentType = d.Component as any;
 
-                    // Don't render organelles unless they are eligible for collection
-                    if (componentType.isOrganelle && !eligibleOrganelles.has(d.id)) {
-                        return null;
-                    }
+                    const isEligible = componentType.isOrganelle && eligibleOrganelles.has(d.id);
                     
                     const glowStyle: React.CSSProperties = {
-                       filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))',
+                       filter: isEligible ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))' : 'none',
                        position: 'absolute',
                        top: organismState.position.y,
                        left: organismState.position.x,
@@ -656,7 +653,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                      );
                      
                      // Add glow effect only to eligible organelles
-                     if (componentType.isOrganelle && eligibleOrganelles.has(d.id)) {
+                     if (componentType.isOrganelle) {
                         return <div key={d.id} style={glowStyle}>{componentToRender}</div>
                      }
                      
