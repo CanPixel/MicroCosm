@@ -478,7 +478,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
                 const basePenalty = isPermanentlyHostile ? organismState.size * 0.2 : 0;
                 const sizeDifference = Math.max(0, organismState.size - cellSize);
-                const sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
+                let sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
+                
+                // Safeguard: Never lose more size than you have.
+                sizePenalty = Math.min(sizePenalty, cellSize);
+
                 energyPenaltyFromDamage += (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
                 
                 const newSize = Math.max(MIN_CELL_SIZE_FOR_DEATH, cellSize - sizePenalty);
@@ -693,5 +697,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
