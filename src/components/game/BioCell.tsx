@@ -400,7 +400,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEvolved, collectedOrganelles, isDying]);
+  }, [hasEvolved, collectedOrganelles, isDying, size]);
 
   const containerSize = svgSize * 1.5; // Make container larger than SVG to prevent clipping
 
