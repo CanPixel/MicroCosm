@@ -9,7 +9,7 @@ type OrganismNameLabelProps = {
     showName: boolean;
 };
 
-export function OrganismNameLabel({ name, size, showName }: OrganismNameLabelProps) {
+export function OrganismNameLabel({ name, size, showName }: OrganismNameNameLabelProps) {
     if (!name) return null;
 
     const style: React.CSSProperties = {
