@@ -28,14 +28,15 @@ export type DebrisItem = {
     isAutonomous: boolean;
     initialPosition: { x: number; y: number };
     props: any;
-    collisionSize: number;
+    collisionSize: number | { width: number, height: number };
 };
 
 export function Debris(): DebrisItem[] {
     return Array.from({ length: DEBRIS_COUNT }, (_, i) => {
       let x = Math.random() * WORLD_WIDTH;
       let y = Math.random() * WORLD_HEIGHT;
-      let size = Math.random() * 80 + 20; // Size between 20 and 100
+      let size: number | { width: number; height: number } = Math.random() * 80 + 20; // Size between 20 and 100
+      let collisionSize: number | { width: number, height: number } = size;
       const duration = Math.random() * 40 + 20; // Animation duration between 20s and 60s
       const delay = Math.random() * -60; // Negative delay to start animations at different points
       const initialRotation = Math.random() * 360;
@@ -100,7 +101,7 @@ export function Debris(): DebrisItem[] {
             opacity = Math.random() * 0.2 + 0.1; // Low opacity for background
         }
       } else if (!Component.isOrganelle) {
-        // This handles guaranteed harmful entities like FungiWall or SpikyVirus
+        // This handles guaranteed harmful entities like FungiWall
         opacity = 1;
       } else {
         // This handles organelles
@@ -108,19 +109,37 @@ export function Debris(): DebrisItem[] {
       }
       
       const propsOverride: any = {};
-      const isGiant = Component === Amoeba || Component === FungiWall;
+      const isGiant = Component === Amoeba;
 
       if (Component === Amoeba) {
         size = Math.random() * 150 + 250; // 250-400
       }
       if (Component === FungiWall) {
-        size = Math.random() * 200 + 400; // 400-600
+        const isHorizontal = Math.random() > 0.5;
+        const width = Math.random() * 200 + 300; // 300-500
+        const height = 50;
+        size = {
+            width: isHorizontal ? width : height,
+            height: isHorizontal ? height : width
+        };
+        // Collision box is just the core rectangle, not the hairs
+        collisionSize = {
+            width: isHorizontal ? width : height,
+            height: isHorizontal ? height * 0.6 : width
+        }
+        if (!isHorizontal) {
+            (collisionSize as any).width = height;
+            (collisionSize as any).height = width * 0.6;
+        }
+
       }
       
+      const spawnRadius = typeof size === 'number' ? size : Math.max(size.width, size.height);
+
       // If it's a giant organism, make sure it doesn't spawn on top of the player
-      if (isGiant) {
+      if (isGiant || Component === FungiWall) {
         let dist = Math.sqrt(Math.pow(x - PLAYER_SPAWN_X, 2) + Math.pow(y - PLAYER_SPAWN_Y, 2));
-        while (dist < NO_SPAWN_RADIUS + size) {
+        while (dist < NO_SPAWN_RADIUS + spawnRadius) {
           x = Math.random() * WORLD_WIDTH;
           y = Math.random() * WORLD_HEIGHT;
           dist = Math.sqrt(Math.pow(x - PLAYER_SPAWN_X, 2) + Math.pow(y - PLAYER_SPAWN_Y, 2));
@@ -128,9 +147,8 @@ export function Debris(): DebrisItem[] {
       }
 
       // Set a smaller collision size for very large organisms to feel more fair
-      let collisionSize = size;
-      if (isGiant) {
-        collisionSize *= 0.7; 
+      if (typeof size === 'number' && typeof collisionSize === 'number' && isGiant) {
+        collisionSize = size * 0.7; 
       }
       
       const initialPosition = { x, y };
@@ -146,7 +164,7 @@ export function Debris(): DebrisItem[] {
             duration,
             delay,
             opacity,
-            initialRotation,
+            initialRotation: Component === FungiWall ? 0 : initialRotation, // Fungi wall is not rotated
             animationDirection,
             ...propsOverride
         },

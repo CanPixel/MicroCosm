@@ -40,8 +40,8 @@ type Position = { x: number; y: number };
 type SugarParticle = Position & { id: string; size: number, createdAt: number };
 type OrganismState = {
     position: Position;
-    size: number;
-    collisionSize: number;
+    size: number | { width: number, height: number };
+    collisionSize: number | { width: number, height: number };
 };
 type OrganismStateMap = { [id: string]: OrganismState };
 
@@ -312,7 +312,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const localDebris = debris.filter(d => {
         const state = organismStates[d.id];
         if (!state) return false;
-        return state.position.x > viewLeft && state.position.x < viewRight && state.position.y > viewTop && state.position.y < viewBottom;
+        const size = typeof state.size === 'number' ? state.size : Math.max(state.size.width, state.size.height);
+        return state.position.x + size > viewLeft && state.position.x - size < viewRight && state.position.y + size > viewTop && state.position.y - size < viewBottom;
     });
     setRenderedDebris(localDebris);
 
@@ -445,18 +446,30 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const handleCollision = (d: DebrisItem) => {
         const organismState = organismStates[d.id];
         if (!organismState || isInvulnerable) return;
+        
+        const componentType = d.Component as any;
+        
+        let organismSize;
+        let organismCollisionSize;
+        if (typeof organismState.size === 'number') {
+            organismSize = organismState.size;
+            organismCollisionSize = organismState.collisionSize as number / 2;
+        } else {
+            // For rectangular objects, we can approximate with a circle for simplicity for now
+             organismSize = Math.max(organismState.size.width, organismState.size.height);
+             organismCollisionSize = Math.max((organismState.collisionSize as any).width, (organismState.collisionSize as any).height) / 2;
+        }
 
         const dx = cellPositionRef.current.x - organismState.position.x;
         const dy = cellPositionRef.current.y - organismState.position.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const collisionThreshold = currentCellRadius + organismState.collisionSize / 2;
-        const componentType = d.Component as any;
+        const collisionThreshold = currentCellRadius + organismCollisionSize;
 
         if (dist > collisionThreshold) return; // No collision
 
         // --- Organelle Collection ---
         if (componentType.isOrganelle) {
-            if (cellSize > organismState.size) { // Can collect
+            if (cellSize > organismSize) { // Can collect
                 collectedOrganelleTypesThisFrame.add(componentType.type);
                 collectedDebrisIds.add(d.id);
             }
@@ -467,9 +480,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         // --- Organism Interaction (Harmful or Devour) ---
         if (componentType.isHarmful) {
-            if (cellSize > organismState.size) {
+            if (cellSize > organismSize) {
                 // Devour smaller, hostile organism
-                const sizeBonus = organismState.size * 0.2;
+                const sizeBonus = organismSize * 0.2;
                 totalScoreGained += sizeBonus;
                 totalSizeGained += sizeBonus / 5;
                 energyFromDevouring += sizeBonus / 2;
@@ -506,7 +519,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         const componentType = d.Component as any;
         if (componentType.isOrganelle) {
             const organismState = organismStates[d.id];
-            if (organismState && cellSize > organismState.size) {
+            const organismSize = typeof organismState.size === 'number' ? organismState.size : Math.max(organismState.size.width, organismState.size.height);
+            if (organismState && cellSize > organismSize) {
                 newEligibleOrganelles.add(d.id);
             }
         }
@@ -611,7 +625,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                                 key={d.id} 
                                 initialPosition={d.initialPosition}
                                 onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
-                                size={organismState.size}
+                                size={organismState.size as number}
                              >
                                 <d.Component {...d.props} showName={showOrganismNames} />
                             </Autonomous>
@@ -637,15 +651,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     if (isOrganelle && !isEligible) {
                         opacity = 0.5;
                     }
-
+                    
+                    const organismSize = typeof organismState.size === 'number' ? organismState.size : Math.max(organismState.size.width, organismState.size.height);
                     const glowStyle: React.CSSProperties = {
                        filter: isEligible && isOrganelle ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))' : 'none',
                        transition: 'filter 0.3s ease-in-out',
-                       position: 'absolute',
-                       top: 0,
-                       left: 0,
-                       width: '100%',
-                       height: '100%',
                      };
                      
                      const componentToRender = d.isAutonomous ? (
@@ -653,7 +663,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                             key={d.id} 
                             initialPosition={d.initialPosition}
                             onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
-                            size={organismState.size}
+                            size={organismSize}
                          >
                             <d.Component {...d.props} opacity={opacity} position={{x:0, y:0}} showName={showOrganismNames} />
                         </Autonomous>
@@ -698,5 +708,3 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
-
-    
