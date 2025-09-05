@@ -442,7 +442,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const collectedDebrisIds = new Set<string>();
     
     let energyFromDevouring = 0;
-    let energyPenaltyFromDamage = 0;
 
     const handleCollision = (d: DebrisItem) => {
         const organismState = organismStates[d.id];
@@ -487,8 +486,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 
                 // Safeguard: Never lose more size than you have, down to the minimum.
                 sizePenalty = Math.min(sizePenalty, cellSize - MIN_CELL_SIZE_FOR_DEATH);
-
-                energyPenaltyFromDamage += (basePenalty + (sizeDifference * ENERGY_PENALTY_FACTOR)) * 0.5;
                 
                 const newSize = Math.max(MIN_CELL_SIZE_FOR_DEATH, cellSize - sizePenalty);
                 setCellSize(newSize);
@@ -550,7 +547,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const sizeDrainFactor = 1 + (cellSize - INITIAL_CELL_SIZE) / 200;
     const baseEnergyDrain = 0.02 * sizeDrainFactor;
     const energyGain = energyFromSugar + energyFromDevouring;
-    const energyDrain = baseEnergyDrain + movementEnergyDrain + energyPenaltyFromDamage;
+    const energyDrain = baseEnergyDrain + movementEnergyDrain;
     
     if (isStarving) {
       if (energyGain > 0) {
