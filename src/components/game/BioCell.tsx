@@ -5,6 +5,8 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, use
 import { InnerMitochondrion } from './InnerMitochondrion';
 import { InnerGolgiApparatus } from './InnerGolgiApparatus';
 import { InnerCellNucleus } from './InnerCellNucleus';
+import { Bacteriophage } from './Bacteriophage';
+import { cn } from '@/lib/utils';
 
 type Point = { x: number; y: number };
 
@@ -47,6 +49,7 @@ type BioCellProps = {
   score: number;
   isDying: boolean;
   collectedOrganelles: Set<string>;
+  isInfected: boolean;
 };
 
 type Particle = {
@@ -88,7 +91,7 @@ const organelleMap: { [key: string]: React.FC<any> } = {
 };
 
 
-export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, isDying, collectedOrganelles }, ref) => {
+export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, isDying, collectedOrganelles, isInfected }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const sizeRef = useRef(size);
@@ -416,8 +419,29 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   const currentViewboxSize = size * 2.5;
   const currentCenter = currentViewboxSize / 2;
 
+  const phageSize = Math.max(30, size * 0.2); // Attached phage size
+  const phagePositionStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: `${currentCenter - size * 0.8}px`, // Position it on the top edge
+    left: `${currentCenter - phageSize / 2}px`,
+    width: `${phageSize}px`,
+    height: `${phageSize}px`,
+    transformOrigin: '50% 150%', // Make it wobble around its base
+  };
+
   return (
     <div style={cellStyle} className="absolute flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
+       {isInfected && !isDying && (
+         <div style={phagePositionStyle} className="animate-wobble">
+            <Bacteriophage 
+                position={{x: 0, y: 0}}
+                size={phageSize}
+                duration={5}
+                delay={0}
+                opacity={1}
+            />
+         </div>
+       )}
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
         <defs>
             <filter id="organelle-glow" x="-100%" y="-100%" width="300%" height="300%">

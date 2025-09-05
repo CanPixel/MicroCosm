@@ -164,6 +164,11 @@ export default {
           '0%': { transform: 'rotate(-5deg)' },
           '100%': { transform: 'rotate(10deg)' },
         },
+        'wobble': {
+            '0%': { transform: 'rotate(-5deg)' },
+            '50%': { transform: 'rotate(5deg)' },
+            '100%': { transform: 'rotate(-5deg)' },
+        },
         'jitter': {
           '0%, 100%': { transform: 'translate(0, 0) rotate(-1deg)' },
           '10%': { transform: 'translate(1px, 2px) rotate(1deg)' },
@@ -201,8 +206,11 @@ export default {
         'logo-blob-3': 'logo-blob-3 15s ease-in-out infinite',
         'sway': 'sway 15s ease-in-out infinite',
         'spin': 'spin 20s linear infinite',
+        'wobble': 'wobble 1s ease-in-out infinite alternate',
       },
     },
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
+
+    

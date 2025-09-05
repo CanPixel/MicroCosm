@@ -556,7 +556,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         // --- Organism Interaction (Harmful or Devour) ---
         if (componentType.isHarmful) {
-            if (cellSize > organismSize) {
+            if (cellSize > organismSize && !isPermanentlyHostile) {
                 // Devour smaller, hostile organism
                 const sizeBonus = organismSize * 0.2;
                 totalScoreGained += sizeBonus;
@@ -784,7 +784,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     isFlickering && "animate-flicker"
                 )}
             >
-                <BioCell ref={cellApiRef} size={cellSize} score={score} isDying={isDying} collectedOrganelles={collectedOrganelles} />
+                <BioCell ref={cellApiRef} size={cellSize} score={score} isDying={isDying} collectedOrganelles={collectedOrganelles} isInfected={isInfected} />
             </div>
         </div>
         
