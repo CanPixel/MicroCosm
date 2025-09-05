@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Dna, Gauge, Shield, Zap, Virus } from "lucide-react";
+import { Dna, Gauge, Shield, Zap, Bug } from "lucide-react";
 import { Logo } from "./Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useRef, useState } from "react";
@@ -150,7 +150,7 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
              {isInfected && (
                  <div className="space-y-1">
                      <div className="flex justify-between items-center text-xs">
-                        <span className="flex items-center gap-2 text-red-500 font-bold animate-pulse"><Virus className="w-4 h-4"/> INFECTION</span>
+                        <span className="flex items-center gap-2 text-red-500 font-bold animate-pulse"><Bug className="w-4 h-4"/> INFECTION</span>
                     </div>
                     <Progress value={infectionProgress} className="h-2 [&>div]:bg-red-500" />
                 </div>
@@ -200,5 +200,3 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
     </>
   );
 }
-
-    
