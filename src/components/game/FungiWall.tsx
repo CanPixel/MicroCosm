@@ -41,48 +41,50 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
     };
 
     return (
-        <div style={style} className="absolute">
+        <div style={{ top: `${position.y}px`, left: `${position.x}px`}} className="absolute">
             <OrganismNameLabel name={FungiWall.displayName} size={size} showName={showName} />
-             <div style={animationStyle} className="w-full h-full">
-                <svg width={size} height={size} viewBox="0 0 100 100">
-                    <defs>
-                        <filter id="fungi-glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                        </filter>
-                    </defs>
+            <div style={{...style, top: 0, left: 0}} className="absolute">
+                 <div style={animationStyle} className="w-full h-full">
+                    <svg width={size} height={size} viewBox="0 0 100 100">
+                        <defs>
+                            <filter id="fungi-glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                            </filter>
+                        </defs>
 
-                    {/* Tentacles */}
-                    <g filter="url(#fungi-glow)">
-                        {tentacles.map((t, i) => (
-                            <path
-                                key={`tentacle-${i}`}
-                                d={t.d}
-                                stroke="hsl(var(--destructive) / 0.7)"
-                                strokeWidth="2"
-                                fill="none"
-                                strokeLinecap="round"
-                                style={{
-                                    animation: `sine-wave ${duration / 3}s ease-in-out infinite alternate`,
-                                    animationDelay: t.delay,
-                                    transformOrigin: '50% 50%',
-                                }}
-                            />
-                        ))}
-                    </g>
-                    
-                    {/* Body */}
-                    <g fill="hsl(var(--destructive) / 0.5)" stroke="hsl(var(--destructive))" strokeWidth="2">
-                        <path d="M 50,0 C 20,20 80,30 50,50 S 20,80 0,50" />
-                        <path d="M 50,100 C 80,80 20,70 50,50 S 80,20 100,50" />
-                        <path d="M 0,50 C 20,40 30,80 50,50" />
-                        <path d="M 100,50 C 80,60 70,20 50,50" />
-                    </g>
+                        {/* Tentacles */}
+                        <g filter="url(#fungi-glow)">
+                            {tentacles.map((t, i) => (
+                                <path
+                                    key={`tentacle-${i}`}
+                                    d={t.d}
+                                    stroke="hsl(var(--destructive) / 0.7)"
+                                    strokeWidth="2"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    style={{
+                                        animation: `sine-wave ${duration / 3}s ease-in-out infinite alternate`,
+                                        animationDelay: t.delay,
+                                        transformOrigin: '50% 50%',
+                                    }}
+                                />
+                            ))}
+                        </g>
+                        
+                        {/* Body */}
+                        <g fill="hsl(var(--destructive) / 0.5)" stroke="hsl(var(--destructive))" strokeWidth="2">
+                            <path d="M 50,0 C 20,20 80,30 50,50 S 20,80 0,50" />
+                            <path d="M 50,100 C 80,80 20,70 50,50 S 80,20 100,50" />
+                            <path d="M 0,50 C 20,40 30,80 50,50" />
+                            <path d="M 100,50 C 80,60 70,20 50,50" />
+                        </g>
 
-                </svg>
+                    </svg>
+                </div>
             </div>
         </div>
     );

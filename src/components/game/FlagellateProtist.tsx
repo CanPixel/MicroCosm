@@ -41,20 +41,22 @@ export function FlagellateProtist({
     };
 
     return (
-        <div style={style} className="absolute">
+        <div style={{ top: `${position.y}px`, left: `${position.x}px`}} className="absolute">
             <OrganismNameLabel name={FlagellateProtist.displayName} size={size} showName={showName} />
-            <FlagellateProtistBody 
-                size={size}
-                duration={duration}
-                delay={delay}
-                animationDirection={animationDirection}
-            />
-            <Flagella
-                size={size}
-                duration={duration}
-                delay={delay}
-                isMoving={isMoving}
-            />
+            <div style={{...style, top: 0, left: 0}} className="absolute">
+                <FlagellateProtistBody 
+                    size={size}
+                    duration={duration}
+                    delay={delay}
+                    animationDirection={animationDirection}
+                />
+                <Flagella
+                    size={size}
+                    duration={duration}
+                    delay={delay}
+                    isMoving={isMoving}
+                />
+            </div>
         </div>
     );
 }
