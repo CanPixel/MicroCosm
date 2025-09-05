@@ -33,34 +33,34 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
   if (isMobile) {
     return (
        <>
-        <div className="fixed top-2 left-2 z-20">
-             <h1
-                className={cn(
-                "text-xl font-bold text-primary font-zcool-kuaile",
-                )}
-                style={{ filter: `drop-shadow(0 0 4px hsl(var(--primary)))` }}
-            >
-                MicroCosm
-            </h1>
-        </div>
-        <div className="fixed top-2 right-2 z-20">
-            <div className="text-xs text-muted-foreground font-headline">V1</div>
+       <div className="z-20 flex flex-row justify-center items-start gap-4 w-full px-4">
+            <div className="w-1/3 pt-2">
+                <h1 className={cn(
+                    "text-xl font-bold text-primary font-zcool-kuaile",
+                    )}
+                    style={{ filter: `drop-shadow(0 0 4px hsl(var(--primary)))` }}>
+                    MicroCosm
+                </h1>
+            </div>
+            <div className="w-1/2 max-w-sm pt-2 justify-center">
+                <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
+                    <CardContent className="p-2">
+                        <div className="flex justify-around items-center text-xs">
+                            <span className="flex items-center gap-2"><Gauge className="w-4 h-4 text-foreground/70"/> Size: {score.toFixed(0)}μm</span>
+                            <div className="w-px h-6 bg-border mx-2"></div>
+                            <div className="flex flex-col w-24">
+                            <span className={cn("text-center", energy < 20 && "text-red-500", isStarving && "text-red-500 font-bold")}>{isStarving ? 'STARVING' : `${energy.toFixed(0)}%`}</span>
+                            <Progress value={energy} className={cn("h-1.5", (isStarving || energy < 20) ? "[&>div]:bg-red-500" : "[&>div]:bg-primary")} />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="w-1/3 flex justify-end pt-2">
+                <div className="text-xs text-muted-foreground font-headline">V1</div>
+            </div>
         </div>
 
-        <div className="fixed top-12 left-1/2 -translate-x-1/2 w-full max-w-sm p-2 z-20">
-             <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
-                <CardContent className="p-2">
-                    <div className="flex justify-around items-center text-xs">
-                        <span className="flex items-center gap-2"><Gauge className="w-4 h-4 text-foreground/70"/> Size: {score.toFixed(0)}μm</span>
-                        <div className="w-px h-6 bg-border mx-2"></div>
-                        <div className="flex flex-col w-24">
-                           <span className={cn("text-center", energy < 20 && "text-red-500", isStarving && "text-red-500 font-bold")}>{isStarving ? 'STARVING' : `${energy.toFixed(0)}%`}</span>
-                           <Progress value={energy} className={cn("h-1.5", (isStarving || energy < 20) ? "[&>div]:bg-red-500" : "[&>div]:bg-primary")} />
-                        </div>
-                    </div>
-                </CardContent>
-             </Card>
-        </div>
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
             <Card className={cn(
                 "bg-card/80 backdrop-blur-sm border-primary/20 transition-all",
@@ -98,7 +98,7 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
     <>
       <div className="fixed top-4 left-4 text-foreground z-20">
         <Card className="bg-card/80 backdrop-blur-sm border-primary/20 w-[270px]">
-          <CardHeader>
+          <CardHeader className="pt-3">
             <div className="w-full">
                 <Logo font="font-zcool-kuaile" />
             </div>

@@ -12,7 +12,7 @@ export function Logo({ font = 'font-headline' }: LogoProps) {
     <div className="relative flex items-center mb-2">
       <h1
         className={cn(
-          "text-[28px] font-bold text-primary",
+          "text-[36px] font-bold text-primary",
           font
         )}
         style={{ filter: `drop-shadow(0 0 8px hsl(var(--primary)))` }}
