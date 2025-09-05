@@ -13,15 +13,6 @@ type FungiWallProps = {
   showName?: boolean;
 };
 
-// Simplified tentacles for animation
-const tentacles = [
-    { d: "M 50,5 C 40,20 60,30 55,45", delay: "0s" },
-    { d: "M 10,10 C 25,20 5,35 15,50", delay: "0.5s" },
-    { d: "M 80,20 C 95,30 70,45 85,60", delay: "0.2s" },
-    { d: "M 20,80 C 30,95 45,70 60,85", delay: "0.7s" },
-    { d: "M 80,80 C 90,90 90,70 95,65", delay: "0.3s" },
-];
-
 export function FungiWall({ position, size, duration, delay, opacity, initialRotation = 0, showName = false }: FungiWallProps) {
 
     const animationStyle: React.CSSProperties = {
@@ -30,59 +21,75 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
         transformOrigin: 'center center',
     };
 
-    const style: React.CSSProperties = {
+    const containerStyle: React.CSSProperties = {
         top: `${position.y}px`,
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
-        transform: `rotate(${initialRotation}deg)`,
         filter: `drop-shadow(0 0 25px hsl(var(--destructive) / 0.5))`
     };
 
+    const bodyStyle: React.CSSProperties = {
+        transform: `rotate(${initialRotation}deg)`,
+        width: '100%',
+        height: '100%',
+    };
+
     return (
-        <div style={style} className="absolute">
-            <OrganismNameLabel name={FungiWall.displayName} size={size} showName={showName} />
-            <div style={animationStyle} className="w-full h-full">
-                <svg width={size} height={size} viewBox="0 0 100 100">
-                    <defs>
-                        <filter id="fungi-glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                        </filter>
-                    </defs>
-
-                    {/* Tentacles */}
-                    <g filter="url(#fungi-glow)">
-                        {tentacles.map((t, i) => (
-                            <path
-                                key={`tentacle-${i}`}
-                                d={t.d}
-                                stroke="hsl(var(--destructive) / 0.7)"
-                                strokeWidth="2"
-                                fill="none"
+        <div style={containerStyle} className="absolute">
+             <div className="relative w-full h-full">
+                <OrganismNameLabel name={FungiWall.displayName} size={size} showName={showName} />
+                <div style={bodyStyle}>
+                    <div style={animationStyle} className="w-full h-full">
+                        <svg width={size} height={size} viewBox="0 0 100 100">
+                            <defs>
+                                <filter id="fungi-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                                </filter>
+                            </defs>
+                            
+                            {/* Mycelium Network */}
+                            <g 
+                                stroke="hsl(var(--destructive) / 0.8)" 
+                                strokeWidth="2.5" 
+                                fill="none" 
                                 strokeLinecap="round"
-                                style={{
-                                    animation: `sine-wave ${duration / 3}s ease-in-out infinite alternate`,
-                                    animationDelay: t.delay,
-                                    transformOrigin: '50% 50%',
-                                }}
-                            />
-                        ))}
-                    </g>
-                    
-                    {/* Body */}
-                    <g fill="hsl(var(--destructive) / 0.5)" stroke="hsl(var(--destructive))" strokeWidth="2">
-                        <path d="M 50,0 C 20,20 80,30 50,50 S 20,80 0,50" />
-                        <path d="M 50,100 C 80,80 20,70 50,50 S 80,20 100,50" />
-                        <path d="M 0,50 C 20,40 30,80 50,50" />
-                        <path d="M 100,50 C 80,60 70,20 50,50" />
-                    </g>
+                                filter="url(#fungi-glow)"
+                            >
+                                {/* Main Branches */}
+                                <path d="M 50,10 C 30,30 70,40 50,60" />
+                                <path d="M 50,60 C 40,80 80,90 60,95" />
+                                <path d="M 50,60 C 20,70 10,50 25,40" />
+                                <path d="M 25,40 C 5,30 15,10 30,15" />
+                                <path d="M 50,60 C 80,50 90,70 75,80" />
+                                <path d="M 75,80 C 95,90 90,60 80,50" />
+                                <path d="M 80,50 C 70,30 95,20 85,15" />
+                                
+                                {/* Smaller connecting branches */}
+                                <path d="M 38,22 C 45,35 30,45 35,55" />
+                                <path d="M 62,18 C 55,30 70,35 65,48" />
+                                <path d="M 45,75 C 30,85 20,70 30,65" />
+                                <path d="M 60,85 C 75,90 85,75 78,70" />
+                            </g>
 
-                </svg>
+                            {/* Spore nodes */}
+                             <g fill="hsl(var(--destructive))">
+                                <circle cx="50" cy="60" r="4" />
+                                <circle cx="25" cy="40" r="3" />
+                                <circle cx="80" cy="50" r="3.5" />
+                                <circle cx="30" cy="15" r="2.5" />
+                                <circle cx="75" cy="80" r="3" />
+                                <circle cx="60" cy="95" r="2" />
+                            </g>
+
+                        </svg>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -90,3 +97,4 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
 
 FungiWall.displayName = 'Fungal Wall';
 FungiWall.isHarmful = true;
+
