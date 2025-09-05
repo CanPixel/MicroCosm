@@ -24,7 +24,7 @@ const NO_SPAWN_RADIUS = 800; // Don't spawn giant organisms within this radius o
 
 export type DebrisItem = {
     id: string;
-    Component: React.FC<any> & { isHarmful?: boolean, isOrganelle?: boolean };
+    Component: React.FC<any> & { isHarmful?: boolean, isOrganelle?: boolean, isInfectious?: boolean };
     isAutonomous: boolean;
     initialPosition: { x: number; y: number };
     props: any;
@@ -65,6 +65,11 @@ export function Debris(): DebrisItem[] {
         Component = FungiWall;
         isAutonomous = false; // It's stationary
       }
+      // Special infectious organism
+      else if (type < 0.35) {
+        Component = Bacteriophage;
+        isAutonomous = true;
+      }
       // Ambient organisms (can be background or active)
       else if (type < 0.45) {
         Component = Amoeba;
@@ -82,17 +87,14 @@ export function Debris(): DebrisItem[] {
       } else if (type < 0.85) {
         Component = FlagellateProtist;
         isAutonomous = true;
-      } else if (type < 0.95) {
-        Component = Ciliate;
-        isAutonomous = true;
       } else {
-        Component = Bacteriophage;
+        Component = Ciliate;
         isAutonomous = true;
       }
 
       // If the organism is not an organelle or a guaranteed harmful one,
       // check if it should become an active, harmful instance.
-      if (!Component.isOrganelle && !(Component as any).isHarmful) {
+      if (!Component.isOrganelle && !(Component as any).isHarmful && !(Component as any).isInfectious) {
         if (isAmbientActive) {
             (Component as any).isHarmful = true; // Make this specific instance harmful
             opacity = Math.random() * 0.2 + 0.8; // High opacity
@@ -101,7 +103,7 @@ export function Debris(): DebrisItem[] {
             opacity = Math.random() * 0.2 + 0.1; // Low opacity for background
         }
       } else if (!Component.isOrganelle) {
-        // This handles guaranteed harmful entities like FungiWall
+        // This handles guaranteed harmful entities like FungiWall or infectious ones
         opacity = 1;
       } else {
         // This handles organelles
@@ -172,3 +174,5 @@ export function Debris(): DebrisItem[] {
       };
     }).filter(d => d.Component); // Filter out any undefined components if logic fails
 }
+
+    

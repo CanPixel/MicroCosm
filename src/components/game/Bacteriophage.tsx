@@ -1,3 +1,4 @@
+
 "use client";
 import React from 'react';
 import { OrganismNameLabel } from './OrganismNameLabel';
@@ -67,3 +68,6 @@ export function Bacteriophage({ position, size, duration, delay, opacity, initia
 }
 
 Bacteriophage.displayName = 'Bacteriophage';
+Bacteriophage.isInfectious = true;
+
+    

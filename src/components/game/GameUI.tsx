@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Dna, Gauge, Shield, Zap } from "lucide-react";
+import { Dna, Gauge, Shield, Zap, Virus } from "lucide-react";
 import { Logo } from "./Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useRef, useState } from "react";
@@ -17,6 +17,8 @@ type GameUIProps = {
     energy: number;
     isStarving: boolean;
     collectedOrganelles: Set<string>;
+    isInfected: boolean;
+    infectionProgress: number;
 };
 
 const abilities = [
@@ -25,7 +27,7 @@ const abilities = [
   { type: 'golgi', icon: Dna, label: 'Evolve', name: 'Golgi Apparatus' },
 ];
 
-export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelles }: GameUIProps) {
+export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelles, isInfected, infectionProgress }: GameUIProps) {
   const isMobile = useIsMobile();
   const [newlyUnlocked, setNewlyUnlocked] = useState<string | null>(null);
   const prevOrganelles = useRef(new Set<string>());
@@ -145,6 +147,14 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
                 </div>
                 <Progress value={energy} className={cn("h-2", (isStarving || energy < 20) ? "[&>div]:bg-red-500" : "[&>div]:bg-primary")} />
             </div>
+             {isInfected && (
+                 <div className="space-y-1">
+                     <div className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-2 text-red-500 font-bold animate-pulse"><Virus className="w-4 h-4"/> INFECTION</span>
+                    </div>
+                    <Progress value={infectionProgress} className="h-2 [&>div]:bg-red-500" />
+                </div>
+             )}
           </CardContent>
         </Card>
       </div>
@@ -178,7 +188,7 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
                                 )}
                                 disabled={!isUnlocked}
                             >
-                                <Icon className={cn(!hasUnlockedAbilities && !isUnlocked && "text-muted-foreground/30")} />
+                                <Icon className={cn("w-5 h-5",!hasUnlockedAbilities && !isUnlocked && "text-muted-foreground/30")} />
                                 {isUnlocked && <span className="ml-2 hidden md:inline">{ability.label}</span>}
                             </Button>
                         )
@@ -190,3 +200,5 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
     </>
   );
 }
+
+    

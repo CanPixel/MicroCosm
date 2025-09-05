@@ -10,9 +10,10 @@ import { Background } from "./Background";
 import { Debris, DebrisItem } from "./Debris";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { Autonomous } from "./Autonomous";
-import { SpikyVirus } from "./SpikyVirus";
+import { Bacteriophage } from "./Bacteriophage";
 import { FungiWall } from "./FungiWall";
 import { cn } from "@/lib/utils";
+import { Antiviral } from "./Antiviral";
 
 const INITIAL_CELL_SIZE = 50;
 const MAX_CELL_SCORE = 600;
@@ -24,6 +25,8 @@ const ZOOM_LERP_FACTOR = 0.05;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
 const MAX_SUGAR = 70;
+const MAX_ANTIVIRALS = 3;
+const ANTIVIRAL_SPAWN_INTERVAL = 15000; // 15 seconds
 const BASE_SUGAR_SPAWN_INTERVAL = 3000; // ms
 const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
@@ -34,10 +37,13 @@ const FLICKER_DURATION = 2000; // 2 second flicker period
 const TOTAL_INVINCIBILITY_DURATION = DAMAGE_COOLDOWN + FLICKER_DURATION;
 const DEATH_ANIMATION_DURATION = 2000; // ms
 const RENDER_PADDING = 300; // The buffer around the viewport to render entities
+const INFECTION_DURATION = 30000; // 30 seconds until cell bursts
+const INFECTION_ENERGY_DRAIN_MULTIPLIER = 2.5;
 
 
 type Position = { x: number; y: number };
 type SugarParticle = Position & { id: string; size: number, createdAt: number };
+type AntiviralParticle = Position & { id: string; };
 type OrganismState = {
     position: Position;
     size: number | { width: number, height: number };
@@ -72,6 +78,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [isInvulnerable, setIsInvulnerable] = useState(false);
   const [isFlickering, setIsFlickering] = useState(false);
   const [showOrganismNames, setShowOrganismNames] = useState(false);
+  const [isInfected, setIsInfected] = useState(false);
+  const [infectionProgress, setInfectionProgress] = useState(0);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
   
@@ -88,8 +96,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const velocityRef = useRef<Position>({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   const lastDamageTimeRef = useRef(0);
+  const infectionTimerStartRef = useRef(0);
   
   const [sugars, setSugars] = useState<SugarParticle[]>([]);
+  const [antivirals, setAntivirals] = useState<AntiviralParticle[]>([]);
   const [debris, setDebris] = useState<DebrisItem[]>([]);
   const [organismStates, setOrganismStates] = useState<OrganismStateMap>({});
   const [collectedOrganelles, setCollectedOrganelles] = useState<Set<string>>(new Set());
@@ -98,11 +108,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   // State for entities within the render buffer
   const [renderedSugars, setRenderedSugars] = useState<SugarParticle[]>([]);
+  const [renderedAntivirals, setRenderedAntivirals] = useState<AntiviralParticle[]>([]);
   const [renderedDebris, setRenderedDebris] = useState<DebrisItem[]>([]);
 
   const animationFrameId = useRef<number>();
   const lastUpdateTimeRef = useRef(0);
   const lastSugarSpawnTimeRef = useRef(0);
+  const lastAntiviralSpawnTimeRef = useRef(0);
   const updateInterval = 1000 / 60; // 60 FPS
 
   // Theme transition effect
@@ -161,6 +173,24 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     setSugars(prev => [...prev, ...newSugars]);
   }, []);
+  
+  const spawnAntivirals = useCallback((count: number) => {
+    if (!containerRef.current) return;
+    const newAntivirals: AntiviralParticle[] = [];
+    
+    for (let i = 0; i < count; i++) {
+        const x = Math.random() * WORLD_WIDTH;
+        const y = Math.random() * WORLD_HEIGHT;
+
+        newAntivirals.push({ 
+            id: `antiviral-${Date.now()}-${i}`,
+            x, 
+            y,
+        });
+    }
+
+    setAntivirals(prev => [...prev, ...newAntivirals]);
+  }, []);
 
   const resetGame = useCallback(() => {
     if (!containerRef.current) return;
@@ -181,9 +211,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
     keysPressedRef.current = {};
     
-    // Initial sugar spawn
+    // Initial spawns
     setSugars([]);
+    setAntivirals([]);
     spawnSugars(20, true); 
+    spawnAntivirals(3);
     
     // Set initial debris
     const initialDebris = Debris();
@@ -204,10 +236,14 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     setIsInvulnerable(false);
     setIsFlickering(false);
     lastDamageTimeRef.current = 0;
+    
+    setIsInfected(false);
+    setInfectionProgress(0);
+    infectionTimerStartRef.current = 0;
 
     setIsDying(false);
     setIsGameOver(false);
-  }, [spawnSugars]);
+  }, [spawnSugars, spawnAntivirals]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -321,6 +357,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         return s.x > viewLeft && s.x < viewRight && s.y > viewTop && s.y < viewBottom;
     });
     setRenderedSugars(localSugars);
+    
+    const localAntivirals = antivirals.filter(a => {
+        return a.x > viewLeft && a.x < viewRight && a.y > viewTop && a.y < viewBottom;
+    });
+    setRenderedAntivirals(localAntivirals);
+
 
     // --- Invulnerability/Flicker Check ---
     if (isInvulnerable) {
@@ -336,13 +378,20 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     // --- Sugar Spawning & Despawning ---
     const growthFactor = Math.max(1, (cellSize - INITIAL_CELL_SIZE) / 100);
-    const dynamicSpawnInterval = BASE_SUGAR_SPAWN_INTERVAL * growthFactor;
+    const dynamicSpawnInterval = BASE_SUGAR_SPAWN_INTERVAL / growthFactor;
 
     if (timestamp - lastSugarSpawnTimeRef.current > dynamicSpawnInterval) {
         if (sugars.length < MAX_SUGAR) {
             spawnSugars(3);
         }
         lastSugarSpawnTimeRef.current = timestamp;
+    }
+    
+    if (timestamp - lastAntiviralSpawnTimeRef.current > ANTIVIRAL_SPAWN_INTERVAL) {
+        if (antivirals.length < MAX_ANTIVIRALS) {
+            spawnAntivirals(1);
+        }
+        lastAntiviralSpawnTimeRef.current = timestamp;
     }
 
     setSugars(currentSugars => currentSugars.filter(sugar => {
@@ -436,7 +485,25 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         setSugars(currentSugars => currentSugars.filter(s => !eatenSugarIds.has(s.id)));
     }
     
-    // Debris Collisions (Harmful, Devour, Organelles)
+    // Antivirals
+    let eatenAntiviralIds = new Set<string>();
+    for (const antiviral of localAntivirals) {
+        const dx = cellPositionRef.current.x - antiviral.x;
+        const dy = cellPositionRef.current.y - antiviral.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist < currentCellRadius) {
+            eatenAntiviralIds.add(antiviral.id);
+            setIsInfected(false); // Cured!
+            setInfectionProgress(0);
+        }
+    }
+    
+    if (eatenAntiviralIds.size > 0) {
+        setAntivirals(current => current.filter(a => !eatenAntiviralIds.has(a.id)));
+    }
+    
+    // Debris Collisions (Harmful, Devour, Organelles, Infection)
     const newEligibleOrganelles = new Set<string>();
     const collectedOrganelleTypesThisFrame = new Set<string>();
     const collectedDebrisIds = new Set<string>();
@@ -455,7 +522,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             organismSize = organismState.size;
             organismCollisionSize = organismState.collisionSize as number / 2;
         } else {
-            // For rectangular objects, we can approximate with a circle for simplicity for now
              organismSize = Math.max(organismState.size.width, organismState.size.height);
              organismCollisionSize = Math.max((organismState.collisionSize as any).width, (organismState.collisionSize as any).height) / 2;
         }
@@ -466,6 +532,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         const collisionThreshold = currentCellRadius + organismCollisionSize;
 
         if (dist > collisionThreshold) return; // No collision
+
+        // --- Infection ---
+        if (componentType.isInfectious) {
+            if (!isInfected) {
+                setIsInfected(true);
+                infectionTimerStartRef.current = now;
+                collectedDebrisIds.add(d.id);
+            }
+            return;
+        }
 
         // --- Organelle Collection ---
         if (componentType.isOrganelle) {
@@ -509,7 +585,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     // Loop through interactive debris to check for collisions
     const interactiveDebris = localDebris.filter(d => {
         const componentType = d.Component as any;
-        return componentType.isOrganelle || componentType.isHarmful;
+        return componentType.isOrganelle || componentType.isHarmful || componentType.isInfectious;
     });
 
     interactiveDebris.forEach(handleCollision);
@@ -555,8 +631,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const movementEnergyDrain = (speed / MAX_SPEED) * 0.08;
     const sizeDrainFactor = 1 + (cellSize - INITIAL_CELL_SIZE) / 200;
     const baseEnergyDrain = 0.02 * sizeDrainFactor;
+    
+    let energyDrain = baseEnergyDrain + movementEnergyDrain;
+    if (isInfected) {
+        energyDrain *= INFECTION_ENERGY_DRAIN_MULTIPLIER;
+    }
+    
     const energyGain = energyFromSugar + energyFromDevouring;
-    const energyDrain = baseEnergyDrain + movementEnergyDrain;
     
     if (isStarving) {
       if (energyGain > 0) {
@@ -576,6 +657,20 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       }
     }
     
+    // --- Infection Progress ---
+    if (isInfected) {
+        const timeSinceInfection = now - infectionTimerStartRef.current;
+        const progress = Math.min((timeSinceInfection / INFECTION_DURATION) * 100, 100);
+        setInfectionProgress(progress);
+        
+        if (progress >= 100 && !isDying) {
+            setIsDying(true);
+            setTimeout(() => {
+                setIsGameOver(true);
+            }, DEATH_ANIMATION_DURATION);
+        }
+    }
+    
     // --- Game State Checks (Game Over) ---
     if (cellSize <= MIN_CELL_SIZE_FOR_DEATH && !isDying) {
         setIsDying(true);
@@ -585,7 +680,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     }
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, isDying, isStarving, isInvulnerable, cellSize, score, energy, sugars, debris, spawnSugars, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
+  }, [isGameOver, isDying, isStarving, isInvulnerable, isInfected, cellSize, score, energy, sugars, antivirals, debris, spawnSugars, spawnAntivirals, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
 
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -599,12 +694,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   // Separate debris into background and interactive for rendering
   const backgroundDebris = renderedDebris.filter(d => {
     const componentType = d.Component as any;
-    return !componentType.isOrganelle && !componentType.isHarmful;
+    return !componentType.isOrganelle && !componentType.isHarmful && !componentType.isInfectious;
   });
 
   const interactiveDebris = renderedDebris.filter(d => {
     const componentType = d.Component as any;
-    return componentType.isOrganelle || componentType.isHarmful;
+    return componentType.isOrganelle || componentType.isHarmful || componentType.isInfectious;
   });
 
   return (
@@ -638,6 +733,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             {/* Layer for Sugar, Harmful Organisms, and Eligible Organelles */}
             <div className="absolute inset-0 z-20">
                 {renderedSugars.map((sugar) => <Sugar key={sugar.id} position={sugar} size={sugar.size} />)}
+                
+                {renderedAntivirals.map((antiviral) => <Antiviral key={antiviral.id} position={antiviral} />)}
 
                 {interactiveDebris.map(d => {
                     const organismState = organismStates[d.id];
@@ -702,9 +799,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             energy={energy}
             isStarving={isStarving}
             collectedOrganelles={collectedOrganelles}
+            isInfected={isInfected}
+            infectionProgress={infectionProgress}
         />
 
         <GameOverDialog score={score} isOpen={isGameOver} onRestart={onGameOver} />
     </div>
   );
 }
+
+    
