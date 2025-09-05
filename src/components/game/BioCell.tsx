@@ -92,7 +92,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const sizeRef = useRef(size);
+  const collectedOrganellesRef = useRef(collectedOrganelles);
+
   sizeRef.current = size;
+  collectedOrganellesRef.current = collectedOrganelles;
 
   const [hasEvolved, setHasEvolved] = useState(false);
   const [damageParticles, setDamageParticles] = useState<DamageParticle[]>([]);
@@ -186,7 +189,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     // Initialize points for the cell wall
     pointsRef.current = Array.from({ length: numPoints }, (_, i) => {
       const angle = (i / numPoints) * 2 * Math.PI;
-      const initialRadiusVal = (size/2) * (0.8 + Math.random() * 0.2);
+      const initialRadiusVal = (INITIAL_SIZE / 2) * (0.8 + Math.random() * 0.2);
       return { angle, radius: initialRadiusVal, targetRadius: initialRadiusVal };
     });
 
@@ -400,7 +403,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasEvolved, collectedOrganelles, isDying, size]);
+  }, [hasEvolved, isDying]);
 
   const containerSize = svgSize * 1.5; // Make container larger than SVG to prevent clipping
 
@@ -518,3 +521,5 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
 });
 
 BioCell.displayName = 'BioCell';
+
+    
