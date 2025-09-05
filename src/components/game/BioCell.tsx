@@ -317,16 +317,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
           // Bounce off cell walls (approximate)
           if (newX < -0.4 || newX > 0.4) newVx *= -1;
           if (newY < -0.4 || newY > 0.4) newVy *= -1;
-          
-          // Avoid nucleus (simple circular check)
-          const distToNucleus = Math.sqrt(newX*newX + newY*newY);
-          if (distToNucleus < 0.2) {
-              newVx *= -1;
-              newVy *= -1;
-              // Nudge it away
-              newX += newVx * 5;
-              newY += newVy * 5;
-          }
 
           return { ...o, x: newX, y: newY, vx: newVx, vy: newVy, rotation: o.rotation + 0.5 };
       }));
