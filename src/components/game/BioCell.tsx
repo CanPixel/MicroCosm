@@ -326,9 +326,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
       particlesRef.current.forEach((p, i) => {
         p.x += p.vx;
         p.y += p.vy;
-
-        if (p.x < -0.4 || p.y > 0.4) p.vx *= -1;
-        if (p.y < -0.4 || p.y > 0.4) p.vy *= -1;
+        
+        const boundary = 0.35;
+        if (p.x < -boundary || p.x > boundary) p.vx *= -1;
+        if (p.y < -boundary || p.y > boundary) p.vy *= -1;
         
         const particleEl = particleElements[i] as SVGCircleElement;
         if (particleEl) {
