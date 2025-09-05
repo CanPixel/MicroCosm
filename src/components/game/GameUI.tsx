@@ -20,23 +20,25 @@ type GameUIProps = {
 };
 
 const abilities = [
-  { type: 'mitochondrion', icon: Zap, label: 'Mitochondrion' },
-  { type: 'nucleus', icon: Shield, label: 'Nucleus' },
-  { type: 'golgi', icon: Dna, label: 'Golgi Apparatus' },
+  { type: 'mitochondrion', icon: Zap, label: 'Energy' },
+  { type: 'nucleus', icon: Shield, label: 'Defense' },
+  { type: 'golgi', icon: Dna, label: 'Evolve' },
 ];
 
 export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelles }: GameUIProps) {
   const isMobile = useIsMobile();
   const [newlyUnlocked, setNewlyUnlocked] = useState<string | null>(null);
-  const prevOrganellesCount = useRef(collectedOrganelles.size);
+  const prevOrganelles = useRef(new Set<string>());
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const hasUnlockedAbilities = collectedOrganelles.size > 0;
 
   useEffect(() => {
-    if (collectedOrganelles.size > prevOrganellesCount.current) {
-        const newOrganelle = [...collectedOrganelles].find(o => ![...Array.from(prevOrganellesCount.current).map((_, i) => [...collectedOrganelles][i])].includes(o));
-        const ability = abilities.find(a => a.type === newOrganelle);
+    const newlyCollected = [...collectedOrganelles].filter(o => !prevOrganelles.current.has(o));
+    
+    if (newlyCollected.length > 0) {
+        const organelleType = newlyCollected[0];
+        const ability = abilities.find(a => a.type === organelleType);
         if (ability) {
             setNewlyUnlocked(ability.label);
             if (timeoutRef.current) {
@@ -47,7 +49,8 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
             }, 4000); // Hide after 4 seconds
         }
     }
-    prevOrganellesCount.current = collectedOrganelles.size;
+    
+    prevOrganelles.current = new Set(collectedOrganelles);
   }, [collectedOrganelles]);
 
 
@@ -79,7 +82,7 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
             </div>
         </div>
         
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-20 w-full flex justify-center pointer-events-none">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20 w-full flex justify-center pointer-events-none">
             {newlyUnlocked && <AbilityUnlocked abilityName={newlyUnlocked} />}
         </div>
 
@@ -150,7 +153,7 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
          <div className="text-xs text-muted-foreground font-headline">V1</div>
       </div>
       
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-20 w-full flex justify-center pointer-events-none">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20 w-full flex justify-center pointer-events-none">
             {newlyUnlocked && <AbilityUnlocked abilityName={newlyUnlocked} />}
         </div>
 
