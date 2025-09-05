@@ -16,6 +16,7 @@ export function OrganismNameLabel({ name, size, showName }: OrganismNameLabelPro
         top: `-24px`,
         left: '50%',
         transform: 'translateX(-50%)',
+        width: `${size * 2}px`, // Give it ample width
     };
 
     return (

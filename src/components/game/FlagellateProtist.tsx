@@ -31,30 +31,37 @@ export function FlagellateProtist({
     showName = false
 }: FlagellateProtistProps) {
 
-    const style: React.CSSProperties = {
+    const containerStyle: React.CSSProperties = {
         top: `${position.y}px`,
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size}px`,
         opacity: opacity,
+    };
+    
+    const bodyStyle: React.CSSProperties = {
         transform: `rotate(${rotation + 90}deg)`,
+        width: '100%',
+        height: '100%',
     };
 
     return (
-        <div style={style} className="absolute">
+        <div style={containerStyle} className="absolute">
             <OrganismNameLabel name={FlagellateProtist.displayName} size={size} showName={showName} />
-            <FlagellateProtistBody 
-                size={size}
-                duration={duration}
-                delay={delay}
-                animationDirection={animationDirection}
-            />
-            <Flagella
-                size={size}
-                duration={duration}
-                delay={delay}
-                isMoving={isMoving}
-            />
+            <div style={bodyStyle}>
+                <FlagellateProtistBody 
+                    size={size}
+                    duration={duration}
+                    delay={delay}
+                    animationDirection={animationDirection}
+                />
+                <Flagella
+                    size={size}
+                    duration={duration}
+                    delay={delay}
+                    isMoving={isMoving}
+                />
+            </div>
         </div>
     );
 }

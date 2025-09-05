@@ -24,29 +24,36 @@ export function Amoeba({ position, size, duration, delay, opacity, initialRotati
         transformOrigin: 'center center',
     };
 
-    const style: React.CSSProperties = {
+    const containerStyle: React.CSSProperties = {
         top: `${position.y}px`,
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size}px`, 
         opacity: opacity,
-        transform: `rotate(${rotation + 90}deg)`,
         filter: `drop-shadow(0 0 15px hsl(var(--accent) / 0.5))`
     };
 
+    const bodyStyle: React.CSSProperties = {
+        transform: `rotate(${rotation + 90}deg)`,
+        width: '100%',
+        height: '100%',
+    };
+
     return (
-        <div style={style} className="absolute">
+        <div style={containerStyle} className="absolute">
             <OrganismNameLabel name={Amoeba.displayName} size={size} showName={showName} />
-            <div style={animationStyle} className="w-full h-full">
-                <svg width={size} height={size} viewBox="0 0 20 20">
-                    <path 
-                        d="M 10,2 C 18,2 18,18 10,18 C 2,18 2,2 10,2 Z" 
-                        fill="hsl(var(--accent) / 0.4)" 
-                        stroke="hsl(var(--accent) / 0.9)" 
-                        strokeWidth="1"
-                    />
-                    <circle cx="10" cy="10" r="3" fill="hsl(var(--background) / 0.3)" />
-                </svg>
+            <div style={bodyStyle}>
+                <div style={animationStyle} className="w-full h-full">
+                    <svg width={size} height={size} viewBox="0 0 20 20">
+                        <path 
+                            d="M 10,2 C 18,2 18,18 10,18 C 2,18 2,2 10,2 Z" 
+                            fill="hsl(var(--accent) / 0.4)" 
+                            stroke="hsl(var(--accent) / 0.9)" 
+                            strokeWidth="1"
+                        />
+                        <circle cx="10" cy="10" r="3" fill="hsl(var(--background) / 0.3)" />
+                    </svg>
+                </div>
             </div>
         </div>
     );

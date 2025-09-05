@@ -24,25 +24,32 @@ export function RodBacteria({ position, size, duration, delay, opacity, initialR
         transformOrigin: 'center center',
     };
 
-    const style: React.CSSProperties = {
+    const containerStyle: React.CSSProperties = {
         top: `${position.y}px`,
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size / 2}px`,
         opacity: opacity,
+    };
+
+    const bodyStyle: React.CSSProperties = {
         transform: `rotate(${rotation}deg)`,
+        width: '100%',
+        height: '100%',
     };
 
     return (
-        <div style={style} className="absolute">
+        <div style={containerStyle} className="absolute">
             <OrganismNameLabel name={RodBacteria.displayName} size={size} showName={showName} />
-            <div style={animationStyle} className="w-full h-full">
-                <svg width={size} height={size/2} viewBox={`0 0 20 10`} fill="hsl(var(--accent) / 0.5)" stroke="hsl(var(--accent))" strokeWidth="0.5">
-                    <rect x="1" y="1" width="18" height="8" rx="4" ry="4" />
-                    <circle cx="7" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
-                    <circle cx="10" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
-                    <circle cx="13" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
-                </svg>
+            <div style={bodyStyle}>
+                <div style={animationStyle} className="w-full h-full">
+                    <svg width={size} height={size/2} viewBox={`0 0 20 10`} fill="hsl(var(--accent) / 0.5)" stroke="hsl(var(--accent))" strokeWidth="0.5">
+                        <rect x="1" y="1" width="18" height="8" rx="4" ry="4" />
+                        <circle cx="7" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
+                        <circle cx="10" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
+                        <circle cx="13" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
+                    </svg>
+                </div>
             </div>
         </div>
     );
