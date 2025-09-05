@@ -469,8 +469,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         // --- Organism Interaction (Harmful or Devour) ---
         if (componentType.isHarmful) {
-             if (cellSize > organismState.size && !isPermanentlyHostile) {
-                // Devour smaller, non-permanently hostile organism
+             if (cellSize > organismState.size) {
+                // Devour smaller, hostile organism
                 const sizeBonus = organismState.size * 0.2;
                 totalScoreGained += sizeBonus;
                 totalSizeGained += sizeBonus / 5;
