@@ -23,8 +23,8 @@ const CAMERA_LERP_FACTOR = 0.05;
 const ZOOM_LERP_FACTOR = 0.05;
 const WORLD_WIDTH = 4000;
 const WORLD_HEIGHT = 4000;
-const MAX_SUGAR = 100;
-const BASE_SUGAR_SPAWN_INTERVAL = 2000; // ms
+const MAX_SUGAR = 70;
+const BASE_SUGAR_SPAWN_INTERVAL = 3000; // ms
 const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
 const COLLISION_PENALTY_FACTOR = 1.5; 
@@ -340,7 +340,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     if (timestamp - lastSugarSpawnTimeRef.current > dynamicSpawnInterval) {
         if (sugars.length < MAX_SUGAR) {
-            spawnSugars(5);
+            spawnSugars(3);
         }
         lastSugarSpawnTimeRef.current = timestamp;
     }
