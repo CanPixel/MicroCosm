@@ -33,7 +33,21 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
   if (isMobile) {
     return (
        <>
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-sm p-2 z-20">
+        <div className="fixed top-2 left-2 z-20">
+             <h1
+                className={cn(
+                "text-xl font-bold text-primary font-zcool-kuaile",
+                )}
+                style={{ filter: `drop-shadow(0 0 4px hsl(var(--primary)))` }}
+            >
+                MicroCosm
+            </h1>
+        </div>
+        <div className="fixed top-2 right-2 z-20">
+            <div className="text-xs text-muted-foreground font-headline">V1</div>
+        </div>
+
+        <div className="fixed top-12 left-1/2 -translate-x-1/2 w-full max-w-sm p-2 z-20">
              <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
                 <CardContent className="p-2">
                     <div className="flex justify-around items-center text-xs">
@@ -82,8 +96,8 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
 
   return (
     <>
-      <div className="fixed top-4 left-4 w-64 text-foreground z-20">
-        <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
+      <div className="fixed top-4 left-4 text-foreground z-20">
+        <Card className="bg-card/80 backdrop-blur-sm border-primary/20 w-[270px]">
           <CardHeader>
             <div className="w-full">
                 <Logo font="font-zcool-kuaile" />

@@ -70,10 +70,14 @@ body {
   }
   body {
     @apply text-foreground;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
     transition: background-color 0.5s ease;
   }
 }
 
 @layer utilities {
-
+    .prevent-touch-callout {
+        -webkit-touch-callout: none;
+    }
 }
