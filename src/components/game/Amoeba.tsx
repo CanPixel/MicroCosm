@@ -35,20 +35,18 @@ export function Amoeba({ position, size, duration, delay, opacity, initialRotati
     };
 
     return (
-        <div style={{ top: `${position.y}px`, left: `${position.x}px`}} className="absolute">
+        <div style={style} className="absolute">
             <OrganismNameLabel name={Amoeba.displayName} size={size} showName={showName} />
-            <div style={{...style, top: 0, left: 0}} className="absolute">
-                <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 20 20">
-                        <path 
-                            d="M 10,2 C 18,2 18,18 10,18 C 2,18 2,2 10,2 Z" 
-                            fill="hsl(var(--accent) / 0.4)" 
-                            stroke="hsl(var(--accent) / 0.9)" 
-                            strokeWidth="1"
-                        />
-                        <circle cx="10" cy="10" r="3" fill="hsl(var(--background) / 0.3)" />
-                    </svg>
-                </div>
+            <div style={animationStyle} className="w-full h-full">
+                <svg width={size} height={size} viewBox="0 0 20 20">
+                    <path 
+                        d="M 10,2 C 18,2 18,18 10,18 C 2,18 2,2 10,2 Z" 
+                        fill="hsl(var(--accent) / 0.4)" 
+                        stroke="hsl(var(--accent) / 0.9)" 
+                        strokeWidth="1"
+                    />
+                    <circle cx="10" cy="10" r="3" fill="hsl(var(--background) / 0.3)" />
+                </svg>
             </div>
         </div>
     );

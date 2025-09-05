@@ -45,23 +45,21 @@ export function GolgiApparatus({ position, size, duration, delay, opacity, initi
     };
 
     return (
-        <div style={{ top: `${position.y}px`, left: `${position.x}px`}} className="absolute">
+        <div style={style} className="absolute">
             <OrganismNameLabel name={GolgiApparatus.displayName} size={size} showName={showName} />
-            <div style={{...style, top: 0, left: 0}} className="absolute">
-                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 60 60">
-                        <g fill="none" strokeLinecap="round">
-                            {paths.map((path, i) => (
-                                <path key={`path-${i}`} d={path.d} stroke={path.stroke} strokeWidth={path.strokeWidth} />
-                            ))}
-                        </g>
-                        <g>
-                            {vesicles.map((vesicle, i) => (
-                                 <circle key={`vesicle-${i}`} cx={vesicle.cx} cy={vesicle.cy} r={vesicle.r} fill={vesicle.fill} />
-                            ))}
-                        </g>
-                    </svg>
-                </div>
+            <div style={animationStyle} className="w-full h-full">
+                <svg width={size} height={size} viewBox="0 0 60 60">
+                    <g fill="none" strokeLinecap="round">
+                        {paths.map((path, i) => (
+                            <path key={`path-${i}`} d={path.d} stroke={path.stroke} strokeWidth={path.strokeWidth} />
+                        ))}
+                    </g>
+                    <g>
+                        {vesicles.map((vesicle, i) => (
+                             <circle key={`vesicle-${i}`} cx={vesicle.cx} cy={vesicle.cy} r={vesicle.r} fill={vesicle.fill} />
+                        ))}
+                    </g>
+                </svg>
             </div>
         </div>
     );

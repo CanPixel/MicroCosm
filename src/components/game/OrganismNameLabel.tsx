@@ -9,14 +9,13 @@ type OrganismNameLabelProps = {
     showName: boolean;
 };
 
-export function OrganismNameLabel({ name, size, showName }: OrganismNameNameLabelProps) {
+export function OrganismNameLabel({ name, size, showName }: OrganismNameLabelProps) {
     if (!name) return null;
 
     const style: React.CSSProperties = {
-        top: `-${size * 0.2 + 20}px`,
+        top: `-24px`,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: size * 2, // Give it ample width to prevent wrapping
     };
 
     return (
