@@ -14,8 +14,6 @@ type GameUIProps = {
     score: number;
     energy: number;
     isStarving: boolean;
-    font: string;
-    onFontChange: (font: string) => void;
     collectedOrganelles: Set<string>;
 };
 
@@ -25,7 +23,7 @@ const abilities = [
   { type: 'golgi', icon: Dna, label: 'Genetic Code' },
 ];
 
-export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange, collectedOrganelles }: GameUIProps) {
+export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelles }: GameUIProps) {
   const isMobile = useIsMobile();
 
   const hasUnlockedAbilities = collectedOrganelles.size > 0;
@@ -33,12 +31,9 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
   if (isMobile) {
     return (
        <>
-       <div className="z-20 flex flex-row justify-center items-start gap-4 w-full px-4">
-            <div className="w-1/3 pt-2">
-                <h1 className={cn(
-                    "text-xl font-bold text-primary font-zcool-kuaile",
-                    )}
-                    style={{ filter: `drop-shadow(0 0 4px hsl(var(--primary)))` }}>
+       <div className="fixed top-4 z-20 flex flex-row justify-between items-start w-full px-4">
+            <div className="pt-2">
+                <h1 className="text-xl font-bold text-primary font-zcool-kuaile" style={{ filter: `drop-shadow(0 0 4px hsl(var(--primary)))` }}>
                     MicroCosm
                 </h1>
             </div>
@@ -56,7 +51,7 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
                     </CardContent>
                 </Card>
             </div>
-            <div className="w-1/3 flex justify-end pt-2">
+            <div className="pt-2">
                 <div className="text-xs text-muted-foreground font-headline">V1</div>
             </div>
         </div>
@@ -96,8 +91,8 @@ export function GameUI({ cellSize, score, energy, isStarving, font, onFontChange
 
   return (
     <>
-      <div className="fixed top-4 left-4 text-foreground z-20">
-        <Card className="bg-card/80 backdrop-blur-sm border-primary/20 w-[270px]">
+      <div className="fixed top-4 left-4 text-foreground z-20 w-[270px]">
+        <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
           <CardHeader className="pt-3">
             <div className="w-full">
                 <Logo font="font-zcool-kuaile" />

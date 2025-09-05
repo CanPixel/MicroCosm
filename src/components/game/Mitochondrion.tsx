@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type MitochondrionProps = {
   position: { x: number; y: number };
@@ -9,9 +10,10 @@ type MitochondrionProps = {
   delay: number;
   opacity: number;
   initialRotation?: number;
+  showName?: boolean;
 };
 
-export function Mitochondrion({ position, size, duration, delay, opacity, initialRotation = 0 }: MitochondrionProps) {
+export function Mitochondrion({ position, size, duration, delay, opacity, initialRotation = 0, showName = false }: MitochondrionProps) {
 
     const animationStyle: React.CSSProperties = {
         animation: `sway ${duration}s ease-in-out infinite`,
@@ -30,6 +32,7 @@ export function Mitochondrion({ position, size, duration, delay, opacity, initia
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={Mitochondrion.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size * 0.6} viewBox="0 0 50 30">
                     {/* Outer membrane */}
@@ -60,7 +63,6 @@ export function Mitochondrion({ position, size, duration, delay, opacity, initia
     );
 }
 
+Mitochondrion.displayName = 'Organelle: Mitochondrion';
 Mitochondrion.type = 'mitochondrion';
 Mitochondrion.isOrganelle = true;
-
-    

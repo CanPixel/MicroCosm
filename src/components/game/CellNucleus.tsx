@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type CellNucleusProps = {
   position: { x: number; y: number };
@@ -9,9 +10,10 @@ type CellNucleusProps = {
   delay: number;
   opacity: number;
   initialRotation?: number;
+  showName?: boolean;
 };
 
-export function CellNucleus({ position, size, duration, delay, opacity, initialRotation = 0 }: CellNucleusProps) {
+export function CellNucleus({ position, size, duration, delay, opacity, initialRotation = 0, showName = false }: CellNucleusProps) {
 
     const animationStyle: React.CSSProperties = {
         animation: `sway ${duration}s ease-in-out infinite`,
@@ -30,6 +32,7 @@ export function CellNucleus({ position, size, duration, delay, opacity, initialR
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={CellNucleus.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 60 60">
                     {/* Outer Circle */}
@@ -51,7 +54,6 @@ export function CellNucleus({ position, size, duration, delay, opacity, initialR
     );
 }
 
+CellNucleus.displayName = 'Organelle: Nucleus';
 CellNucleus.type = 'nucleus';
 CellNucleus.isOrganelle = true;
-
-    

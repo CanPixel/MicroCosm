@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type RodBacteriaProps = {
   position: { x: number; y: number };
@@ -11,9 +12,10 @@ type RodBacteriaProps = {
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
   rotation?: number;
+  showName?: boolean;
 };
 
-export function RodBacteria({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: RodBacteriaProps) {
+export function RodBacteria({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, showName = false }: RodBacteriaProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
     
     const animationStyle: React.CSSProperties = {
@@ -33,6 +35,7 @@ export function RodBacteria({ position, size, duration, delay, opacity, initialR
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={RodBacteria.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size/2} viewBox={`0 0 20 10`} fill="hsl(var(--accent) / 0.5)" stroke="hsl(var(--accent))" strokeWidth="0.5">
                     <rect x="1" y="1" width="18" height="8" rx="4" ry="4" />
@@ -44,3 +47,5 @@ export function RodBacteria({ position, size, duration, delay, opacity, initialR
         </div>
     );
 }
+
+RodBacteria.displayName = 'Rod-shaped Bacteria';

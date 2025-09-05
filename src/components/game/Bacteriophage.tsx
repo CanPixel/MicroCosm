@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type BacteriophageProps = {
   position: { x: number; y: number };
@@ -10,9 +11,10 @@ type BacteriophageProps = {
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
   rotation?: number;
+  showName?: boolean;
 };
 
-export function Bacteriophage({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: BacteriophageProps) {
+export function Bacteriophage({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, showName = false }: BacteriophageProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
 
     const animationStyle: React.CSSProperties = {
@@ -34,6 +36,7 @@ export function Bacteriophage({ position, size, duration, delay, opacity, initia
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={Bacteriophage.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 20 20" stroke="hsl(var(--accent))" strokeWidth="0.7" fill="hsl(var(--accent) / 0.3)">
                     {/* Head */}
@@ -57,3 +60,5 @@ export function Bacteriophage({ position, size, duration, delay, opacity, initia
         </div>
     );
 }
+
+Bacteriophage.displayName = 'Bacteriophage';

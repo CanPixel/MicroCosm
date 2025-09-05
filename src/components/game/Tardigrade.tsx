@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type TardigradeProps = {
   position: { x: number; y: number };
@@ -11,10 +12,11 @@ type TardigradeProps = {
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
   rotation?: number;
+  showName?: boolean;
 };
 
 // A simplified tardigrade
-export function Tardigrade({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: TardigradeProps) {
+export function Tardigrade({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, showName = false }: TardigradeProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
 
     const animationStyle: React.CSSProperties = {
@@ -34,6 +36,7 @@ export function Tardigrade({ position, size, duration, delay, opacity, initialRo
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={Tardigrade.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 40 40">
                     <g transform="rotate(90 20 20)">
@@ -65,3 +68,5 @@ export function Tardigrade({ position, size, duration, delay, opacity, initialRo
         </div>
     );
 }
+
+Tardigrade.displayName = 'Tardigrade';

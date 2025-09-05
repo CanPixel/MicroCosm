@@ -72,9 +72,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const [energy, setEnergy] = useState(100);
   const [isInvulnerable, setIsInvulnerable] = useState(false);
   const [isFlickering, setIsFlickering] = useState(false);
+  const [showOrganismNames, setShowOrganismNames] = useState(false);
 
   const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
-  const [font, setFont] = useState("font-headline");
   
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -219,9 +219,15 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       keysPressedRef.current[event.key.toLowerCase()] = true;
+      if (event.key.toLowerCase() === 'e') {
+        setShowOrganismNames(true);
+      }
     };
     const handleKeyUp = (event: KeyboardEvent) => {
       keysPressedRef.current[event.key.toLowerCase()] = false;
+      if (event.key.toLowerCase() === 'e') {
+        setShowOrganismNames(false);
+      }
     };
 
     const getPointerPosition = (event: PointerEvent) => {
@@ -459,18 +465,17 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             return;
         }
 
-        // --- Organism Interaction (Harmful or Devour) ---
         const isPermanentlyHostile = componentType.isHarmful === true;
 
+        // --- Organism Interaction (Harmful or Devour) ---
         if (componentType.isHarmful) {
-            if (cellSize > organismState.size && !isPermanentlyHostile) {
+             if (cellSize > organismState.size && !isPermanentlyHostile) {
                 // Devour smaller, non-permanently hostile organism
                 const sizeBonus = organismState.size * 0.2;
                 totalScoreGained += sizeBonus;
                 totalSizeGained += sizeBonus / 5;
                 energyFromDevouring += sizeBonus / 2;
                 collectedDebrisIds.add(d.id);
-
             } else {
                 // Take damage from larger or permanently hostile organism
                 setIsInvulnerable(true);
@@ -546,19 +551,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const baseEnergyDrain = 0.02 * sizeDrainFactor;
     const energyGain = energyFromSugar + energyFromDevouring;
     const energyDrain = baseEnergyDrain + movementEnergyDrain + energyPenaltyFromDamage;
-    const newEnergy = Math.min(100, Math.max(0, energy + energyGain - energyDrain));
-
+    
     if (isStarving) {
       if (energyGain > 0) {
         // Just ate, no longer starving!
         setIsStarving(false);
-        setEnergy(newEnergy);
+        setEnergy(energyGain); // Reset energy with the gain
       } else {
         const newSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
         setCellSize(newSize);
         setScore(newSize);
       }
     } else {
+      const newEnergy = Math.min(100, Math.max(0, energy + energyGain - energyDrain));
       setEnergy(newEnergy);
       if (newEnergy <= 0) {
           setIsStarving(true);
@@ -616,11 +621,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                                 onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
                                 size={organismState.size}
                              >
-                                <d.Component {...d.props} />
+                                <d.Component {...d.props} showName={showOrganismNames} />
                             </Autonomous>
                         )
                     }
-                    return <d.Component key={d.id} {...d.props} position={organismState.position} size={organismState.size}/>;
+                    return <d.Component key={d.id} {...d.props} position={organismState.position} size={organismState.size} showName={showOrganismNames} />;
                 })}
             </div>
 
@@ -634,11 +639,21 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                     const componentType = d.Component as any;
                     const isEligible = eligibleOrganelles.has(d.id);
                     const isOrganelle = componentType.isOrganelle;
-                    const opacity = (isOrganelle && !isEligible) ? 0.5 : 1;
+                    
+                    // Organelles are visible, but half-opacity if you can't collect them yet
+                    let opacity = d.props.opacity;
+                    if (isOrganelle && !isEligible) {
+                        opacity = 0.5;
+                    }
 
                     const glowStyle: React.CSSProperties = {
                        filter: isEligible && isOrganelle ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))' : 'none',
                        transition: 'filter 0.3s ease-in-out',
+                       position: 'absolute',
+                       top: 0,
+                       left: 0,
+                       width: '100%',
+                       height: '100%',
                      };
                      
                      const componentToRender = d.isAutonomous ? (
@@ -648,14 +663,14 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                             onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
                             size={organismState.size}
                          >
-                            <d.Component {...d.props} opacity={opacity} position={{x:0, y:0}}/>
+                            <d.Component {...d.props} opacity={opacity} position={{x:0, y:0}} showName={showOrganismNames} />
                         </Autonomous>
                      ) : (
-                        <d.Component key={d.id} {...d.props} opacity={opacity} position={organismState.position} size={organismState.size}/>
+                        <d.Component key={d.id} {...d.props} opacity={opacity} position={organismState.position} size={organismState.size} showName={showOrganismNames} />
                      );
                      
                      return (
-                        <div key={d.id} style={{ ...glowStyle, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+                        <div key={d.id} style={glowStyle}>
                             {componentToRender}
                         </div>
                      )
@@ -684,10 +699,6 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             score={score}
             energy={energy}
             isStarving={isStarving}
-            font={font}
-            onFontChange={(newFont) => {
-              if (newFont) setFont(newFont);
-            }}
             collectedOrganelles={collectedOrganelles}
         />
 

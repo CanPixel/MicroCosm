@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type GolgiApparatusProps = {
   position: { x: number; y: number };
@@ -9,6 +10,7 @@ type GolgiApparatusProps = {
   delay: number;
   opacity: number;
   initialRotation?: number;
+  showName?: boolean;
 };
 
 const paths = [
@@ -25,7 +27,7 @@ const vesicles = [
     { cx: 55, cy: 48, r: 1.5, fill: "hsl(var(--destructive) / 0.5)" },
 ]
 
-export function GolgiApparatus({ position, size, duration, delay, opacity, initialRotation = 0 }: GolgiApparatusProps) {
+export function GolgiApparatus({ position, size, duration, delay, opacity, initialRotation = 0, showName = false }: GolgiApparatusProps) {
 
     const animationStyle: React.CSSProperties = {
         animation: `sway ${duration}s ease-in-out infinite`,
@@ -44,6 +46,7 @@ export function GolgiApparatus({ position, size, duration, delay, opacity, initi
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={GolgiApparatus.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 60 60">
                     <g fill="none" strokeLinecap="round">
@@ -62,7 +65,6 @@ export function GolgiApparatus({ position, size, duration, delay, opacity, initi
     );
 }
 
+GolgiApparatus.displayName = 'Organelle: Golgi Apparatus';
 GolgiApparatus.type = 'golgi';
 GolgiApparatus.isOrganelle = true;
-
-    

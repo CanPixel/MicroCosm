@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type CiliateProps = {
   position: { x: number; y: number };
@@ -10,9 +11,10 @@ type CiliateProps = {
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
   rotation?: number;
+  showName?: boolean;
 };
 
-export function Ciliate({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: CiliateProps) {
+export function Ciliate({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, showName = false }: CiliateProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
     
     const animationStyle: React.CSSProperties = {
@@ -32,6 +34,7 @@ export function Ciliate({ position, size, duration, delay, opacity, initialRotat
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={Ciliate.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size * 0.7} viewBox="0 0 20 14">
                     {/* Cilia */}
@@ -85,3 +88,5 @@ export function Ciliate({ position, size, duration, delay, opacity, initialRotat
         </div>
     );
 }
+
+Ciliate.displayName = 'Ciliate';

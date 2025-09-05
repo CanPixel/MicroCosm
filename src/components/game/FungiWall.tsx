@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type FungiWallProps = {
   position: { x: number; y: number };
@@ -9,6 +10,7 @@ type FungiWallProps = {
   delay: number;
   opacity: number;
   initialRotation?: number;
+  showName?: boolean;
 };
 
 // Simplified tentacles for animation
@@ -20,7 +22,7 @@ const tentacles = [
     { d: "M 80,80 C 90,90 90,70 95,65", delay: "0.3s" },
 ];
 
-export function FungiWall({ position, size, duration, delay, opacity, initialRotation = 0 }: FungiWallProps) {
+export function FungiWall({ position, size, duration, delay, opacity, initialRotation = 0, showName = false }: FungiWallProps) {
 
     const animationStyle: React.CSSProperties = {
         animation: `sway ${duration * 2}s ease-in-out infinite`,
@@ -40,6 +42,7 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={FungiWall.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 100 100">
                     <defs>
@@ -85,4 +88,5 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
     );
 }
 
+FungiWall.displayName = 'Fungal Wall';
 FungiWall.isHarmful = true;

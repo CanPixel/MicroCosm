@@ -3,6 +3,7 @@
 import React from 'react';
 import { FlagellateProtistBody } from './FlagellateProtistBody';
 import { Flagella } from './Flagella';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type FlagellateProtistProps = {
   position: { x: number; y: number };
@@ -14,6 +15,7 @@ type FlagellateProtistProps = {
   animationDirection?: 'normal' | 'reverse';
   rotation?: number;
   isMoving?: boolean;
+  showName?: boolean;
 };
 
 export function FlagellateProtist({ 
@@ -25,7 +27,8 @@ export function FlagellateProtist({
     initialRotation = 0, 
     animationDirection = 'normal', 
     rotation = initialRotation, 
-    isMoving = false 
+    isMoving = false,
+    showName = false
 }: FlagellateProtistProps) {
 
     const style: React.CSSProperties = {
@@ -39,6 +42,7 @@ export function FlagellateProtist({
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={FlagellateProtist.displayName} size={size} showName={showName} />
             <FlagellateProtistBody 
                 size={size}
                 duration={duration}
@@ -54,3 +58,5 @@ export function FlagellateProtist({
         </div>
     );
 }
+
+FlagellateProtist.displayName = 'Flagellate Protist';

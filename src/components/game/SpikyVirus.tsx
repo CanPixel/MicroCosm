@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type SpikyVirusProps = {
   position: { x: number; y: number };
@@ -10,11 +11,12 @@ type SpikyVirusProps = {
   opacity: number;
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
+  showName?: boolean;
 };
 
 const NUM_SPIKES = 20;
 
-export function SpikyVirus({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal' }: SpikyVirusProps) {
+export function SpikyVirus({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', showName = false }: SpikyVirusProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
     
     const animationStyle: React.CSSProperties = {
@@ -34,6 +36,7 @@ export function SpikyVirus({ position, size, duration, delay, opacity, initialRo
 
     return (
         <div style={style} className="absolute">
+            <OrganismNameLabel name={SpikyVirus.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 20 20">
                     <defs>
@@ -60,4 +63,5 @@ export function SpikyVirus({ position, size, duration, delay, opacity, initialRo
     );
 }
 
+SpikyVirus.displayName = 'Virus';
 SpikyVirus.isHarmful = true;

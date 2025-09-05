@@ -1,6 +1,7 @@
 
 "use client";
 import React from 'react';
+import { OrganismNameLabel } from './OrganismNameLabel';
 
 type AmoebaProps = {
   position: { x: number; y: number };
@@ -11,9 +12,10 @@ type AmoebaProps = {
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
   rotation?: number;
+  showName?: boolean;
 };
 
-export function Amoeba({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: AmoebaProps) {
+export function Amoeba({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, showName = false }: AmoebaProps) {
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
     
     const animationStyle: React.CSSProperties = {
@@ -34,6 +36,7 @@ export function Amoeba({ position, size, duration, delay, opacity, initialRotati
 
     return (
         <div style={style} className="absolute">
+             <OrganismNameLabel name={Amoeba.displayName} size={size} showName={showName} />
              <div style={animationStyle} className="w-full h-full">
                 <svg width={size} height={size} viewBox="0 0 20 20">
                     <path 
@@ -48,3 +51,5 @@ export function Amoeba({ position, size, duration, delay, opacity, initialRotati
         </div>
     );
 }
+
+Amoeba.displayName = 'Amoeba';
