@@ -20,9 +20,9 @@ type GameUIProps = {
 };
 
 const abilities = [
-  { type: 'mitochondrion', icon: Zap, label: 'Energy' },
-  { type: 'nucleus', icon: Shield, label: 'Defense' },
-  { type: 'golgi', icon: Dna, label: 'Evolve' },
+  { type: 'mitochondrion', icon: Zap, label: 'Energy', name: 'Mitochondrion' },
+  { type: 'nucleus', icon: Shield, label: 'Defense', name: 'Nucleus' },
+  { type: 'golgi', icon: Dna, label: 'Evolve', name: 'Golgi Apparatus' },
 ];
 
 export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelles }: GameUIProps) {
@@ -40,7 +40,7 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
         const organelleType = newlyCollected[0];
         const ability = abilities.find(a => a.type === organelleType);
         if (ability) {
-            setNewlyUnlocked(ability.label);
+            setNewlyUnlocked(ability.name);
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
