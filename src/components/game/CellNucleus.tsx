@@ -56,6 +56,6 @@ export function CellNucleus({ position, size, duration, delay, opacity, initialR
     );
 }
 
-CellNucleus.displayName = 'Organelle: Nucleus';
+CellNucleus.displayName = 'Nucleus';
 CellNucleus.type = 'nucleus';
 CellNucleus.isOrganelle = true;

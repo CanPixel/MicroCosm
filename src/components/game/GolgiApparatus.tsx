@@ -67,6 +67,6 @@ export function GolgiApparatus({ position, size, duration, delay, opacity, initi
     );
 }
 
-GolgiApparatus.displayName = 'Organelle: Golgi Apparatus';
+GolgiApparatus.displayName = 'Golgi Apparatus';
 GolgiApparatus.type = 'golgi';
 GolgiApparatus.isOrganelle = true;

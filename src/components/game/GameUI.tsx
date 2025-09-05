@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Dna, Gauge, Shield, Zap } from "lucide-react";
 import { Logo } from "./Logo";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect, useRef, useState } from "react";
+import { AbilityUnlocked } from "./AbilityUnlocked";
 
 type GameUIProps = {
     cellSize: number;
@@ -18,15 +20,36 @@ type GameUIProps = {
 };
 
 const abilities = [
-  { type: 'mitochondrion', icon: Zap, label: 'Boost Speed' },
-  { type: 'nucleus', icon: Shield, label: 'Evolve Shield' },
-  { type: 'golgi', icon: Dna, label: 'Genetic Code' },
+  { type: 'mitochondrion', icon: Zap, label: 'Mitochondrion' },
+  { type: 'nucleus', icon: Shield, label: 'Nucleus' },
+  { type: 'golgi', icon: Dna, label: 'Golgi Apparatus' },
 ];
 
 export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelles }: GameUIProps) {
   const isMobile = useIsMobile();
+  const [newlyUnlocked, setNewlyUnlocked] = useState<string | null>(null);
+  const prevOrganellesCount = useRef(collectedOrganelles.size);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const hasUnlockedAbilities = collectedOrganelles.size > 0;
+
+  useEffect(() => {
+    if (collectedOrganelles.size > prevOrganellesCount.current) {
+        const newOrganelle = [...collectedOrganelles].find(o => ![...Array.from(prevOrganellesCount.current).map((_, i) => [...collectedOrganelles][i])].includes(o));
+        const ability = abilities.find(a => a.type === newOrganelle);
+        if (ability) {
+            setNewlyUnlocked(ability.label);
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+            timeoutRef.current = setTimeout(() => {
+                setNewlyUnlocked(null);
+            }, 4000); // Hide after 4 seconds
+        }
+    }
+    prevOrganellesCount.current = collectedOrganelles.size;
+  }, [collectedOrganelles]);
+
 
   if (isMobile) {
     return (
@@ -55,6 +78,11 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
                 <div className="text-xs text-muted-foreground font-headline">V1</div>
             </div>
         </div>
+        
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-20 w-full flex justify-center pointer-events-none">
+            {newlyUnlocked && <AbilityUnlocked abilityName={newlyUnlocked} />}
+        </div>
+
 
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
             <Card className={cn(
@@ -121,6 +149,11 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
       <div className="fixed top-4 right-4 z-20">
          <div className="text-xs text-muted-foreground font-headline">V1</div>
       </div>
+      
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-20 w-full flex justify-center pointer-events-none">
+            {newlyUnlocked && <AbilityUnlocked abilityName={newlyUnlocked} />}
+        </div>
+
 
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
         <Card className={cn(

@@ -42,7 +42,6 @@ export default {
         },
         accent: {
           DEFAULT: 'hsl(var(--accent))',
-          'accent-hsl': 'var(--accent)',
           foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
@@ -124,10 +123,6 @@ export default {
           'from': { opacity: '0' },
           'to': { opacity: '1' },
         },
-        'flicker': {
-            '0%, 100%': { opacity: '1' },
-            '50%': { opacity: '0.3' },
-        },
         'logo-blob-1': {
           '0%, 100%': { transform: 'translate(0, 0) scale(1)', borderRadius: '50%' },
           '25%': { transform: 'translate(5px, 8px) scale(1.1)', borderRadius: '40% 60% 70% 30% / 40% 50% 50% 60%' },
@@ -196,7 +191,6 @@ export default {
         'morph': 'morph 8s ease-in-out infinite',
         'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
         'fade-in': 'fade-in 0.5s ease-in-out',
-        'flicker': 'flicker 0.3s ease-in-out infinite',
         'logo-blob-1': 'logo-blob-1 12s ease-in-out infinite',
         'logo-blob-2': 'logo-blob-2 10s ease-in-out infinite alternate',
         'logo-blob-3': 'logo-blob-3 15s ease-in-out infinite',

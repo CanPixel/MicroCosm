@@ -65,6 +65,6 @@ export function Mitochondrion({ position, size, duration, delay, opacity, initia
     );
 }
 
-Mitochondrion.displayName = 'Organelle: Mitochondrion';
+Mitochondrion.displayName = 'Mitochondrion';
 Mitochondrion.type = 'mitochondrion';
 Mitochondrion.isOrganelle = true;
