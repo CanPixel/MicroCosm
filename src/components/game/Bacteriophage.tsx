@@ -9,7 +9,7 @@ type BacteriophageProps = {
   opacity: number;
   initialRotation?: number;
   animationDirection?: 'normal' | 'reverse';
-  rotation?: number; // New prop for facing direction
+  rotation?: number;
 };
 
 export function Bacteriophage({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation }: BacteriophageProps) {
