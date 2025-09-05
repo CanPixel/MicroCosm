@@ -27,8 +27,7 @@ const MAX_SUGAR = 70;
 const BASE_SUGAR_SPAWN_INTERVAL = 3000; // ms
 const SUGAR_LIFETIME = 20000; // 20 seconds
 const MAX_THEME_SIZE = 300;
-const COLLISION_PENALTY_FACTOR = 1.5; 
-const ENERGY_PENALTY_FACTOR = 2.5;
+const COLLISION_DAMAGE = 15;
 const STARVATION_SIZE_DRAIN = 0.02; // Points per frame
 const DAMAGE_COOLDOWN = 3000; // 3 second solid invulnerability
 const FLICKER_DURATION = 2000; // 2 second flicker period
@@ -468,7 +467,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
         // --- Organism Interaction (Harmful or Devour) ---
         if (componentType.isHarmful) {
-             if (cellSize > organismState.size) {
+            if (cellSize > organismState.size) {
                 // Devour smaller, hostile organism
                 const sizeBonus = organismState.size * 0.2;
                 totalScoreGained += sizeBonus;
@@ -480,12 +479,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 setIsInvulnerable(true);
                 lastDamageTimeRef.current = now;
 
-                const basePenalty = isPermanentlyHostile ? organismState.size * 0.2 : 0;
-                const sizeDifference = Math.max(0, organismState.size - cellSize);
-                let sizePenalty = basePenalty + (sizeDifference * COLLISION_PENALTY_FACTOR);
-                
-                // Safeguard: Never lose more size than you have, down to the minimum.
-                sizePenalty = Math.min(sizePenalty, cellSize - MIN_CELL_SIZE_FOR_DEATH);
+                // Cap the damage to a fixed amount, but ensure it doesn't kill the player instantly
+                const sizePenalty = Math.min(COLLISION_DAMAGE, cellSize - MIN_CELL_SIZE_FOR_DEATH - 1);
                 
                 const newSize = Math.max(MIN_CELL_SIZE_FOR_DEATH, cellSize - sizePenalty);
                 setCellSize(newSize);
@@ -703,3 +698,5 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     </div>
   );
 }
+
+    
