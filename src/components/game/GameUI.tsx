@@ -91,8 +91,8 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
 
   return (
     <>
-      <div className="fixed top-4 left-4 text-foreground z-20 w-[270px]">
-        <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
+      <div className="fixed top-4 left-4 text-foreground z-20 w-[240px]">
+        <Card className="bg-card/70 backdrop-blur-sm border-primary/20">
           <CardHeader className="pt-3">
             <div className="w-full">
                 <Logo font="font-zcool-kuaile" />
