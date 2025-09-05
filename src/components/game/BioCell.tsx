@@ -327,7 +327,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         p.x += p.vx;
         p.y += p.vy;
 
-        if (p.x < -0.4 || p.x > 0.4) p.vx *= -1;
+        if (p.x < -0.4 || p.y > 0.4) p.vx *= -1;
         if (p.y < -0.4 || p.y > 0.4) p.vy *= -1;
         
         const particleEl = particleElements[i] as SVGCircleElement;
@@ -416,8 +416,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     <div style={cellStyle} className="absolute flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
         <defs>
-            <filter id="organelle-glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+            <filter id="organelle-glow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
                 <feMerge>
                     <feMergeNode in="blur" />
                     <feMergeNode in="SourceGraphic" />
