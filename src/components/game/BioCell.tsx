@@ -106,6 +106,16 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   const evolutionFactorRef = useRef(1);
   const damageAnimationRef = useRef(0);
   const deathAnimationRef = useRef(0);
+  const [attachmentAngle, setAttachmentAngle] = useState(0);
+  const prevIsInfected = useRef(false);
+
+  useEffect(() => {
+    if (isInfected && !prevIsInfected.current) {
+        setAttachmentAngle(Math.random() * Math.PI * 2);
+    }
+    prevIsInfected.current = isInfected;
+  }, [isInfected]);
+
 
   const takeDamage = useCallback(() => {
     damageAnimationRef.current = 1; // Start the damage animation
@@ -420,14 +430,21 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   const currentCenter = currentViewboxSize / 2;
 
   const phageSize = Math.max(30, size * 0.2); // Attached phage size
+  const phageAttachmentRadius = size * 0.8;
+  const phageAttachmentX = currentCenter + phageAttachmentRadius * Math.cos(attachmentAngle);
+  const phageAttachmentY = currentCenter + phageAttachmentRadius * Math.sin(attachmentAngle);
+  const phageRotation = attachmentAngle * (180 / Math.PI) - 90; // Align with radius, pointing legs in
+
   const phagePositionStyle: React.CSSProperties = {
     position: 'absolute',
-    top: `${currentCenter - size * 0.8}px`, // Position it on the top edge
-    left: `${currentCenter - phageSize / 2}px`,
+    top: `${phageAttachmentY - phageSize / 2}px`,
+    left: `${phageAttachmentX - phageSize / 2}px`,
     width: `${phageSize}px`,
     height: `${phageSize}px`,
-    transformOrigin: '50% 150%', // Make it wobble around its base
+    transformOrigin: '50% 50%',
+    transform: `rotate(${phageRotation}deg)`
   };
+
 
   return (
     <div style={cellStyle} className="absolute flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
@@ -546,4 +563,5 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
 
 BioCell.displayName = 'BioCell';
 
+    
     
