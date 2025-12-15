@@ -62,7 +62,7 @@ export function GameUI({ cellSize, score, energy, isStarving, collectedOrganelle
        <div className="fixed top-4 z-20 flex flex-row justify-between items-start w-full px-4">
             <div className="pt-2">
                 <h1 className="text-xl font-bold text-primary font-zcool-kuaile" style={{ filter: `drop-shadow(0 0 4px hsl(var(--primary)))` }}>
-                    MicroCosm
+                    .:MicroCosm:.
                 </h1>
             </div>
             <div className="w-1/2 max-w-sm pt-2 justify-center">

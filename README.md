@@ -24,7 +24,6 @@ This project demonstrates building an interactive experience using modern web te
 -   **Language:** [TypeScript](https://www.typescriptlang.org/)
 -   **UI Components:** [ShadCN UI](https://ui.shadcn.com/)
 -   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
--   **Generative AI:** [Genkit](https://firebase.google.com/docs/genkit)
 -   **Development Environment:** Prototyped in [Firebase Studio](https://firebase.google.com/docs/studio).
 
 ## Running the Project
