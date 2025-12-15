@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://micro-cosmos.web.app'),
   title: 'MicroCosm',
   description: 'An interactive cellular ecosystem simulation.',
   robots: 'index, follow',
