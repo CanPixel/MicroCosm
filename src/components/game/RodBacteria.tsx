@@ -43,11 +43,13 @@ export function RodBacteria({ position, size, duration, delay, opacity, initialR
             <OrganismNameLabel name={RodBacteria.displayName} size={size} showName={showName} />
             <div style={bodyStyle}>
                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size/2} viewBox={`0 0 20 10`} fill="hsl(var(--accent) / 0.5)" stroke="hsl(var(--accent))" strokeWidth="0.5">
+                    <svg width={size} height={size/2} viewBox={`0 0 20 10`} style={{ overflow: 'visible' }} filter="url(#mc-bloom)"
+                         fill="url(#mc-microbe-body)" stroke="hsl(198 75% 62%)" strokeWidth="0.8">
                         <rect x="1" y="1" width="18" height="8" rx="4" ry="4" />
-                        <circle cx="7" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
-                        <circle cx="10" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
-                        <circle cx="13" cy="5" r="0.8" fill="hsl(var(--background))" stroke="none" />
+                        <ellipse cx="6" cy="3.4" rx="3" ry="1.2" fill="hsl(185 80% 72% / 0.5)" stroke="none" />
+                        <circle cx="7" cy="5" r="0.9" fill="hsl(224 71% 8% / 0.6)" stroke="none" />
+                        <circle cx="10" cy="5" r="0.9" fill="hsl(224 71% 8% / 0.6)" stroke="none" />
+                        <circle cx="13" cy="5" r="0.9" fill="hsl(224 71% 8% / 0.6)" stroke="none" />
                     </svg>
                 </div>
             </div>

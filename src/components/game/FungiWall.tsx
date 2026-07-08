@@ -35,7 +35,7 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
                 <div className="w-full h-full">
                     <svg width="100%" height="100%" viewBox="0 0 100 50" preserveAspectRatio="none">
                         {/* Hairy bits - top */}
-                        <g stroke="hsl(120 50% 50% / 0.8)" strokeWidth="1" fill="none" strokeLinecap="round">
+                        <g stroke="hsl(96 70% 55%)" strokeWidth="1.4" fill="none" strokeLinecap="round">
                             {Array.from({ length: NUM_HAIRS }).map((_, i) => (
                                 <path
                                     key={`hair-top-${i}`}
@@ -48,7 +48,7 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
                         </g>
                         
                         {/* Hairy bits - bottom */}
-                         <g stroke="hsl(120 50% 50% / 0.8)" strokeWidth="1" fill="none" strokeLinecap="round">
+                         <g stroke="hsl(96 70% 55%)" strokeWidth="1.4" fill="none" strokeLinecap="round">
                             {Array.from({ length: NUM_HAIRS }).map((_, i) => (
                                 <path
                                     key={`hair-bottom-${i}`}
@@ -61,10 +61,10 @@ export function FungiWall({ position, size, duration, delay, opacity, initialRot
                         </g>
 
                         {/* Main Body */}
-                        <rect x="0" y="10" width="100" height="30" rx="10" fill="hsl(120 40% 30%)" stroke="hsl(120 50% 50%)" strokeWidth="1.5" />
-                        
+                        <rect x="0" y="10" width="100" height="30" rx="10" fill="hsl(108 55% 32%)" stroke="hsl(96 75% 58%)" strokeWidth="2.5" />
+
                         {/* Yucky spots */}
-                        <g fill="hsl(120 50% 20% / 0.5)">
+                        <g fill="hsl(120 60% 16% / 0.6)">
                             <circle cx="20" cy="25" r="5" />
                             <circle cx="50" cy="25" r="8" />
                             <circle cx="85" cy="25" r="4" />

@@ -184,6 +184,14 @@ export default {
           '0%': { transform: 'translateX(-5px)' },
           '100%': { transform: 'translateX(5px)' },
         },
+        'flicker': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.25' },
+        },
+        'wobble': {
+          '0%, 100%': { transform: 'rotate(-4deg)' },
+          '50%': { transform: 'rotate(4deg)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -196,6 +204,8 @@ export default {
         'logo-blob-3': 'logo-blob-3 15s ease-in-out infinite',
         'sway': 'sway 15s ease-in-out infinite',
         'spin': 'spin 20s linear infinite',
+        'flicker': 'flicker 0.25s linear infinite',
+        'wobble': 'wobble 1s ease-in-out infinite',
       },
     },
   },

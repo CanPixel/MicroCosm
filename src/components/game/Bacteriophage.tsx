@@ -43,20 +43,24 @@ export function Bacteriophage({ position, size, duration, delay, opacity, initia
             <OrganismNameLabel name={Bacteriophage.displayName} size={size} showName={showName} />
             <div style={bodyStyle}>
                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 20 20" stroke="hsl(var(--accent))" strokeWidth="0.7" fill="hsl(var(--accent) / 0.3)">
-                        {/* Head */}
+                    <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }} filter="url(#mc-bloom)"
+                         stroke="hsl(280 90% 72%)" strokeWidth="0.9" fill="url(#mc-virus-body)" strokeLinejoin="round" strokeLinecap="round">
+                        {/* Icosahedral head */}
                         <polygon points="10,2 15,6 15,11 10,15 5,11 5,6" />
-                        
+                        {/* Capsomere speckles */}
+                        <circle cx="10" cy="8" r="1" fill="hsl(45 100% 70%)" stroke="none" />
+                        <circle cx="8" cy="6" r="0.7" fill="hsl(45 100% 70%)" stroke="none" />
+                        <circle cx="12" cy="10" r="0.7" fill="hsl(45 100% 70%)" stroke="none" />
+
                         {/* Collar */}
-                        <rect x="8" y="15" width="4" height="1" fill="hsl(var(--accent))"/>
-
+                        <rect x="8" y="15" width="4" height="1.2" fill="hsl(280 85% 65%)" stroke="none" />
                         {/* Tail */}
-                        <rect x="9" y="16" width="2" height="4" />
+                        <rect x="9" y="16" width="2" height="4" fill="hsl(280 60% 40%)" />
 
-                        {/* Tail Fibers */}
-                        <g strokeWidth="0.5" stroke="hsl(var(--accent))" fill="none">
-                            <path d="M 8,20 l -4,2" />
-                            <path d="M 12,20 l 4,2" />
+                        {/* Tail fibers */}
+                        <g strokeWidth="0.8" stroke="hsl(280 90% 72%)" fill="none">
+                            <path d="M 8,20 l -4,2.5" />
+                            <path d="M 12,20 l 4,2.5" />
                             <path d="M 8,20 l -3,-1" />
                             <path d="M 12,20 l 3,-1" />
                         </g>

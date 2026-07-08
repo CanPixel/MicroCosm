@@ -76,12 +76,17 @@ type InternalOrganelle = {
     id: string;
     type: string;
     Component: React.FC<any>;
+    size: number;
+};
+
+// Mutable per-organelle drift state, animated imperatively so the drift never
+// triggers a React re-render.
+type OrganelleMotion = {
     x: number;
     y: number;
     vx: number;
     vy: number;
     rotation: number;
-    size: number;
 };
 
 const organelleMap: { [key: string]: React.FC<any> } = {
@@ -103,6 +108,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   const [hasEvolved, setHasEvolved] = useState(false);
   const [damageParticles, setDamageParticles] = useState<DamageParticle[]>([]);
   const [internalOrganelles, setInternalOrganelles] = useState<InternalOrganelle[]>([]);
+  const organelleMotionRef = useRef<Map<string, OrganelleMotion>>(new Map());
+  const organelleElsRef = useRef<Map<string, SVGGElement>>(new Map());
   const evolutionFactorRef = useRef(1);
   const damageAnimationRef = useRef(0);
   const deathAnimationRef = useRef(0);
@@ -168,15 +175,18 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     
     collectedOrganelles.forEach(type => {
         if (!existingTypes.has(type) && organelleMap[type]) {
-            newOrganelles.push({
-                id: `${type}-${Date.now()}`,
-                type: type,
-                Component: organelleMap[type],
+            const id = `${type}-${Date.now()}`;
+            organelleMotionRef.current.set(id, {
                 x: (Math.random() * 0.6 - 0.3), // Start away from center
                 y: (Math.random() * 0.6 - 0.3),
                 vx: (Math.random() - 0.5) * 0.015,
                 vy: (Math.random() - 0.5) * 0.015,
                 rotation: Math.random() * 360,
+            });
+            newOrganelles.push({
+                id,
+                type: type,
+                Component: organelleMap[type],
                 size: initialBaseRadius * 0.5,
             });
         }
@@ -324,18 +334,24 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
       radiationTime1 = animateRadiation(radiatingCircle1, radiationTime1);
       radiationTime2 = animateRadiation(radiatingCircle2, radiationTime2);
 
-      setInternalOrganelles(prev => prev.map(o => {
-          let newX = o.x + o.vx;
-          let newY = o.y + o.vy;
-          let newVx = o.vx;
-          let newVy = o.vy;
+      // Drift collected organelles around the cytoplasm (imperative — no re-render)
+      organelleMotionRef.current.forEach((motion, id) => {
+          motion.x += motion.vx;
+          motion.y += motion.vy;
 
           // Bounce off cell walls (approximate)
-          if (newX < -0.4 || newX > 0.4) newVx *= -1;
-          if (newY < -0.4 || newY > 0.4) newVy *= -1;
+          if (motion.x < -0.4 || motion.x > 0.4) motion.vx *= -1;
+          if (motion.y < -0.4 || motion.y > 0.4) motion.vy *= -1;
+          motion.rotation += 0.5;
 
-          return { ...o, x: newX, y: newY, vx: newVx, vy: newVy, rotation: o.rotation + 0.5 };
-      }));
+          const el = organelleElsRef.current.get(id);
+          if (el) {
+              el.setAttribute(
+                  'transform',
+                  `translate(${currentViewboxCenter + motion.x * initialBaseRadius + inertiaOffsetX}, ${currentViewboxCenter + motion.y * initialBaseRadius + inertiaOffsetY}) rotate(${motion.rotation})`
+              );
+          }
+      });
 
 
       // Animate particles
@@ -354,14 +370,17 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         }
       });
       
-      setDamageParticles(prev => 
-        prev.map(p => ({
+      // Skip the state update entirely while there are no live particles, so
+      // the burst only costs re-renders for the moment it is visible.
+      setDamageParticles(prev => {
+        if (prev.length === 0) return prev;
+        return prev.map(p => ({
             ...p,
             x: p.x + p.vx,
             y: p.y + p.vy,
             opacity: p.opacity - 0.02,
-        })).filter(p => p.opacity > 0)
-      );
+        })).filter(p => p.opacity > 0);
+      });
 
       // Physics-based stretch logic
       const stretchFactor = speed > 0.1 ? Math.min(speed / 10, 0.4) : 0;
@@ -449,14 +468,18 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   return (
     <div style={cellStyle} className="absolute flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
        {isInfected && !isDying && (
-         <div style={phagePositionStyle} className="animate-wobble">
-            <Bacteriophage 
-                position={{x: 0, y: 0}}
-                size={phageSize}
-                duration={5}
-                delay={0}
-                opacity={1}
-            />
+         <div style={phagePositionStyle}>
+            {/* Wobble on an inner wrapper: animating transform on the outer
+                div would clobber its positioning rotate(). */}
+            <div className="animate-wobble w-full h-full">
+                <Bacteriophage
+                    position={{x: 0, y: 0}}
+                    size={phageSize}
+                    duration={5}
+                    delay={0}
+                    opacity={1}
+                />
+            </div>
          </div>
        )}
       <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
@@ -480,22 +503,29 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         )}
         <path
           className="inner-wall"
-          fill="hsl(var(--primary) / 0.2)"
+          fill="url(#mc-cytoplasm)"
           stroke="hsl(var(--foreground))"
           strokeWidth={hasEvolved ? "0" : "3"}
         />
 
         {/* Collected Organelles */}
         <g opacity={1 - deathAnimationRef.current}>
-            {internalOrganelles.map(({ id, Component, x, y, rotation, size }) => (
-                <g 
-                    key={id} 
-                    transform={`translate(${currentCenter + x * initialBaseRadius}, ${currentCenter + y * initialBaseRadius}) rotate(${rotation})`}
-                    style={{ filter: 'url(#organelle-glow)' }}
-                >
-                    <Component size={size} />
-                </g>
-            ))}
+            {internalOrganelles.map(({ id, Component, size }) => {
+                const motion = organelleMotionRef.current.get(id);
+                return (
+                    <g
+                        key={id}
+                        ref={(el) => {
+                            if (el) organelleElsRef.current.set(id, el);
+                            else organelleElsRef.current.delete(id);
+                        }}
+                        transform={`translate(${currentCenter + (motion?.x ?? 0) * initialBaseRadius}, ${currentCenter + (motion?.y ?? 0) * initialBaseRadius}) rotate(${motion?.rotation ?? 0})`}
+                        style={{ filter: 'url(#organelle-glow)' }}
+                    >
+                        <Component size={size} />
+                    </g>
+                );
+            })}
         </g>
         
         {/* Nucleus */}

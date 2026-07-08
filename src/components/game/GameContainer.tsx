@@ -1,811 +1,377 @@
-
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BioCell, BioCellHandle } from "./BioCell";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { Sugar } from "./Sugar";
-import { Background } from "./Background";
-import { Debris, DebrisItem } from "./Debris";
-import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
-import { Autonomous } from "./Autonomous";
-import { Bacteriophage } from "./Bacteriophage";
-import { FungiWall } from "./FungiWall";
-import { cn } from "@/lib/utils";
+import { ShaderBackground } from "./ShaderBackground";
+import { Bokeh } from "./Bokeh";
+import { GameDefs } from "./GameDefs";
 import { Antiviral } from "./Antiviral";
+import { OrganismLayer } from "./OrganismLayer";
+import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
+import { createSimulation, Simulation } from "@/lib/game/sim";
+import {
+  INITIAL_CELL_SIZE,
+  MAX_THEME_SIZE,
+  RENDER_PADDING,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+} from "@/lib/game/constants";
+import { OrganelleType } from "@/lib/game/types";
 
-const INITIAL_CELL_SIZE = 50;
-const MAX_CELL_SCORE = 600;
-const MIN_CELL_SIZE_FOR_DEATH = 5;
-const MAX_SPEED = 6;
-const LERP_FACTOR = 0.08;
-const CAMERA_LERP_FACTOR = 0.05;
-const ZOOM_LERP_FACTOR = 0.05;
-const WORLD_WIDTH = 4000;
-const WORLD_HEIGHT = 4000;
-const MAX_SUGAR = 70;
-const MAX_ANTIVIRALS = 3;
-const ANTIVIRAL_SPAWN_INTERVAL = 15000; // 15 seconds
-const BASE_SUGAR_SPAWN_INTERVAL = 3000; // ms
-const SUGAR_LIFETIME = 20000; // 20 seconds
-const MAX_THEME_SIZE = 300;
-const COLLISION_DAMAGE = 15;
-const STARVATION_SIZE_DRAIN = 0.02; // Points per frame
-const DAMAGE_COOLDOWN = 3000; // 3 second solid invulnerability
-const FLICKER_DURATION = 2000; // 2 second flicker period
-const TOTAL_INVINCIBILITY_DURATION = DAMAGE_COOLDOWN + FLICKER_DURATION;
-const DEATH_ANIMATION_DURATION = 2000; // ms
-const RENDER_PADDING = 300; // The buffer around the viewport to render entities
-const INFECTION_DURATION = 30000; // 30 seconds until cell bursts
-const INFECTION_ENERGY_DRAIN_MULTIPLIER = 2.5;
-
-
-type Position = { x: number; y: number };
-type SugarParticle = Position & { id: string; size: number, createdAt: number };
-type AntiviralParticle = Position & { id: string; };
-type OrganismState = {
-    position: Position;
-    size: number | { width: number, height: number };
-    collisionSize: number | { width: number, height: number };
-};
-type OrganismStateMap = { [id: string]: OrganismState };
-
+const HUD_SYNC_INTERVAL = 0.1; // seconds between React HUD updates
 
 type GameContainerProps = {
-    onGameOver: () => void;
+  onGameOver: () => void;
 };
 
-// Helper to interpolate between two HSL colors
+type HudState = {
+  size: number;
+  score: number;
+  energy: number;
+  starving: boolean;
+  infected: boolean;
+  infectionProgress: number;
+  dying: boolean;
+  collectedOrganelles: Set<string>;
+};
+
 const lerpHSL = (
   [h1, s1, l1]: [number, number, number],
   [h2, s2, l2]: [number, number, number],
   t: number
-): [number, number, number] => {
-  return [
-    h1 + (h2 - h1) * t,
-    s1 + (s2 - s1) * t,
-    l1 + (l2 - l1) * t,
-  ];
-};
+): [number, number, number] => [h1 + (h2 - h1) * t, s1 + (s2 - s1) * t, l1 + (l2 - l1) * t];
+
+function applyTheme(cellSize: number) {
+  const progress = Math.min(
+    Math.max((cellSize - INITIAL_CELL_SIZE) / (MAX_THEME_SIZE - INITIAL_CELL_SIZE), 0),
+    1
+  );
+  const bg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, progress);
+  const primary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, progress);
+  const accent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, progress);
+  const root = document.documentElement;
+  root.style.setProperty("--background", `${bg[0]} ${bg[1]}% ${bg[2]}%`);
+  root.style.setProperty("--primary", `${primary[0]} ${primary[1]}% ${primary[2]}%`);
+  root.style.setProperty("--accent", `${accent[0]} ${accent[1]}% ${accent[2]}%`);
+}
 
 export function GameContainer({ onGameOver }: GameContainerProps) {
+  // The simulation lives outside React and is created on the client only,
+  // so SSR markup stays deterministic.
+  const simRef = useRef<Simulation | null>(null);
+  const [ready, setReady] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isDying, setIsDying] = useState(false);
-  const [isStarving, setIsStarving] = useState(false);
-  const [score, setScore] = useState(INITIAL_CELL_SIZE);
-  const [energy, setEnergy] = useState(100);
-  const [isInvulnerable, setIsInvulnerable] = useState(false);
-  const [isFlickering, setIsFlickering] = useState(false);
-  const [showOrganismNames, setShowOrganismNames] = useState(false);
-  const [isInfected, setIsInfected] = useState(false);
-  const [infectionProgress, setInfectionProgress] = useState(0);
+  const [showNames, setShowNames] = useState(false);
 
-  const [cellSize, setCellSize] = useState(INITIAL_CELL_SIZE);
-  
+  // Membership versions: bumping these re-renders the corresponding lists.
+  const [, setOrganismsVersion] = useState(0);
+  const [, setSugarsVersion] = useState(0);
+  const [, setAntiviralsVersion] = useState(0);
+
+  const [hud, setHud] = useState<HudState>({
+    size: INITIAL_CELL_SIZE,
+    score: INITIAL_CELL_SIZE,
+    energy: 100,
+    starving: false,
+    infected: false,
+    infectionProgress: 0,
+    dying: false,
+    collectedOrganelles: new Set(),
+  });
+
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const cellWrapperRef = useRef<HTMLDivElement>(null);
   const cellApiRef = useRef<BioCellHandle>(null);
+  const organismElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const keysPressedRef = useRef<{[key: string]: boolean}>({});
-  const isPointerDownRef = useRef(false);
-  const pointerPositionRef = useRef({ x: 0, y: 0 });
-  const cellPositionRef = useRef<Position>({ x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 });
-  const cameraPositionRef = useRef<Position>({ x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 });
-  const velocityRef = useRef<Position>({ x: 0, y: 0 });
-  const zoomRef = useRef(1);
-  const lastDamageTimeRef = useRef(0);
-  const infectionTimerStartRef = useRef(0);
-  
-  const [sugars, setSugars] = useState<SugarParticle[]>([]);
-  const [antivirals, setAntivirals] = useState<AntiviralParticle[]>([]);
-  const [debris, setDebris] = useState<DebrisItem[]>([]);
-  const [organismStates, setOrganismStates] = useState<OrganismStateMap>({});
-  const [collectedOrganelles, setCollectedOrganelles] = useState<Set<string>>(new Set());
-  const [eligibleOrganelles, setEligibleOrganelles] = useState<Set<string>>(new Set());
-  const [cameraForParallax, setCameraForParallax] = useState({ x: 0, y: 0 });
+  const keysRef = useRef<Record<string, boolean>>({});
+  const pointerRef = useRef({ down: false, x: 0, y: 0 });
+  const viewRef = useRef({ width: 1, height: 1 });
 
-  // State for entities within the render buffer
-  const [renderedSugars, setRenderedSugars] = useState<SugarParticle[]>([]);
-  const [renderedAntivirals, setRenderedAntivirals] = useState<AntiviralParticle[]>([]);
-  const [renderedDebris, setRenderedDebris] = useState<DebrisItem[]>([]);
-
-  const animationFrameId = useRef<number>();
-  const lastUpdateTimeRef = useRef(0);
-  const lastSugarSpawnTimeRef = useRef(0);
-  const lastAntiviralSpawnTimeRef = useRef(0);
-  const updateInterval = 1000 / 60; // 60 FPS
-
-  // Theme transition effect
-  useEffect(() => {
-    const progress = Math.min((cellSize - INITIAL_CELL_SIZE) / (MAX_THEME_SIZE - INITIAL_CELL_SIZE), 1);
-    
-    if (progress < 0) return;
-
-    const newBg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, progress);
-    const newPrimary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, progress);
-    const newAccent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, progress);
-
-    const root = document.documentElement;
-    root.style.setProperty('--background', `${newBg[0]} ${newBg[1]}% ${newBg[2]}%`);
-    root.style.setProperty('--primary', `${newPrimary[0]} ${newPrimary[1]}% ${newPrimary[2]}%`);
-    root.style.setProperty('--accent', `${newAccent[0]} ${newAccent[1]}% ${newAccent[2]}%`);
-    
-  }, [cellSize]);
-
-
-  const spawnSugars = useCallback((count: number, immediate = false) => {
-    if (!containerRef.current) return;
-    const newSugars: SugarParticle[] = [];
-    const { width, height } = containerRef.current.getBoundingClientRect();
-    const spawnPadding = 100;
-    const now = Date.now();
-
-    for (let i = 0; i < count; i++) {
-        const camX = cameraPositionRef.current.x;
-        const camY = cameraPositionRef.current.y;
-        
-        let x, y;
-        
-        // Spawn randomly just off-screen in a circle
-        const angle = Math.random() * 2 * Math.PI;
-        const baseRadius = immediate ? 
-            Math.min(width, height) * 0.7 :
-            Math.max(width, height) / (2 * zoomRef.current) + spawnPadding;
-            
-        // Add randomness to radius to break patterns
-        const spawnRadius = baseRadius * (0.8 + Math.random() * 0.4);
-
-        x = camX + Math.cos(angle) * spawnRadius;
-        y = camY + Math.sin(angle) * spawnRadius;
-        
-        const size = Math.round(Math.random() * 8 + 4); // size between 4px and 12px
-
-        newSugars.push({ 
-            id: `sugar-${now}-${i}`,
-            x: Math.max(0, Math.min(WORLD_WIDTH, x)), 
-            y: Math.max(0, Math.min(WORLD_HEIGHT, y)),
-            size,
-            createdAt: now,
-        });
-    }
-
-    setSugars(prev => [...prev, ...newSugars]);
-  }, []);
-  
-  const spawnAntivirals = useCallback((count: number) => {
-    if (!containerRef.current) return;
-    const newAntivirals: AntiviralParticle[] = [];
-    
-    for (let i = 0; i < count; i++) {
-        const x = Math.random() * WORLD_WIDTH;
-        const y = Math.random() * WORLD_HEIGHT;
-
-        newAntivirals.push({ 
-            id: `antiviral-${Date.now()}-${i}`,
-            x, 
-            y,
-        });
-    }
-
-    setAntivirals(prev => [...prev, ...newAntivirals]);
+  const registerOrganismEl = useCallback((id: string, el: HTMLDivElement | null) => {
+    if (el) organismElsRef.current.set(id, el);
+    else organismElsRef.current.delete(id);
   }, []);
 
-  const resetGame = useCallback(() => {
-    if (!containerRef.current) return;
-    
-    setCellSize(INITIAL_CELL_SIZE);
-    setScore(INITIAL_CELL_SIZE);
-    setEnergy(100);
-    setIsStarving(false);
-    
-    const initialPosition = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
-    cellPositionRef.current = initialPosition;
-    cameraPositionRef.current = initialPosition;
-    setCameraForParallax(initialPosition);
-
-    velocityRef.current = { x: 0, y: 0 };
-    if (cellWrapperRef.current) {
-        cellWrapperRef.current.style.transform = `translate(${initialPosition.x}px, ${initialPosition.y}px)`;
-    }
-    keysPressedRef.current = {};
-    
-    // Initial spawns
-    setSugars([]);
-    setAntivirals([]);
-    spawnSugars(20, true); 
-    spawnAntivirals(3);
-    
-    // Set initial debris
-    const initialDebris = Debris();
-    setDebris(initialDebris);
-    
-    const initialOrganismStates: OrganismStateMap = {};
-    initialDebris.forEach(d => {
-        initialOrganismStates[d.id] = {
-            position: d.initialPosition,
-            size: d.props.size,
-            collisionSize: d.collisionSize,
-        };
-    });
-    setOrganismStates(initialOrganismStates);
-
-    setCollectedOrganelles(new Set());
-    setEligibleOrganelles(new Set());
-    setIsInvulnerable(false);
-    setIsFlickering(false);
-    lastDamageTimeRef.current = 0;
-    
-    setIsInfected(false);
-    setInfectionProgress(0);
-    infectionTimerStartRef.current = 0;
-
-    setIsDying(false);
-    setIsGameOver(false);
-  }, [spawnSugars, spawnAntivirals]);
-
-  useEffect(() => {
-    if (containerRef.current) {
-        resetGame();
-    }
-  }, [resetGame]);
-  
+  // --- Input listeners ---
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      keysPressedRef.current[event.key.toLowerCase()] = true;
-      if (event.key.toLowerCase() === 'e') {
-        setShowOrganismNames(true);
-      }
+      const key = event.key.toLowerCase();
+      if (key.startsWith("arrow")) event.preventDefault();
+      keysRef.current[key] = true;
+      if (key === "e") setShowNames(true);
     };
     const handleKeyUp = (event: KeyboardEvent) => {
-      keysPressedRef.current[event.key.toLowerCase()] = false;
-      if (event.key.toLowerCase() === 'e') {
-        setShowOrganismNames(false);
+      const key = event.key.toLowerCase();
+      keysRef.current[key] = false;
+      if (key === "e") setShowNames(false);
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      pointerRef.current = { down: true, x: event.clientX, y: event.clientY };
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      if (pointerRef.current.down) {
+        pointerRef.current.x = event.clientX;
+        pointerRef.current.y = event.clientY;
       }
     };
-
-    const getPointerPosition = (event: PointerEvent) => {
-        return { x: event.clientX, y: event.clientY };
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-        isPointerDownRef.current = true;
-        pointerPositionRef.current = getPointerPosition(event);
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-        if (isPointerDownRef.current) {
-            pointerPositionRef.current = getPointerPosition(event);
-        }
-    };
-
     const handlePointerUp = () => {
-        isPointerDownRef.current = false;
+      pointerRef.current.down = false;
     };
-
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    
-    const gameContainer = containerRef.current;
-    if (gameContainer) {
-        gameContainer.addEventListener('pointerdown', handlePointerDown);
-        gameContainer.addEventListener('pointermove', handlePointerMove);
-        gameContainer.addEventListener('pointerup', handlePointerUp);
-        gameContainer.addEventListener('pointerleave', handlePointerUp);
-    }
+    const container = containerRef.current;
+    container?.addEventListener("pointerdown", handlePointerDown);
+    container?.addEventListener("pointermove", handlePointerMove);
+    container?.addEventListener("pointerup", handlePointerUp);
+    container?.addEventListener("pointerleave", handlePointerUp);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
-      if (gameContainer) {
-        gameContainer.removeEventListener('pointerdown', handlePointerDown);
-        gameContainer.removeEventListener('pointermove', handlePointerMove);
-        gameContainer.removeEventListener('pointerup', handlePointerUp);
-        gameContainer.removeEventListener('pointerleave', handlePointerUp);
-      }
+      container?.removeEventListener("pointerdown", handlePointerDown);
+      container?.removeEventListener("pointermove", handlePointerMove);
+      container?.removeEventListener("pointerup", handlePointerUp);
+      container?.removeEventListener("pointerleave", handlePointerUp);
     };
   }, []);
 
-  const handleOrganismPositionChange = useCallback((id: string, newPosition: Position) => {
-    setOrganismStates(prev => {
-        if (!prev[id]) return prev;
-        return {
-            ...prev,
-            [id]: { ...prev[id], position: newPosition },
-        }
-    });
-  }, []);
-
-  const gameLoop = useCallback((timestamp: number) => {
-    if (isGameOver || isDying ||!containerRef.current || !worldRef.current) {
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-      return;
-    }
-
-    const elapsed = timestamp - lastUpdateTimeRef.current;
-    const now = Date.now();
-
-    if (elapsed < updateInterval) {
-        animationFrameId.current = requestAnimationFrame(gameLoop);
-        return;
-    }
-    lastUpdateTimeRef.current = timestamp;
-
-    const { width, height } = containerRef.current.getBoundingClientRect();
-    const currentZoom = zoomRef.current;
-    
-    // --- Determine Render Area ---
-    const renderWidth = (width / currentZoom) + RENDER_PADDING * 2;
-    const renderHeight = (height / currentZoom) + RENDER_PADDING * 2;
-    const viewLeft = cameraPositionRef.current.x - renderWidth / 2;
-    const viewRight = cameraPositionRef.current.x + renderWidth / 2;
-    const viewTop = cameraPositionRef.current.y - renderHeight / 2;
-    const viewBottom = cameraPositionRef.current.y + renderHeight / 2;
-
-    // --- Filter entities to only those in the render area ---
-    const localDebris = debris.filter(d => {
-        const state = organismStates[d.id];
-        if (!state) return false;
-        const size = typeof state.size === 'number' ? state.size : Math.max(state.size.width, state.size.height);
-        return state.position.x + size > viewLeft && state.position.x - size < viewRight && state.position.y + size > viewTop && state.position.y - size < viewBottom;
-    });
-    setRenderedDebris(localDebris);
-
-    const localSugars = sugars.filter(s => {
-        return s.x > viewLeft && s.x < viewRight && s.y > viewTop && s.y < viewBottom;
-    });
-    setRenderedSugars(localSugars);
-    
-    const localAntivirals = antivirals.filter(a => {
-        return a.x > viewLeft && a.x < viewRight && a.y > viewTop && a.y < viewBottom;
-    });
-    setRenderedAntivirals(localAntivirals);
-
-
-    // --- Invulnerability/Flicker Check ---
-    if (isInvulnerable) {
-        const timeSinceDamage = now - lastDamageTimeRef.current;
-        if (timeSinceDamage > TOTAL_INVINCIBILITY_DURATION) {
-            setIsInvulnerable(false);
-            setIsFlickering(false);
-        } else if (timeSinceDamage > DAMAGE_COOLDOWN) {
-            setIsFlickering(true);
-        }
-    }
-
-
-    // --- Sugar Spawning & Despawning ---
-    const growthFactor = Math.max(1, (cellSize - INITIAL_CELL_SIZE) / 100);
-    const dynamicSpawnInterval = BASE_SUGAR_SPAWN_INTERVAL / growthFactor;
-
-    if (timestamp - lastSugarSpawnTimeRef.current > dynamicSpawnInterval) {
-        if (sugars.length < MAX_SUGAR) {
-            spawnSugars(3);
-        }
-        lastSugarSpawnTimeRef.current = timestamp;
-    }
-    
-    if (timestamp - lastAntiviralSpawnTimeRef.current > ANTIVIRAL_SPAWN_INTERVAL) {
-        if (antivirals.length < MAX_ANTIVIRALS) {
-            spawnAntivirals(1);
-        }
-        lastAntiviralSpawnTimeRef.current = timestamp;
-    }
-
-    setSugars(currentSugars => currentSugars.filter(sugar => {
-        const isOutsideRender = sugar.x < viewLeft || sugar.x > viewRight || sugar.y < viewTop || sugar.y < viewBottom;
-        if (isOutsideRender && (now - sugar.createdAt > SUGAR_LIFETIME)) {
-            return false; // Despawn only if off-screen and expired
-        }
-        return true;
-    }));
-
-    // --- Player Movement ---
-    const currentMaxSpeed = isStarving ? MAX_SPEED * 0.1 : MAX_SPEED;
-    let targetVx = 0;
-    let targetVy = 0;
-
-    if (isPointerDownRef.current) {
-        const screenCenterX = width / 2;
-        const screenCenterY = height / 2;
-        const dx = pointerPositionRef.current.x - screenCenterX;
-        const dy = pointerPositionRef.current.y - screenCenterY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist > 10) { // a small deadzone
-            targetVx = (dx / dist) * currentMaxSpeed;
-            targetVy = (dy / dist) * currentMaxSpeed;
-        }
-    } else {
-        if (keysPressedRef.current['w'] || keysPressedRef.current['arrowup']) targetVy -= currentMaxSpeed;
-        if (keysPressedRef.current['s'] || keysPressedRef.current['arrowdown']) targetVy += currentMaxSpeed;
-        if (keysPressedRef.current['a'] || keysPressedRef.current['arrowleft']) targetVx -= currentMaxSpeed;
-        if (keysPressedRef.current['d'] || keysPressedRef.current['arrowright']) targetVx += currentMaxSpeed;
-    }
-
-    velocityRef.current.x += (targetVx - velocityRef.current.x) * LERP_FACTOR;
-    velocityRef.current.y += (targetVy - velocityRef.current.y) * LERP_FACTOR;
-    
-    cellPositionRef.current.x = Math.max(0, Math.min(WORLD_WIDTH, cellPositionRef.current.x + velocityRef.current.x));
-    cellPositionRef.current.y = Math.max(0, Math.min(WORLD_HEIGHT, cellPositionRef.current.y + velocityRef.current.y));
-    
-    if (cellApiRef.current) {
-        cellApiRef.current.updateVelocity(velocityRef.current.x, velocityRef.current.y);
-    }
-
-    if (cellWrapperRef.current) {
-      cellWrapperRef.current.style.transform = `translate(${cellPositionRef.current.x}px, ${cellPositionRef.current.y}px)`;
-    }
-
-    // --- Camera and Zoom ---
-    const zoomOutFactor = 0.02;
-    const initialZoom = 2.0;
-    const sizeForZoom = Math.max(MIN_CELL_SIZE_FOR_DEATH, cellSize);
-    const targetZoom = Math.max(0.8, initialZoom / (1 + (sizeForZoom - INITIAL_CELL_SIZE) * zoomOutFactor));
-
-    zoomRef.current += (targetZoom - zoomRef.current) * ZOOM_LERP_FACTOR;
-    const zoom = zoomRef.current;
-
-    cameraPositionRef.current.x += (cellPositionRef.current.x - cameraPositionRef.current.x) * CAMERA_LERP_FACTOR;
-    cameraPositionRef.current.y += (cellPositionRef.current.y - cameraPositionRef.current.y) * CAMERA_LERP_FACTOR;
-    
-    setCameraForParallax({ x: cameraPositionRef.current.x, y: cameraPositionRef.current.y });
-
-    const camX = -cameraPositionRef.current.x * zoom + width / 2;
-    const camY = -cameraPositionRef.current.y * zoom + height / 2;
-    
-    worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${zoom})`;
-    
-    // --- Collision & Consumption ---
-    const currentCellRadius = cellSize / 2;
-
-    // Sugars (Player) - check against only local sugars
-    let totalScoreGained = 0;
-    let energyFromSugar = 0;
-    let totalSizeGained = 0;
-    let eatenSugarIds = new Set<string>();
-
-    for (const sugar of localSugars) {
-        const dx = cellPositionRef.current.x - sugar.x;
-        const dy = cellPositionRef.current.y - sugar.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < currentCellRadius) {
-            const sizeMultiplier = sugar.size / 8;
-            totalScoreGained += 3.5 * sizeMultiplier;
-            energyFromSugar += 3 * sizeMultiplier;
-            totalSizeGained += 1 * sizeMultiplier;
-            eatenSugarIds.add(sugar.id);
-        }
-    }
-    
-    if (eatenSugarIds.size > 0) {
-        setSugars(currentSugars => currentSugars.filter(s => !eatenSugarIds.has(s.id)));
-    }
-    
-    // Antivirals
-    let eatenAntiviralIds = new Set<string>();
-    for (const antiviral of localAntivirals) {
-        const dx = cellPositionRef.current.x - antiviral.x;
-        const dy = cellPositionRef.current.y - antiviral.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        if (dist < currentCellRadius) {
-            eatenAntiviralIds.add(antiviral.id);
-            setIsInfected(false); // Cured!
-            setInfectionProgress(0);
-        }
-    }
-    
-    if (eatenAntiviralIds.size > 0) {
-        setAntivirals(current => current.filter(a => !eatenAntiviralIds.has(a.id)));
-    }
-    
-    // Debris Collisions (Harmful, Devour, Organelles, Infection)
-    const newEligibleOrganelles = new Set<string>();
-    const collectedOrganelleTypesThisFrame = new Set<string>();
-    const collectedDebrisIds = new Set<string>();
-    
-    let energyFromDevouring = 0;
-
-    const handleCollision = (d: DebrisItem) => {
-        const organismState = organismStates[d.id];
-        if (!organismState || isInvulnerable) return;
-        
-        const componentType = d.Component as any;
-        
-        let organismSize;
-        let organismCollisionSize;
-        if (typeof organismState.size === 'number') {
-            organismSize = organismState.size;
-            organismCollisionSize = organismState.collisionSize as number / 2;
-        } else {
-             organismSize = Math.max(organismState.size.width, organismState.size.height);
-             organismCollisionSize = Math.max((organismState.collisionSize as any).width, (organismState.collisionSize as any).height) / 2;
-        }
-
-        const dx = cellPositionRef.current.x - organismState.position.x;
-        const dy = cellPositionRef.current.y - organismState.position.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const collisionThreshold = currentCellRadius + organismCollisionSize;
-
-        if (dist > collisionThreshold) return; // No collision
-
-        // --- Infection ---
-        if (componentType.isInfectious) {
-            if (!isInfected) {
-                setIsInfected(true);
-                infectionTimerStartRef.current = now;
-                collectedDebrisIds.add(d.id);
-            }
-            return;
-        }
-
-        // --- Organelle Collection ---
-        if (componentType.isOrganelle) {
-            if (cellSize > organismSize) { // Can collect
-                collectedOrganelleTypesThisFrame.add(componentType.type);
-                collectedDebrisIds.add(d.id);
-            }
-            return;
-        }
-
-        const isPermanentlyHostile = componentType.isHarmful === true;
-
-        // --- Organism Interaction (Harmful or Devour) ---
-        if (componentType.isHarmful) {
-            if (cellSize > organismSize && !isPermanentlyHostile) {
-                // Devour smaller, hostile organism
-                const sizeBonus = organismSize * 0.2;
-                totalScoreGained += sizeBonus;
-                totalSizeGained += sizeBonus / 5;
-                energyFromDevouring += sizeBonus / 2;
-                collectedDebrisIds.add(d.id);
-            } else {
-                // Take damage from larger or permanently hostile organism
-                setIsInvulnerable(true);
-                lastDamageTimeRef.current = now;
-
-                // Cap the damage to a fixed amount, but ensure it doesn't kill the player instantly
-                const sizePenalty = Math.min(COLLISION_DAMAGE, cellSize - MIN_CELL_SIZE_FOR_DEATH - 1);
-                
-                const newSize = Math.max(MIN_CELL_SIZE_FOR_DEATH, cellSize - sizePenalty);
-                setCellSize(newSize);
-                setScore(newSize);
-
-                if (cellApiRef.current) {
-                    cellApiRef.current.takeDamage();
-                }
-            }
-        }
-    };
-    
-    // Loop through interactive debris to check for collisions
-    const interactiveDebris = localDebris.filter(d => {
-        const componentType = d.Component as any;
-        return componentType.isOrganelle || componentType.isHarmful || componentType.isInfectious;
-    });
-
-    interactiveDebris.forEach(handleCollision);
-    
-    // Check for organelle collection eligibility (visuals only)
-    localDebris.forEach(d => {
-        const componentType = d.Component as any;
-        if (componentType.isOrganelle) {
-            const organismState = organismStates[d.id];
-            const organismSize = typeof organismState.size === 'number' ? organismState.size : Math.max(organismState.size.width, organismState.size.height);
-            if (organismState && cellSize > organismSize) {
-                newEligibleOrganelles.add(d.id);
-            }
-        }
-    });
-    
-    // Update score and size from all sources
-    if (totalScoreGained > 0 && score < MAX_CELL_SCORE) {
-        const newScore = Math.min(MAX_CELL_SCORE, score + totalScoreGained);
-        const newSize = Math.min(INITIAL_CELL_SIZE + (MAX_CELL_SCORE - INITIAL_CELL_SIZE), cellSize + totalSizeGained);
-        setScore(Math.round(newScore));
-        setCellSize(newSize);
-    }
-    
-    // Update state based on collections
-    if (collectedDebrisIds.size > 0) {
-        setDebris(currentDebris => currentDebris.filter(d => !collectedDebrisIds.has(d.id)));
-        setOrganismStates(prevStates => {
-            const newStates = { ...prevStates };
-            collectedDebrisIds.forEach(id => delete newStates[id]);
-            return newStates;
-        });
-        setCollectedOrganelles(prev => new Set([...prev, ...collectedOrganelleTypesThisFrame]));
-    }
-    
-    if (newEligibleOrganelles.size !== eligibleOrganelles.size || ![...newEligibleOrganelles].every(id => eligibleOrganelles.has(id))) {
-        setEligibleOrganelles(newEligibleOrganelles);
-    }
-
-
-    // --- Energy Drain & Starvation Logic ---
-    const speed = Math.sqrt(velocityRef.current.x**2 + velocityRef.current.y**2);
-    const movementEnergyDrain = (speed / MAX_SPEED) * 0.08;
-    const sizeDrainFactor = 1 + (cellSize - INITIAL_CELL_SIZE) / 200;
-    const baseEnergyDrain = 0.02 * sizeDrainFactor;
-    
-    let energyDrain = baseEnergyDrain + movementEnergyDrain;
-    if (isInfected) {
-        energyDrain *= INFECTION_ENERGY_DRAIN_MULTIPLIER;
-    }
-    
-    const energyGain = energyFromSugar + energyFromDevouring;
-    
-    if (isStarving) {
-      if (energyGain > 0) {
-        // Just ate, no longer starving!
-        setIsStarving(false);
-        setEnergy(energyGain); // Reset energy with the gain
-      } else {
-        const newSize = Math.max(0, cellSize - STARVATION_SIZE_DRAIN);
-        setCellSize(newSize);
-        setScore(newSize);
-      }
-    } else {
-      const newEnergy = Math.min(100, Math.max(0, energy + energyGain - energyDrain));
-      setEnergy(newEnergy);
-      if (newEnergy <= 0) {
-          setIsStarving(true);
-      }
-    }
-    
-    // --- Infection Progress ---
-    if (isInfected) {
-        const timeSinceInfection = now - infectionTimerStartRef.current;
-        const progress = Math.min((timeSinceInfection / INFECTION_DURATION) * 100, 100);
-        setInfectionProgress(progress);
-        
-        if (progress >= 100 && !isDying) {
-            setIsDying(true);
-            setTimeout(() => {
-                setIsGameOver(true);
-            }, DEATH_ANIMATION_DURATION);
-        }
-    }
-    
-    // --- Game State Checks (Game Over) ---
-    if (cellSize <= MIN_CELL_SIZE_FOR_DEATH && !isDying) {
-        setIsDying(true);
-        setTimeout(() => {
-            setIsGameOver(true);
-        }, DEATH_ANIMATION_DURATION);
-    }
-
-    animationFrameId.current = requestAnimationFrame(gameLoop);
-  }, [isGameOver, isDying, isStarving, isInvulnerable, isInfected, cellSize, score, energy, sugars, antivirals, debris, spawnSugars, spawnAntivirals, eligibleOrganelles, organismStates, handleOrganismPositionChange]);
-
+  // --- Track viewport size ---
   useEffect(() => {
-    animationFrameId.current = requestAnimationFrame(gameLoop);
-    return () => {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
+    const measure = () => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) viewRef.current = { width: rect.width, height: rect.height };
     };
-  }, [gameLoop]);
-  
-  // Separate debris into background and interactive for rendering
-  const backgroundDebris = renderedDebris.filter(d => {
-    const componentType = d.Component as any;
-    return !componentType.isOrganelle && !componentType.isHarmful && !componentType.isInfectious;
-  });
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
-  const interactiveDebris = renderedDebris.filter(d => {
-    const componentType = d.Component as any;
-    return componentType.isOrganelle || componentType.isHarmful || componentType.isInfectious;
-  });
+  // --- Create simulation (client only) ---
+  useEffect(() => {
+    if (simRef.current) return;
+    const sim = createSimulation();
+    sim.initialSpawns(viewRef.current);
+    simRef.current = sim;
+    setReady(true);
+  }, []);
+
+  // --- Main game loop ---
+  useEffect(() => {
+    if (!ready || isGameOver) return;
+    const sim = simRef.current;
+    if (!sim) return;
+
+    let frameId: number;
+    let lastTime = 0;
+    let hudTimer = 0;
+
+    const readInput = () => {
+      const view = viewRef.current;
+      if (pointerRef.current.down) {
+        const dx = pointerRef.current.x - view.width / 2;
+        const dy = pointerRef.current.y - view.height / 2;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 10) return { moveX: dx / dist, moveY: dy / dist };
+        return { moveX: 0, moveY: 0 };
+      }
+      const keys = keysRef.current;
+      let moveX = 0;
+      let moveY = 0;
+      if (keys["w"] || keys["arrowup"]) moveY -= 1;
+      if (keys["s"] || keys["arrowdown"]) moveY += 1;
+      if (keys["a"] || keys["arrowleft"]) moveX -= 1;
+      if (keys["d"] || keys["arrowright"]) moveX += 1;
+      if (moveX !== 0 && moveY !== 0) {
+        const inv = 1 / Math.SQRT2;
+        moveX *= inv;
+        moveY *= inv;
+      }
+      return { moveX, moveY };
+    };
+
+    const syncHud = () => {
+      const p = sim.state.player;
+      setHud((prev) => {
+        const collected =
+          prev.collectedOrganelles.size === sim.state.collectedOrganelles.size
+            ? prev.collectedOrganelles
+            : new Set(sim.state.collectedOrganelles);
+        return {
+          size: p.size,
+          score: p.score,
+          energy: p.energy,
+          starving: p.starving,
+          infected: p.infected,
+          infectionProgress: p.infectionProgress,
+          dying: p.dying,
+          collectedOrganelles: collected,
+        };
+      });
+      applyTheme(sim.state.player.size);
+    };
+
+    const tick = (timestamp: number) => {
+      const dt = lastTime === 0 ? 1 / 60 : (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+      const view = viewRef.current;
+
+      const events = sim.step(dt, readInput(), view);
+
+      for (const event of events) {
+        if (event.type === "damaged") cellApiRef.current?.takeDamage();
+        if (
+          event.type === "infected" ||
+          event.type === "cured" ||
+          event.type === "organelleCollected" ||
+          event.type === "died"
+        ) {
+          hudTimer = HUD_SYNC_INTERVAL; // force an immediate HUD sync
+        }
+      }
+
+      const { player, camera } = sim.state;
+
+      // Imperative DOM sync: camera, player, organisms.
+      if (worldRef.current) {
+        const camX = -camera.pos.x * camera.zoom + view.width / 2;
+        const camY = -camera.pos.y * camera.zoom + view.height / 2;
+        worldRef.current.style.transform = `translate(${camX}px, ${camY}px) scale(${camera.zoom})`;
+      }
+
+      if (cellWrapperRef.current) {
+        cellWrapperRef.current.style.transform = `translate(${player.pos.x}px, ${player.pos.y}px)`;
+        const invulnerable = sim.state.time < player.invulnerableUntil;
+        cellWrapperRef.current.classList.toggle("opacity-50", invulnerable && !player.flickering);
+        cellWrapperRef.current.classList.toggle("animate-flicker", player.flickering);
+      }
+
+      // BioCell's membrane stretch was tuned for px/frame velocities.
+      cellApiRef.current?.updateVelocity(player.vel.x / 60, player.vel.y / 60);
+
+      // Organisms: move + cull + organelle glow, without React re-renders.
+      const renderW = view.width / camera.zoom + RENDER_PADDING * 2;
+      const renderH = view.height / camera.zoom + RENDER_PADDING * 2;
+      const viewLeft = camera.pos.x - renderW / 2;
+      const viewRight = camera.pos.x + renderW / 2;
+      const viewTop = camera.pos.y - renderH / 2;
+      const viewBottom = camera.pos.y + renderH / 2;
+
+      for (const o of sim.state.organisms) {
+        const el = organismElsRef.current.get(o.id);
+        if (!el) continue;
+        const dim = typeof o.size === "number" ? o.size : Math.max(o.size.width, o.size.height);
+        const visible =
+          o.pos.x + dim > viewLeft &&
+          o.pos.x - dim < viewRight &&
+          o.pos.y + dim > viewTop &&
+          o.pos.y - dim < viewBottom;
+        el.style.display = visible ? "" : "none";
+        if (!visible) continue;
+        const rotation = o.autonomous ? o.displayRotation : 0;
+        el.style.transform = `translate(${o.pos.x}px, ${o.pos.y}px) rotate(${rotation}deg)`;
+        if (o.kind === "organelle") {
+          el.style.filter = sim.state.eligibleOrganelles.has(o.id)
+            ? "drop-shadow(0 0 8px hsl(var(--primary) / 0.7))"
+            : "none";
+          el.style.opacity = sim.state.eligibleOrganelles.has(o.id) ? "1" : "0.5";
+        }
+      }
+
+      // React syncs: membership versions bail out when unchanged.
+      setOrganismsVersion(sim.state.organismsVersion);
+      setSugarsVersion(sim.state.sugarsVersion);
+      setAntiviralsVersion(sim.state.antiviralsVersion);
+
+      hudTimer += dt;
+      if (hudTimer >= HUD_SYNC_INTERVAL) {
+        hudTimer = 0;
+        syncHud();
+      }
+
+      if (player.dead) {
+        syncHud();
+        setIsGameOver(true);
+        return;
+      }
+
+      frameId = requestAnimationFrame(tick);
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [ready, isGameOver]);
+
+  const sim = simRef.current;
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-background select-none">
-        <Background cameraPosition={cameraForParallax} />
+    <div
+      ref={containerRef}
+      className="relative w-full h-screen overflow-hidden bg-background select-none touch-none"
+    >
+      <GameDefs />
+      {sim && <ShaderBackground camera={sim.state.camera} />}
+      {sim && <Bokeh camera={sim.state.camera} />}
 
-        <div ref={worldRef} className="absolute top-0 left-0" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: '0 0' }}>
+      <div
+        ref={worldRef}
+        className="absolute top-0 left-0"
+        style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: "0 0" }}
+      >
+        {ready && sim && (
+          <>
+            <OrganismLayer
+              organisms={sim.state.organisms}
+              showNames={showNames}
+              registerEl={registerOrganismEl}
+            />
 
-            {/* Layer for ambient, non-interactive organisms */}
-            <div className="absolute inset-0 z-10">
-                {backgroundDebris.map(d => {
-                     const organismState = organismStates[d.id];
-                     if (!organismState) return null;
-
-                     if (d.isAutonomous) {
-                        return (
-                             <Autonomous 
-                                key={d.id} 
-                                initialPosition={d.initialPosition}
-                                onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
-                                size={organismState.size as number}
-                             >
-                                <d.Component {...d.props} showName={showOrganismNames} />
-                            </Autonomous>
-                        )
-                    }
-                    return <d.Component key={d.id} {...d.props} position={organismState.position} size={organismState.size} showName={showOrganismNames} />;
-                })}
+            <div className="absolute inset-0 z-20 pointer-events-none">
+              {sim.state.sugars.map((sugar) => (
+                <Sugar key={sugar.id} position={sugar} size={sugar.size} />
+              ))}
+              {sim.state.antivirals.map((antiviral) => (
+                <Antiviral key={antiviral.id} position={antiviral} />
+              ))}
             </div>
 
-            {/* Layer for Sugar, Harmful Organisms, and Eligible Organelles */}
-            <div className="absolute inset-0 z-20">
-                {renderedSugars.map((sugar) => <Sugar key={sugar.id} position={sugar} size={sugar.size} />)}
-                
-                {renderedAntivirals.map((antiviral) => <Antiviral key={antiviral.id} position={antiviral} />)}
-
-                {interactiveDebris.map(d => {
-                    const organismState = organismStates[d.id];
-                    if (!organismState) return null;
-                    const componentType = d.Component as any;
-                    const isEligible = eligibleOrganelles.has(d.id);
-                    const isOrganelle = componentType.isOrganelle;
-                    
-                    // Organelles are visible, but half-opacity if you can't collect them yet
-                    let opacity = d.props.opacity;
-                    if (isOrganelle && !isEligible) {
-                        opacity = 0.5;
-                    }
-                    
-                    const organismSize = typeof organismState.size === 'number' ? organismState.size : Math.max(organismState.size.width, organismState.size.height);
-                    const glowStyle: React.CSSProperties = {
-                       filter: isEligible && isOrganelle ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.7))' : 'none',
-                       transition: 'filter 0.3s ease-in-out',
-                     };
-                     
-                     const componentToRender = d.isAutonomous ? (
-                        <Autonomous 
-                            key={d.id} 
-                            initialPosition={d.initialPosition}
-                            onPositionChange={(newPos) => handleOrganismPositionChange(d.id, newPos)}
-                            size={organismSize}
-                         >
-                            <d.Component {...d.props} opacity={opacity} position={{x:0, y:0}} showName={showOrganismNames} />
-                        </Autonomous>
-                     ) : (
-                        <d.Component key={d.id} {...d.props} opacity={opacity} position={organismState.position} size={organismState.size} showName={showOrganismNames} />
-                     );
-                     
-                     return (
-                        <div key={d.id} style={glowStyle}>
-                            {componentToRender}
-                        </div>
-                     )
-                })}
+            <div ref={cellWrapperRef} className="absolute z-30 transition-opacity duration-100">
+              <BioCell
+                ref={cellApiRef}
+                size={hud.size}
+                score={hud.score}
+                isDying={hud.dying}
+                collectedOrganelles={hud.collectedOrganelles}
+                isInfected={hud.infected}
+              />
             </div>
+          </>
+        )}
+      </div>
 
-            <div 
-                ref={cellWrapperRef} 
-                className={cn(
-                    "absolute z-30 transition-opacity duration-100",
-                    isInvulnerable && !isFlickering && "opacity-50",
-                    isFlickering && "animate-flicker"
-                )}
-            >
-                <BioCell ref={cellApiRef} size={cellSize} score={score} isDying={isDying} collectedOrganelles={collectedOrganelles} isInfected={isInfected} />
-            </div>
-        </div>
-        
-        <div className={cn(
-            "fixed inset-0 bg-black z-40 transition-opacity duration-1000",
-            isDying ? "opacity-100" : "opacity-0 pointer-events-none"
-        )} />
+      <div
+        className={
+          "fixed inset-0 bg-black z-40 transition-opacity duration-1000 " +
+          (hud.dying ? "opacity-100" : "opacity-0 pointer-events-none")
+        }
+      />
 
-        <GameUI
-            cellSize={cellSize}
-            score={score}
-            energy={energy}
-            isStarving={isStarving}
-            collectedOrganelles={collectedOrganelles}
-            isInfected={isInfected}
-            infectionProgress={infectionProgress}
-        />
+      <GameUI
+        cellSize={hud.size}
+        score={hud.score}
+        energy={hud.energy}
+        isStarving={hud.starving}
+        collectedOrganelles={hud.collectedOrganelles as Set<OrganelleType & string>}
+        isInfected={hud.infected}
+        infectionProgress={hud.infectionProgress}
+      />
 
-        <GameOverDialog score={score} isOpen={isGameOver} onRestart={onGameOver} />
+      <GameOverDialog score={hud.score} isOpen={isGameOver} onRestart={onGameOver} />
     </div>
   );
 }
-
-    

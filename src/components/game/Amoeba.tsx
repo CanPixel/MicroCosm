@@ -44,14 +44,15 @@ export function Amoeba({ position, size, duration, delay, opacity, initialRotati
             <OrganismNameLabel name={Amoeba.displayName} size={size} showName={showName} />
             <div style={bodyStyle}>
                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 20 20">
-                        <path 
-                            d="M 10,2 C 18,2 18,18 10,18 C 2,18 2,2 10,2 Z" 
-                            fill="hsl(var(--accent) / 0.4)" 
-                            stroke="hsl(var(--accent) / 0.9)" 
-                            strokeWidth="1"
+                    <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }} filter="url(#mc-bloom)">
+                        <path
+                            d="M 10,2 C 18,2 18,18 10,18 C 2,18 2,2 10,2 Z"
+                            fill="hsl(263 70% 45% / 0.5)"
+                            stroke="hsl(263 90% 68%)"
+                            strokeWidth="1.2"
                         />
-                        <circle cx="10" cy="10" r="3" fill="hsl(var(--background) / 0.3)" />
+                        <circle cx="10" cy="10" r="3.2" fill="url(#mc-core-hot)" />
+                        <circle cx="8.8" cy="8.8" r="1" fill="hsl(340 100% 90% / 0.7)" />
                     </svg>
                 </div>
             </div>
