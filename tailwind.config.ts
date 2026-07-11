@@ -4,15 +4,15 @@ import type {Config} from 'tailwindcss';
 export default {
   darkMode: ['class'],
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
       fontFamily: {
-        body: ['Space Grotesk', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['Nunito Sans', 'sans-serif'],
+        headline: ['Sora', 'sans-serif'],
         'zcool-kuaile': ['"ZCOOL KuaiLe"', 'cursive'],
         vibes: ['Vibes', 'cursive'],
         code: ['monospace'],
@@ -111,11 +111,11 @@ export default {
         },
         'pulse-glow': {
           '0%, 100%': {
-            filter: 'drop-shadow(0 0 5px hsl(var(--accent)))',
+            opacity: '.72',
             transform: 'scale(1)',
           },
           '50%': {
-            filter: 'drop-shadow(0 0 10px hsl(var(--accent))) drop-shadow(0 0 15px hsl(var(--accent)))',
+            opacity: '1',
             transform: 'scale(1.1)',
           },
         },

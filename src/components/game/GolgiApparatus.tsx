@@ -48,7 +48,7 @@ export function GolgiApparatus({ position, size, duration, delay, opacity, initi
         <div style={style} className="absolute">
             <OrganismNameLabel name={GolgiApparatus.displayName} size={size} showName={showName} />
             <div style={animationStyle} className="w-full h-full">
-                <svg width={size} height={size} viewBox="0 0 60 60" style={{ overflow: 'visible' }} filter="url(#mc-bloom)">
+                <svg width={size} height={size} viewBox="0 0 60 60" style={{ overflow: 'visible' }}>
                     <g fill="none" strokeLinecap="round">
                         {paths.map((path, i) => (
                             <path key={`path-${i}`} d={path.d} stroke={path.stroke} strokeWidth={path.strokeWidth} />

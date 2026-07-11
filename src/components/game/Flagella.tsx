@@ -25,7 +25,7 @@ export function Flagella({ size, duration, delay, isMoving = false }: FlagellaPr
 
     return (
         <div className="absolute top-0 left-0 w-full h-full">
-            <svg width={size} height={size} viewBox="0 0 20 20" className="absolute top-0 left-0">
+            <svg width={size} height={size} viewBox="0 0 20 20" className="absolute top-0 left-0" style={{ overflow: 'visible' }}>
                 <g transform="translate(4,2) rotate(10)">
                     <g style={flagellaAnimationStyle1}>
                         <path d="M 4,12 C -2,10 0,18 5,20" stroke="hsl(var(--chart-3))" fill="none" strokeWidth="1" strokeLinecap="round"/>
@@ -38,4 +38,3 @@ export function Flagella({ size, duration, delay, isMoving = false }: FlagellaPr
         </div>
     );
 }
-

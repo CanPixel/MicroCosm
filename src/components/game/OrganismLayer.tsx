@@ -13,8 +13,23 @@ import { FungiWall } from './FungiWall';
 import { Mitochondrion } from './Mitochondrion';
 import { GolgiApparatus } from './GolgiApparatus';
 import { CellNucleus } from './CellNucleus';
+import { renderDimensions } from '@/lib/game/world';
 
-const SPECIES_COMPONENTS: Record<SpeciesId, React.FC<any>> = {
+type OrganismComponentProps = {
+  position: { x: number; y: number };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  size: any;
+  duration: number;
+  delay: number;
+  opacity: number;
+  initialRotation?: number;
+  animationDirection?: 'normal' | 'reverse';
+  rotation?: number;
+  isMoving?: boolean;
+  showName?: boolean;
+};
+
+const SPECIES_COMPONENTS: Record<SpeciesId, React.FC<OrganismComponentProps>> = {
   amoeba: Amoeba,
   tardigrade: Tardigrade,
   spikyVirus: SpikyVirus,
@@ -45,22 +60,22 @@ export const OrganismLayer = React.memo(function OrganismLayer({
     <>
       {organisms.map((o) => {
         const Component = SPECIES_COMPONENTS[o.species];
-        const width = typeof o.size === 'number' ? o.size : o.size.width;
-        const height = typeof o.size === 'number' ? o.size : o.size.height;
+        const { width, height } = renderDimensions(o);
         const interactive = o.kind !== 'ambient' || o.harmful;
         return (
           <div
             key={o.id}
             ref={(el) => registerEl(o.id, el)}
             className={
-              'absolute top-0 left-0 will-change-transform' +
-              (o.kind === 'organelle' ? ' transition-[filter,opacity] duration-300' : '')
+              'absolute top-0 left-0' +
+              (o.kind === 'organelle' ? ' transition-opacity duration-300' : '')
             }
             style={{
               width,
               height,
               zIndex: interactive ? 20 : 10,
-              transform: `translate(${o.pos.x}px, ${o.pos.y}px) rotate(${o.autonomous ? o.displayRotation : 0}deg)`,
+              transform: `translate(${o.pos.x - width / 2}px, ${o.pos.y - height / 2}px) rotate(${o.autonomous ? o.displayRotation : 0}deg)`,
+              transformOrigin: '50% 50%',
             }}
           >
             <Component

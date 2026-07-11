@@ -25,7 +25,7 @@ export function Antiviral({ position }: AntiviralProps) {
     return (
         <div style={style} className="absolute">
             <div style={animationStyle} className="w-full h-full">
-                <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }} filter="url(#mc-bloom-strong)">
+                <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }}>
                     {/* Healing capsule cross */}
                     <rect x="8" y="2" width="4" height="16" rx="2" fill="hsl(150 80% 55%)" />
                     <rect x="2" y="8" width="16" height="4" rx="2" fill="hsl(150 80% 55%)" />
@@ -35,5 +35,3 @@ export function Antiviral({ position }: AntiviralProps) {
         </div>
     );
 }
-
-    

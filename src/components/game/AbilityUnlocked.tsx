@@ -33,7 +33,7 @@ export function AbilityUnlocked({ abilityName }: AbilityUnlockedProps) {
         <span
           className="font-bold"
           style={{
-            filter: "drop-shadow(0 0 8px hsl(var(--primary) / 0.8))",
+            textShadow: "0 0 12px hsl(var(--primary) / .7)",
           }}
         >
           {abilityName} Unlocked!

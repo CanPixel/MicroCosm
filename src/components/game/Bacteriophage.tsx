@@ -1,77 +1,60 @@
-
-"use client";
 import React from 'react';
 import { OrganismNameLabel } from './OrganismNameLabel';
 
-type BacteriophageProps = {
+type Props = {
   position: { x: number; y: number };
   size: number;
   duration: number;
   delay: number;
   opacity: number;
   initialRotation?: number;
-  animationDirection?: 'normal' | 'reverse';
   rotation?: number;
   showName?: boolean;
 };
 
-export function Bacteriophage({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, showName = false }: BacteriophageProps) {
-    const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
+export function Bacteriophage({ position, size, duration, delay, opacity, initialRotation = 0, rotation = initialRotation, showName = false }: Props) {
+  return (
+    <div
+      className="absolute"
+      style={{ top: position.y, left: position.x, width: size, height: size, opacity }}
+    >
+      <OrganismNameLabel name={Bacteriophage.displayName} size={size} showName={showName} />
+      <div
+        className="h-full w-full"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transformOrigin: '50% 50%',
+          animation: `phage-twitch ${Math.max(1.4, duration / 14)}s ease-in-out ${delay}s infinite alternate`,
+        }}
+      >
+        <svg width="100%" height="100%" viewBox="0 0 32 24" aria-hidden>
+          <g strokeLinejoin="round" strokeLinecap="round">
+            {/* Tail fibers and receptor legs, kept inside the declared viewBox. */}
+            <g fill="none" stroke="hsl(284 88% 70%)" strokeWidth="1.25">
+              <path d="M10 12 4 6 1.7 6" />
+              <path d="M10 12 4 18 1.7 18" />
+              <path d="M7 12 2.5 9" />
+              <path d="M7 12 2.5 15" />
+            </g>
 
-    const animationStyle: React.CSSProperties = {
-        animation: `jitter ${duration / 2}s ease-in-out infinite, ${animationName} ${duration * 4}s linear infinite`,
-        animationDelay: `${delay}s, ${delay}s`,
-        transformOrigin: 'center center',
-    };
+            {/* Contractile injection tail. */}
+            <path d="M8 10.3h8.2v3.4H8z" fill="hsl(279 68% 38%)" stroke="hsl(290 92% 72%)" strokeWidth="1" />
+            <path d="M10 10.3v3.4M12 10.3v3.4M14 10.3v3.4" stroke="hsl(321 90% 70% / .65)" strokeWidth=".65" />
+            <path d="M16.2 11h2.2v2h-2.2z" fill="hsl(300 80% 62%)" stroke="hsl(300 95% 80%)" strokeWidth=".7" />
 
-    const containerStyle: React.CSSProperties = {
-        top: `${position.y}px`,
-        left: `${position.x}px`,
-        width: `${size}px`,
-        height: `${size}px`,
-        opacity: opacity,
-    };
-    
-    const bodyStyle: React.CSSProperties = {
-        transform: `rotate(${rotation + 90}deg)`,
-        width: '100%',
-        height: '100%',
-    };
-
-    return (
-        <div style={containerStyle} className="absolute">
-            <OrganismNameLabel name={Bacteriophage.displayName} size={size} showName={showName} />
-            <div style={bodyStyle}>
-                <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }} filter="url(#mc-bloom)"
-                         stroke="hsl(280 90% 72%)" strokeWidth="0.9" fill="url(#mc-virus-body)" strokeLinejoin="round" strokeLinecap="round">
-                        {/* Icosahedral head */}
-                        <polygon points="10,2 15,6 15,11 10,15 5,11 5,6" />
-                        {/* Capsomere speckles */}
-                        <circle cx="10" cy="8" r="1" fill="hsl(45 100% 70%)" stroke="none" />
-                        <circle cx="8" cy="6" r="0.7" fill="hsl(45 100% 70%)" stroke="none" />
-                        <circle cx="12" cy="10" r="0.7" fill="hsl(45 100% 70%)" stroke="none" />
-
-                        {/* Collar */}
-                        <rect x="8" y="15" width="4" height="1.2" fill="hsl(280 85% 65%)" stroke="none" />
-                        {/* Tail */}
-                        <rect x="9" y="16" width="2" height="4" fill="hsl(280 60% 40%)" />
-
-                        {/* Tail fibers */}
-                        <g strokeWidth="0.8" stroke="hsl(280 90% 72%)" fill="none">
-                            <path d="M 8,20 l -4,2.5" />
-                            <path d="M 12,20 l 4,2.5" />
-                            <path d="M 8,20 l -3,-1" />
-                            <path d="M 12,20 l 3,-1" />
-                        </g>
-                    </svg>
-                </div>
-            </div>
-        </div>
-    );
+            {/* Icosahedral capsid, pointed in the direction of travel. */}
+            <path d="m18.2 12 3.6-7 6.9 1.2 2.2 5.8-2.2 5.8-6.9 1.2z" fill="url(#mc-virus-body)" stroke="hsl(291 88% 70%)" strokeWidth="1.15" />
+            <path d="m21.8 5 2.1 7-2.1 7M23.9 12h7" fill="none" stroke="hsl(207 90% 76% / .38)" strokeWidth=".7" />
+            <circle cx="25.4" cy="9" r="1.05" fill="hsl(48 100% 68%)" stroke="none" />
+            <circle cx="27.2" cy="13.1" r=".75" fill="hsl(48 100% 72%)" stroke="none" />
+            <circle cx="23.5" cy="14.5" r=".65" fill="hsl(48 100% 72% / .8)" stroke="none" />
+            <path d="M22.5 6.3 27 7" stroke="white" strokeOpacity=".32" strokeWidth="1" />
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
 }
 
 Bacteriophage.displayName = 'Bacteriophage';
 Bacteriophage.isInfectious = true;
-
-    

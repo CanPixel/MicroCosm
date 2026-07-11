@@ -43,7 +43,7 @@ export function RodBacteria({ position, size, duration, delay, opacity, initialR
             <OrganismNameLabel name={RodBacteria.displayName} size={size} showName={showName} />
             <div style={bodyStyle}>
                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size/2} viewBox={`0 0 20 10`} style={{ overflow: 'visible' }} filter="url(#mc-bloom)"
+                    <svg width={size} height={size/2} viewBox={`0 0 20 10`} style={{ overflow: 'visible' }}
                          fill="url(#mc-microbe-body)" stroke="hsl(198 75% 62%)" strokeWidth="0.8">
                         <rect x="1" y="1" width="18" height="8" rx="4" ry="4" />
                         <ellipse cx="6" cy="3.4" rx="3" ry="1.2" fill="hsl(185 80% 72% / 0.5)" stroke="none" />

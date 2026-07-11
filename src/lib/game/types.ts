@@ -16,6 +16,7 @@ export type SpeciesId =
 export type OrganismKind = 'ambient' | 'wall' | 'infectious' | 'organelle';
 
 export type OrganelleType = 'mitochondrion' | 'golgi' | 'nucleus';
+export type OrganelleLevels = Record<OrganelleType, number>;
 
 export type EntitySize = number | { width: number; height: number };
 
@@ -30,10 +31,11 @@ export type OrganismRenderProps = {
 
 export type Organism = {
   id: string;
+  chunk: { x: number; y: number };
   species: SpeciesId;
   kind: OrganismKind;
   organelleType?: OrganelleType;
-  // Per-instance behavior — never stored on the shared component.
+  // Per-instance behavior, never stored on the shared component.
   harmful: boolean;
   // Harmful ambients can be devoured when smaller than the player; walls cannot.
   devourable: boolean;
@@ -68,6 +70,15 @@ export type PlayerState = {
   size: number;
   score: number;
   energy: number;
+  glucose: number;
+  biomass: number;
+  integrity: number;
+  maxIntegrity: number;
+  organelleLevels: OrganelleLevels;
+  shieldUntil: number;
+  boostUntil: number;
+  lysosomeCooldownUntil: number;
+  kills: number;
   starving: boolean;
   invulnerableUntil: number; // sim-time seconds
   flickering: boolean;
@@ -92,4 +103,7 @@ export type SimEvent =
   | { type: 'organelleCollected'; organelle: OrganelleType }
   | { type: 'sugarEaten'; size: number }
   | { type: 'devoured' }
+  | { type: 'ability'; organelle: OrganelleType }
+  | { type: 'upgrade'; organelle: OrganelleType }
+  | { type: 'wave'; level: number }
   | { type: 'died' };

@@ -11,8 +11,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Space Grotesk', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['Nunito Sans', 'sans-serif'],
+        headline: ['Sora', 'sans-serif'],
         'zcool-kuaile': ['"ZCOOL KuaiLe"', 'cursive'],
         vibes: ['Vibes', 'cursive'],
         code: ['monospace'],
@@ -212,5 +212,3 @@ export default {
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
-
-    

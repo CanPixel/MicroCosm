@@ -15,7 +15,7 @@ export function Logo({ font = 'font-headline' }: LogoProps) {
           "text-[36px] font-bold text-primary",
           font
         )}
-        style={{ filter: `drop-shadow(0 0 8px hsl(var(--primary)))` }}
+        style={{ textShadow: '0 0 12px hsl(var(--primary) / .65)' }}
       >
         MicroCosm
       </h1>

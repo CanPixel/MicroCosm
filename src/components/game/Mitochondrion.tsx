@@ -34,7 +34,7 @@ export function Mitochondrion({ position, size, duration, delay, opacity, initia
         <div style={style} className="absolute">
             <OrganismNameLabel name={Mitochondrion.displayName} size={size} showName={showName} />
             <div style={animationStyle} className="w-full h-full">
-                <svg width={size} height={size * 0.6} viewBox="0 0 50 30" style={{ overflow: 'visible' }} filter="url(#mc-bloom)">
+                <svg width={size} height={size * 0.6} viewBox="0 0 50 30" style={{ overflow: 'visible' }}>
                     {/* Outer membrane */}
                     <path
                         d="M 5,15 C 5,5 45,5 45,15 C 45,25 5,25 5,15 Z"

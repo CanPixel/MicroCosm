@@ -43,7 +43,7 @@ export function Ciliate({ position, size, duration, delay, opacity, initialRotat
             <OrganismNameLabel name={Ciliate.displayName} size={size} showName={showName} />
             <div style={bodyStyle}>
                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 100 100" style={{ overflow: 'visible' }} filter="url(#mc-bloom)">
+                    <svg width={size} height={size} viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
                       {/* Cilia fringe */}
                       <g stroke="hsl(190 70% 55%)" strokeWidth="2" strokeLinecap="round">
                         {Array.from({ length: 40 }).map((_, i) => {

@@ -20,7 +20,7 @@ export function FlagellateProtistBody({ size, duration, delay, animationDirectio
 
     return (
         <div style={animationStyle} className="w-full h-full">
-            <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }} filter="url(#mc-bloom)">
+            <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }}>
                 <g transform="translate(4,2) rotate(10)">
                     {/* Body */}
                     <ellipse cx="7" cy="7" rx="6" ry="6.6" fill="url(#mc-microbe-body)" stroke="hsl(198 75% 62%)" strokeWidth="0.7" />

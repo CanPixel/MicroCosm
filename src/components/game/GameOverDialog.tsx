@@ -26,7 +26,7 @@ export function GameOverDialog({ score, isOpen, onRestart }: GameOverDialogProps
             <AlertDialogHeader>
             <AlertDialogTitle className="font-zcool-kuaile text-3xl">Game Over</AlertDialogTitle>
             <AlertDialogDescription>
-                Your BioCell has starved.
+                Your BioCell has starved. Score: {score}
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

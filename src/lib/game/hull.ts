@@ -5,7 +5,7 @@
 // gives two properties the naive radial blob lacked:
 //   1. Organelles drifting near the wall push the boundary outward (bulges).
 //   2. The boundary can never collapse inward or self-intersect on a sharp
-//      turn — an inward-pushed node simply drops off the hull.
+//      turn; an inward-pushed node simply drops off the hull.
 // (The blueprint suggested Jarvis March; Monotone Chain is the same result in
 // O(n log n) and is simpler to keep numerically robust.)
 
@@ -63,7 +63,7 @@ export function hullRadiusAtAngle(hull: Pt[], angle: number): number {
     const s = (dx * a.y - dy * a.x) / det;
     if (t > 0 && s >= -0.001 && s <= 1.001) {
       // Origin is inside a convex polygon, so the forward ray exits through
-      // exactly one edge — the first positive hit.
+      // exactly one edge: the first positive hit.
       if (best === 0 || t < best) best = t;
     }
   }

@@ -1,23 +1,16 @@
-import {
-  AMBIENT_ACTIVE_CHANCE,
-  NO_SPAWN_RADIUS,
-  ORGANISM_COUNT,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
-} from './constants';
+import { AMBIENT_ACTIVE_CHANCE } from './constants';
 import { fractalNoise2D, mulberry32, Rng } from './rng';
 import { EntitySize, Organism, OrganelleType, OrganismKind, SpeciesId } from './types';
 
-// Data-driven species behavior. This replaces the old pattern of mutating
-// static flags on the shared React components, which leaked one instance's
-// "harmful" roll onto every other instance of the species.
+export const WORLD_CHUNK_SIZE = 1200;
+
 type SpeciesDef = {
   kind: OrganismKind;
   organelleType?: OrganelleType;
   autonomous: boolean;
-  // Always hostile and never devourable (contact is punished regardless of size).
   permanentlyHostile: boolean;
   size: (rng: Rng) => EntitySize;
+  collisionScale?: number;
 };
 
 const defaultSize = (rng: Rng) => rng() * 80 + 20;
@@ -27,103 +20,98 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
   golgi: { kind: 'organelle', organelleType: 'golgi', autonomous: false, permanentlyHostile: false, size: defaultSize },
   nucleus: { kind: 'organelle', organelleType: 'nucleus', autonomous: false, permanentlyHostile: false, size: defaultSize },
   fungiWall: {
-    kind: 'wall',
-    autonomous: false,
-    permanentlyHostile: true,
+    kind: 'wall', autonomous: false, permanentlyHostile: true,
     size: (rng) => {
-      const isHorizontal = rng() > 0.5;
-      const length = rng() * 200 + 300;
-      const thickness = 50;
-      return isHorizontal ? { width: length, height: thickness } : { width: thickness, height: length };
+      const length = rng() * 170 + 210;
+      const thickness = rng() * 12 + 34;
+      return rng() > 0.5 ? { width: length, height: thickness } : { width: thickness, height: length };
     },
   },
-  bacteriophage: { kind: 'infectious', autonomous: true, permanentlyHostile: false, size: defaultSize },
-  amoeba: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: (rng) => rng() * 150 + 250 },
-  tardigrade: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize },
-  spikyVirus: { kind: 'ambient', autonomous: true, permanentlyHostile: true, size: defaultSize },
-  rodBacteria: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize },
-  flagellateProtist: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize },
-  ciliate: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize },
+  bacteriophage: { kind: 'infectious', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.38 },
+  amoeba: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: (rng) => rng() * 150 + 250, collisionScale: 0.34 },
+  tardigrade: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.39 },
+  spikyVirus: { kind: 'ambient', autonomous: true, permanentlyHostile: true, size: defaultSize, collisionScale: 0.46 },
+  rodBacteria: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.43 },
+  flagellateProtist: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.36 },
+  ciliate: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.4 },
 };
 
-// Cumulative spawn distribution (matches the original draft's ratios).
 const SPAWN_TABLE: Array<[number, SpeciesId]> = [
-  [0.08, 'mitochondrion'],
-  [0.16, 'golgi'],
-  [0.24, 'nucleus'],
-  [0.3, 'fungiWall'],
-  [0.35, 'bacteriophage'],
-  [0.45, 'amoeba'],
-  [0.55, 'tardigrade'],
-  [0.65, 'spikyVirus'],
-  [0.75, 'rodBacteria'],
-  [0.85, 'flagellateProtist'],
-  [1.01, 'ciliate'],
+  [0.08, 'mitochondrion'], [0.16, 'golgi'], [0.24, 'nucleus'], [0.29, 'fungiWall'],
+  [0.35, 'bacteriophage'], [0.45, 'amoeba'], [0.55, 'tardigrade'], [0.65, 'spikyVirus'],
+  [0.75, 'rodBacteria'], [0.85, 'flagellateProtist'], [1.01, 'ciliate'],
 ];
 
 function pickSpecies(rng: Rng): SpeciesId {
   const roll = rng();
-  for (const [threshold, id] of SPAWN_TABLE) {
-    if (roll < threshold) return id;
-  }
-  return 'ciliate';
+  return SPAWN_TABLE.find(([threshold]) => roll < threshold)?.[1] ?? 'ciliate';
 }
 
 export function maxDimension(size: EntitySize): number {
   return typeof size === 'number' ? size : Math.max(size.width, size.height);
 }
 
-// Sample a position clustered by the world's noise field: denser regions of
-// the field are more likely to host life, which produces organic-looking
-// colonies instead of a uniform scatter.
-function samplePosition(rng: Rng, noiseSeed: number, clustered: boolean): { x: number; y: number } {
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const x = rng() * WORLD_WIDTH;
-    const y = rng() * WORLD_HEIGHT;
-    if (!clustered) return { x, y };
-    const density = fractalNoise2D(x, y, 1 / 900, noiseSeed);
-    if (rng() < 0.15 + 0.85 * density * density) return { x, y };
-  }
-  return { x: rng() * WORLD_WIDTH, y: rng() * WORLD_HEIGHT };
+export function renderDimensions(organism: Pick<Organism, 'species' | 'size'>) {
+  if (typeof organism.size !== 'number') return organism.size;
+  return organism.species === 'rodBacteria'
+    ? { width: organism.size, height: organism.size * 0.5 }
+    : { width: organism.size, height: organism.size };
 }
 
-export function generateWorld(seed: number): Organism[] {
-  const rng = mulberry32(seed);
-  const noiseSeed = Math.floor(rng() * 0xffffffff);
-  const playerSpawn = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
+function seedForChunk(seed: number, chunkX: number, chunkY: number) {
+  return (seed ^ Math.imul(chunkX, 73856093) ^ Math.imul(chunkY, 19349663)) >>> 0;
+}
+
+export function chunkKey(chunkX: number, chunkY: number) {
+  return `${chunkX}:${chunkY}`;
+}
+
+export function generateChunk(seed: number, chunkX: number, chunkY: number): Organism[] {
+  const rng = mulberry32(seedForChunk(seed, chunkX, chunkY));
+  const noiseSeed = seed ^ 0x7f4a7c15;
+  const count = 5 + Math.floor(rng() * 4);
   const organisms: Organism[] = [];
 
-  for (let i = 0; i < ORGANISM_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const species = pickSpecies(rng);
     const def = SPECIES[species];
     const size = def.size(rng);
     const dimension = maxDimension(size);
+    let pos = {
+      x: chunkX * WORLD_CHUNK_SIZE + rng() * WORLD_CHUNK_SIZE,
+      y: chunkY * WORLD_CHUNK_SIZE + rng() * WORLD_CHUNK_SIZE,
+    };
 
-    // Ambient organisms roll per-instance whether they are "active" (hostile,
-    // vivid) or harmless low-opacity background life.
-    const ambientActive = def.kind === 'ambient' && rng() < AMBIENT_ACTIVE_CHANCE;
-    const harmful = def.permanentlyHostile || def.kind === 'wall' || ambientActive;
-
-    let opacity = 1;
-    if (def.kind === 'ambient' && !def.permanentlyHostile) {
-      opacity = ambientActive ? rng() * 0.2 + 0.8 : rng() * 0.2 + 0.1;
-    }
-
-    // Keep big/hostile obstacles away from the player spawn.
-    const keepClear = species === 'amoeba' || species === 'fungiWall';
-    let pos = samplePosition(rng, noiseSeed, def.kind === 'ambient');
-    if (keepClear) {
-      let guard = 0;
-      while (Math.hypot(pos.x - playerSpawn.x, pos.y - playerSpawn.y) < NO_SPAWN_RADIUS + dimension && guard++ < 100) {
-        pos = samplePosition(rng, noiseSeed, false);
+    // Bias ambient organisms toward stable, repeatable ecological patches.
+    if (def.kind === 'ambient') {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const candidate = {
+          x: chunkX * WORLD_CHUNK_SIZE + rng() * WORLD_CHUNK_SIZE,
+          y: chunkY * WORLD_CHUNK_SIZE + rng() * WORLD_CHUNK_SIZE,
+        };
+        const density = fractalNoise2D(candidate.x, candidate.y, 1 / 900, noiseSeed);
+        pos = candidate;
+        if (rng() < 0.18 + density * density * 0.82) break;
       }
     }
 
-    const collisionRadius =
-      species === 'amoeba' ? (dimension * 0.7) / 2 : dimension / 2;
+    // Keep the starting microscope field navigable.
+    if ((species === 'amoeba' || species === 'fungiWall') && Math.hypot(pos.x, pos.y) < 520 + dimension) {
+      pos = {
+        x: chunkX * WORLD_CHUNK_SIZE + WORLD_CHUNK_SIZE * (0.72 + rng() * 0.22),
+        y: chunkY * WORLD_CHUNK_SIZE + WORLD_CHUNK_SIZE * (0.72 + rng() * 0.22),
+      };
+    }
+
+    const ambientActive = def.kind === 'ambient' && rng() < AMBIENT_ACTIVE_CHANCE;
+    const harmful = def.permanentlyHostile || def.kind === 'wall' || ambientActive;
+    const opacity = def.kind === 'ambient' && !def.permanentlyHostile
+      ? ambientActive ? rng() * 0.2 + 0.8 : rng() * 0.2 + 0.12
+      : 1;
 
     organisms.push({
-      id: `organism-${i}`,
+      id: `chunk-${chunkX}-${chunkY}-${i}`,
+      chunk: { x: chunkX, y: chunkY },
       species,
       kind: def.kind,
       organelleType: def.organelleType,
@@ -135,7 +123,7 @@ export function generateWorld(seed: number): Organism[] {
       displayRotation: rng() * 360,
       speed: def.autonomous ? rng() * 30 + 15 : 0,
       size,
-      collisionRadius,
+      collisionRadius: dimension * (def.collisionScale ?? 0.5),
       render: {
         duration: rng() * 40 + 20,
         delay: rng() * -60,

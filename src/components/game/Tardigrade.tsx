@@ -44,7 +44,7 @@ export function Tardigrade({ position, size, duration, delay, opacity, initialRo
             <OrganismNameLabel name={Tardigrade.displayName} size={size} showName={showName} />
             <div style={bodyStyle}>
                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 40 40" style={{ overflow: 'visible' }} filter="url(#mc-bloom)">
+                    <svg width={size} height={size} viewBox="0 0 40 40" style={{ overflow: 'visible' }}>
                         <g transform="rotate(90 20 20)">
                             {/* Legs (behind body) */}
                             <g fill="none" stroke="hsl(24 90% 48%)" strokeWidth="2.2" strokeLinecap="round">

@@ -6,7 +6,6 @@ import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { Sugar } from "./Sugar";
 import { ShaderBackground } from "./ShaderBackground";
-import { Bokeh } from "./Bokeh";
 import { GameDefs } from "./GameDefs";
 import { Antiviral } from "./Antiviral";
 import { OrganismLayer } from "./OrganismLayer";
@@ -17,10 +16,12 @@ import {
   INITIAL_CELL_SIZE,
   MAX_THEME_SIZE,
   RENDER_PADDING,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  USER_ZOOM_MAX,
+  USER_ZOOM_MIN,
+  USER_ZOOM_STEP,
 } from "@/lib/game/constants";
 import { OrganelleType } from "@/lib/game/types";
+import { renderDimensions } from "@/lib/game/world";
 
 const HUD_SYNC_INTERVAL = 0.1; // seconds between React HUD updates
 
@@ -32,11 +33,22 @@ type HudState = {
   size: number;
   score: number;
   energy: number;
+  glucose: number;
+  biomass: number;
+  integrity: number;
+  maxIntegrity: number;
+  organelleLevels: Record<OrganelleType, number>;
+  threatLevel: number;
+  elapsed: number;
+  kills: number;
+  shielded: boolean;
   starving: boolean;
   infected: boolean;
   infectionProgress: number;
   dying: boolean;
   collectedOrganelles: Set<string>;
+  zoomMultiplier: number;
+  electronMix: number;
 };
 
 const lerpHSL = (
@@ -45,11 +57,17 @@ const lerpHSL = (
   t: number
 ): [number, number, number] => [h1 + (h2 - h1) * t, s1 + (s2 - s1) * t, l1 + (l2 - l1) * t];
 
+let lastThemeStep = -1;
+
 function applyTheme(cellSize: number) {
-  const progress = Math.min(
+  const rawProgress = Math.min(
     Math.max((cellSize - INITIAL_CELL_SIZE) / (MAX_THEME_SIZE - INITIAL_CELL_SIZE), 0),
     1
   );
+  const themeStep = Math.round(rawProgress * 120);
+  if (themeStep === lastThemeStep) return;
+  lastThemeStep = themeStep;
+  const progress = themeStep / 120;
   const bg = lerpHSL(THEME_CALM.background, THEME_VIBRANT.background, progress);
   const primary = lerpHSL(THEME_CALM.primary, THEME_VIBRANT.primary, progress);
   const accent = lerpHSL(THEME_CALM.accent, THEME_VIBRANT.accent, progress);
@@ -76,11 +94,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     size: INITIAL_CELL_SIZE,
     score: INITIAL_CELL_SIZE,
     energy: 100,
+    glucose: 32,
+    biomass: 0,
+    integrity: 100,
+    maxIntegrity: 100,
+    organelleLevels: { mitochondrion: 0, golgi: 0, nucleus: 0 },
+    threatLevel: 1,
+    elapsed: 0,
+    kills: 0,
+    shielded: false,
     starving: false,
     infected: false,
     infectionProgress: 0,
     dying: false,
     collectedOrganelles: new Set(),
+    zoomMultiplier: 1,
+    electronMix: 0,
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,7 +119,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const organismElsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const keysRef = useRef<Record<string, boolean>>({});
-  const pointerRef = useRef({ down: false, x: 0, y: 0 });
+  const pointerRef = useRef({ activeId: null as number | null, x: 0, y: 0 });
   const viewRef = useRef({ width: 1, height: 1 });
   const audioRef = useRef<Soundscape | null>(null);
   const [muted, setMuted] = useState(false);
@@ -103,13 +132,74 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     else organismElsRef.current.delete(id);
   }, []);
 
+  const applyZoom = useCallback((value: number) => {
+    const sim = simRef.current;
+    if (!sim) return;
+    sim.setZoomMultiplier(value);
+    const zoomMultiplier = sim.state.camera.zoomMultiplier;
+    setHud((current) => ({
+      ...current,
+      zoomMultiplier,
+      electronMix: Math.min(1, Math.max(0, (zoomMultiplier - 1.05) / 1.35)),
+    }));
+  }, []);
+
+  const runAbility = useCallback((type: OrganelleType) => {
+    const sim = simRef.current;
+    audioRef.current?.unlock();
+    if (!sim?.activate(type)) return;
+
+    audioRef.current?.devour();
+    const cell = cellWrapperRef.current;
+    const fxClass = type === 'golgi' ? 'fx-lysosome' : type === 'mitochondrion' ? 'fx-atp-surge' : 'fx-shield';
+    cell?.classList.remove(fxClass);
+    void cell?.offsetWidth;
+    cell?.classList.add(fxClass);
+    window.setTimeout(() => cell?.classList.remove(fxClass), 900);
+    const player = sim.state.player;
+    setHud((current) => ({
+      ...current,
+      size: player.size,
+      score: player.score,
+      energy: player.energy,
+      glucose: player.glucose,
+      biomass: player.biomass,
+      integrity: player.integrity,
+      maxIntegrity: player.maxIntegrity,
+      organelleLevels: { ...player.organelleLevels },
+      kills: player.kills,
+      shielded: sim.state.time < player.shieldUntil,
+      infected: player.infected,
+      infectionProgress: player.infectionProgress,
+    }));
+  }, []);
+
   // --- Input listeners ---
   useEffect(() => {
+    const container = containerRef.current;
     const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest('button,input,textarea,select,[role="slider"],[contenteditable="true"]')) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.code === 'BracketLeft') {
+        event.preventDefault();
+        const sim = simRef.current;
+        if (sim) applyZoom(Math.max(USER_ZOOM_MIN, sim.state.camera.zoomMultiplier - USER_ZOOM_STEP));
+        return;
+      }
+      if (event.code === 'BracketRight') {
+        event.preventDefault();
+        const sim = simRef.current;
+        if (sim) applyZoom(Math.min(USER_ZOOM_MAX, sim.state.camera.zoomMultiplier + USER_ZOOM_STEP));
+        return;
+      }
       const key = event.key.toLowerCase();
       if (key.startsWith("arrow")) event.preventDefault();
       keysRef.current[key] = true;
       if (key === "e") setShowNames(true);
+      if (key === "1") runAbility('mitochondrion');
+      if (key === "2") runAbility('nucleus');
+      if (key === "3") runAbility('golgi');
       audioRef.current?.unlock(); // browsers require a gesture to start audio
     };
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -118,36 +208,59 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       if (key === "e") setShowNames(false);
     };
     const handlePointerDown = (event: PointerEvent) => {
-      pointerRef.current = { down: true, x: event.clientX, y: event.clientY };
+      if ((event.target as Element | null)?.closest('[data-game-ui]')) return;
+      if (!event.isPrimary || event.button !== 0 || pointerRef.current.activeId !== null) return;
+      pointerRef.current = { activeId: event.pointerId, x: event.clientX, y: event.clientY };
+      container?.setPointerCapture(event.pointerId);
       audioRef.current?.unlock();
     };
     const handlePointerMove = (event: PointerEvent) => {
-      if (pointerRef.current.down) {
+      if (pointerRef.current.activeId === event.pointerId) {
         pointerRef.current.x = event.clientX;
         pointerRef.current.y = event.clientY;
       }
     };
-    const handlePointerUp = () => {
-      pointerRef.current.down = false;
+    const handlePointerEnd = (event: PointerEvent) => {
+      if (pointerRef.current.activeId !== event.pointerId) return;
+      pointerRef.current.activeId = null;
+      if (container?.hasPointerCapture(event.pointerId)) container.releasePointerCapture(event.pointerId);
+    };
+    const handleLostPointerCapture = (event: PointerEvent) => {
+      if (pointerRef.current.activeId === event.pointerId) pointerRef.current.activeId = null;
+    };
+    const clearInput = () => {
+      keysRef.current = {};
+      const pointerId = pointerRef.current.activeId;
+      pointerRef.current.activeId = null;
+      if (pointerId !== null && container?.hasPointerCapture(pointerId)) container.releasePointerCapture(pointerId);
+      setShowNames(false);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) clearInput();
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    const container = containerRef.current;
+    window.addEventListener("blur", clearInput);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     container?.addEventListener("pointerdown", handlePointerDown);
     container?.addEventListener("pointermove", handlePointerMove);
-    container?.addEventListener("pointerup", handlePointerUp);
-    container?.addEventListener("pointerleave", handlePointerUp);
+    container?.addEventListener("pointerup", handlePointerEnd);
+    container?.addEventListener("pointercancel", handlePointerEnd);
+    container?.addEventListener("lostpointercapture", handleLostPointerCapture);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", clearInput);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       container?.removeEventListener("pointerdown", handlePointerDown);
       container?.removeEventListener("pointermove", handlePointerMove);
-      container?.removeEventListener("pointerup", handlePointerUp);
-      container?.removeEventListener("pointerleave", handlePointerUp);
+      container?.removeEventListener("pointerup", handlePointerEnd);
+      container?.removeEventListener("pointercancel", handlePointerEnd);
+      container?.removeEventListener("lostpointercapture", handleLostPointerCapture);
     };
-  }, []);
+  }, [applyZoom, runAbility]);
 
   // --- Track viewport size ---
   useEffect(() => {
@@ -156,14 +269,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       if (rect) viewRef.current = { width: rect.width, height: rect.height };
     };
     measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (containerRef.current) observer?.observe(containerRef.current);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+    };
   }, []);
 
   // --- Create simulation (client only) ---
   useEffect(() => {
     if (simRef.current) return;
-    const sim = createSimulation();
+    const requestedSeed = Number(new URLSearchParams(window.location.search).get('seed'));
+    const sim = createSimulation(Number.isFinite(requestedSeed) && requestedSeed > 0 ? requestedSeed : undefined);
     sim.initialSpawns(viewRef.current);
     simRef.current = sim;
     setReady(true);
@@ -191,7 +312,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     const readInput = () => {
       const view = viewRef.current;
-      if (pointerRef.current.down) {
+      if (pointerRef.current.activeId !== null) {
         const dx = pointerRef.current.x - view.width / 2;
         const dy = pointerRef.current.y - view.height / 2;
         const dist = Math.hypot(dx, dy);
@@ -224,11 +345,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
           size: p.size,
           score: p.score,
           energy: p.energy,
+          glucose: p.glucose,
+          biomass: p.biomass,
+          integrity: p.integrity,
+          maxIntegrity: p.maxIntegrity,
+          organelleLevels: { ...p.organelleLevels },
+          threatLevel: sim.state.threatLevel,
+          elapsed: sim.state.time,
+          kills: p.kills,
+          shielded: sim.state.time < p.shieldUntil,
           starving: p.starving,
           infected: p.infected,
           infectionProgress: p.infectionProgress,
           dying: p.dying,
           collectedOrganelles: collected,
+          zoomMultiplier: sim.state.camera.zoomMultiplier,
+          electronMix: Math.min(1, Math.max(0, (sim.state.camera.zoomMultiplier - 1.05) / 1.35)),
         };
       });
       applyTheme(sim.state.player.size);
@@ -275,11 +407,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             audio?.death();
             hudTimer = HUD_SYNC_INTERVAL;
             break;
+          case "wave":
+            audio?.infectionStart();
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "ability":
+          case "upgrade":
+            break;
         }
       }
       if (sugarThisFrame > 0) audio?.absorptionPop(biggestSugar / 8);
 
       const { player, camera } = sim.state;
+      const electronMix = Math.min(1, Math.max(0, (camera.zoomMultiplier - 1.05) / 1.35));
 
       // Imperative DOM sync: camera, player, organisms.
       if (worldRef.current) {
@@ -291,8 +431,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       if (cellWrapperRef.current) {
         cellWrapperRef.current.style.transform = `translate(${player.pos.x}px, ${player.pos.y}px)`;
         const invulnerable = sim.state.time < player.invulnerableUntil;
-        cellWrapperRef.current.classList.toggle("opacity-50", invulnerable && !player.flickering);
-        cellWrapperRef.current.classList.toggle("animate-flicker", player.flickering);
+        cellWrapperRef.current.classList.toggle("cell-invulnerable", invulnerable && !player.flickering);
+        cellWrapperRef.current.classList.toggle("cell-damage-flicker", player.flickering);
       }
 
       // BioCell's membrane stretch was tuned for px/frame velocities.
@@ -309,7 +449,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       for (const o of sim.state.organisms) {
         const el = organismElsRef.current.get(o.id);
         if (!el) continue;
-        const dim = typeof o.size === "number" ? o.size : Math.max(o.size.width, o.size.height);
+        const bounds = renderDimensions(o);
+        const dim = Math.max(bounds.width, bounds.height);
         const visible =
           o.pos.x + dim > viewLeft &&
           o.pos.x - dim < viewRight &&
@@ -318,13 +459,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         el.style.display = visible ? "" : "none";
         if (!visible) continue;
         const rotation = o.autonomous ? o.displayRotation : 0;
-        el.style.transform = `translate(${o.pos.x}px, ${o.pos.y}px) rotate(${rotation}deg)`;
-        if (o.kind === "organelle") {
-          el.style.filter = sim.state.eligibleOrganelles.has(o.id)
-            ? "drop-shadow(0 0 8px hsl(var(--primary) / 0.7))"
-            : "none";
-          el.style.opacity = sim.state.eligibleOrganelles.has(o.id) ? "1" : "0.5";
-        }
+        el.style.transform = `translate(${o.pos.x - bounds.width / 2}px, ${o.pos.y - bounds.height / 2}px) rotate(${rotation}deg)`;
+        const baseOpacity = o.kind === "organelle"
+          ? (sim.state.eligibleOrganelles.has(o.id) ? 1 : 0.5)
+          : o.render.opacity;
+        el.style.opacity = `${baseOpacity * (1 - electronMix * 0.62)}`;
       }
 
       // React syncs: membership versions bail out when unchanged.
@@ -356,40 +495,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen overflow-hidden bg-background select-none touch-none"
+      className="relative h-[100dvh] w-full overflow-hidden bg-background select-none touch-none"
     >
       <GameDefs />
       {sim && <ShaderBackground camera={sim.state.camera} />}
-      {sim && <Bokeh camera={sim.state.camera} />}
-
-      <button
-        type="button"
-        onClick={() => {
-          audioRef.current?.unlock();
-          setMuted((m) => !m);
-        }}
-        aria-label={muted ? "Unmute" : "Mute"}
-        className="fixed top-16 right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full bg-card/60 text-primary/90 backdrop-blur-sm border border-primary/20 transition-colors hover:bg-card/90"
-      >
-        {muted ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 5 6 9H2v6h4l5 4V5z" />
-            <line x1="23" y1="9" x2="17" y2="15" />
-            <line x1="17" y1="9" x2="23" y2="15" />
-          </svg>
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 5 6 9H2v6h4l5 4V5z" />
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-          </svg>
-        )}
-      </button>
+      <div className="micrograph-overlay pointer-events-none absolute inset-0 z-[1]" aria-hidden="true" />
 
       <div
         ref={worldRef}
-        className="absolute top-0 left-0"
-        style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transformOrigin: "0 0" }}
+        className="absolute left-0 top-0 h-full w-full overflow-visible"
+        style={{ transformOrigin: "0 0" }}
       >
         {ready && sim && (
           <>
@@ -416,11 +531,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 isDying={hud.dying}
                 collectedOrganelles={hud.collectedOrganelles}
                 isInfected={hud.infected}
+                shielded={hud.shielded}
+                electronMix={hud.electronMix}
               />
             </div>
           </>
         )}
       </div>
+
+      <div
+        className="electron-micrograph-overlay pointer-events-none absolute inset-0 z-[35]"
+        style={{ opacity: hud.electronMix * 0.13 }}
+        aria-hidden="true"
+      />
 
       <div
         className={
@@ -437,6 +560,40 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         collectedOrganelles={hud.collectedOrganelles as Set<OrganelleType & string>}
         isInfected={hud.infected}
         infectionProgress={hud.infectionProgress}
+        glucose={hud.glucose}
+        biomass={hud.biomass}
+        integrity={hud.integrity}
+        maxIntegrity={hud.maxIntegrity}
+        organelleLevels={hud.organelleLevels}
+        threatLevel={hud.threatLevel}
+        elapsed={hud.elapsed}
+        kills={hud.kills}
+        shielded={hud.shielded}
+        muted={muted}
+        zoomMultiplier={hud.zoomMultiplier}
+        electronMix={hud.electronMix}
+        onZoomChange={applyZoom}
+        onToggleMute={() => {
+          audioRef.current?.unlock();
+          setMuted((m) => !m);
+        }}
+        getUpgradeCost={(type) => sim?.upgradeCosts(type) ?? { glucose: 0, biomass: 0 }}
+        getAbilityState={(type) => sim?.abilityState(type) ?? { cost: 0, cooldown: 0, active: false }}
+        onUpgrade={(type) => {
+          if (sim?.upgrade(type)) {
+            audioRef.current?.collectChime();
+            const player = sim.state.player;
+            setHud((current) => ({
+              ...current,
+              glucose: player.glucose,
+              biomass: player.biomass,
+              integrity: player.integrity,
+              maxIntegrity: player.maxIntegrity,
+              organelleLevels: { ...player.organelleLevels },
+            }));
+          }
+        }}
+        onAbility={runAbility}
       />
 
       <GameOverDialog score={hud.score} isOpen={isGameOver} onRestart={onGameOver} />

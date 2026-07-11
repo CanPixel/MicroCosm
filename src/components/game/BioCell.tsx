@@ -5,8 +5,7 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, use
 import { InnerMitochondrion } from './InnerMitochondrion';
 import { InnerGolgiApparatus } from './InnerGolgiApparatus';
 import { InnerCellNucleus } from './InnerCellNucleus';
-import { Bacteriophage } from './Bacteriophage';
-import { cn } from '@/lib/utils';
+import { GiantAmoebaVirus } from './GiantAmoebaVirus';
 import { convexHull, hullRadiusAtAngle, Pt } from '@/lib/game/hull';
 
 type Point = { x: number; y: number };
@@ -64,6 +63,8 @@ type BioCellProps = {
   isDying: boolean;
   collectedOrganelles: Set<string>;
   isInfected: boolean;
+  shielded?: boolean;
+  electronMix?: number;
 };
 
 type Particle = {
@@ -89,7 +90,7 @@ type DamageParticle = {
 type InternalOrganelle = {
     id: string;
     type: string;
-    Component: React.FC<any>;
+    Component: React.FC<{ size: number }>;
     size: number;
 };
 
@@ -103,21 +104,23 @@ type OrganelleMotion = {
     rotation: number;
 };
 
-const organelleMap: { [key: string]: React.FC<any> } = {
+const organelleMap: Record<string, React.FC<{ size: number }>> = {
   mitochondrion: InnerMitochondrion,
   golgi: InnerGolgiApparatus,
   nucleus: InnerCellNucleus,
 };
 
 
-export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, isDying, collectedOrganelles, isInfected }, ref) => {
+export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, isDying, collectedOrganelles, isInfected, shielded = false, electronMix = 0 }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const sizeRef = useRef(size);
   const collectedOrganellesRef = useRef(collectedOrganelles);
+  const electronMixRef = useRef(electronMix);
 
   sizeRef.current = size;
   collectedOrganellesRef.current = collectedOrganelles;
+  electronMixRef.current = electronMix;
 
   const [hasEvolved, setHasEvolved] = useState(false);
   const [damageParticles, setDamageParticles] = useState<DamageParticle[]>([]);
@@ -261,7 +264,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         color,
       };
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   useEffect(() => {
@@ -269,6 +272,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     const svgEl = svgRef.current;
     if (!svgEl) return;
     const innerPath = svgEl.querySelector('.inner-wall') as SVGPathElement | null;
+    const haloPath = svgEl.querySelector('.cell-halo') as SVGPathElement | null;
+    const electronPath = svgEl.querySelector('.electron-wall') as SVGPathElement | null;
+    const electronTexturePath = svgEl.querySelector('.electron-texture') as SVGPathElement | null;
     const outerPath = svgEl.querySelector('.outer-wall') as SVGPathElement | null;
     const particleElements = svgEl.querySelectorAll('.internal-particle');
     const nucleusGroup = svgEl.querySelector('.nucleus-group') as SVGGElement | null;
@@ -276,7 +282,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     const radiatingCircle1 = nucleusGroup?.querySelector('.radiating-circle-1') as SVGCircleElement | null;
     const radiatingCircle2 = nucleusGroup?.querySelector('.radiating-circle-2') as SVGCircleElement | null;
 
-    if (!innerPath || !particleElements || !nucleus || !nucleusGroup || !radiatingCircle1 || !radiatingCircle2) return;
+    if (!innerPath || !haloPath || !electronPath || !electronTexturePath || !particleElements || !nucleus || !nucleusGroup || !radiatingCircle1 || !radiatingCircle2) return;
     if (hasEvolved && !outerPath) return;
 
     let animatedWallPoints: Point[] = [];
@@ -329,7 +335,8 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
 
       // Animate nucleus
       const nucleusScale = isDying ? 1 : 1 + Math.sin(time / 500) * 0.1;
-      const nucleusColor = `hsl(var(--accent-hsl), ${1 - deathProgress})`; // Fade to black
+      const electron = electronMixRef.current;
+      const nucleusColor = `hsl(${263 * (1 - electron)} ${90 * (1 - electron)}% ${58 + electron * 12}% / ${1 - deathProgress})`;
       nucleus.setAttribute('r', `${nucleusBaseRadius * nucleusScale}`);
       nucleus.setAttribute('fill', nucleusColor);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
@@ -457,6 +464,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
 
       const innerSvgPath = catmullRomSpline(animatedWallPoints);
       innerPath.setAttribute('d', innerSvgPath);
+      haloPath.setAttribute('d', innerSvgPath);
+      electronPath.setAttribute('d', innerSvgPath);
+      electronTexturePath.setAttribute('d', innerSvgPath);
       innerPath.setAttribute('fill-opacity', `${Math.max(0, 1 - deathProgress)}`);
       innerPath.setAttribute('stroke-width', `${Math.max(0, (hasEvolved ? 0 : 3) * (1 - deathProgress))}`);
 
@@ -487,57 +497,55 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   const cellStyle: React.CSSProperties = {
     width: `${containerSize}px`,
     height: `${containerSize}px`,
-    filter: `drop-shadow(0 0 10px hsl(var(--primary) / ${0.8 * (1 - deathAnimationRef.current)}))`
   };
-  
-  const currentViewboxSize = size * 2.5;
-  const currentCenter = currentViewboxSize / 2;
 
-  const phageSize = Math.max(30, size * 0.2); // Attached phage size
-  const phageAttachmentRadius = size * 0.8;
-  const phageAttachmentX = currentCenter + phageAttachmentRadius * Math.cos(attachmentAngle);
-  const phageAttachmentY = currentCenter + phageAttachmentRadius * Math.sin(attachmentAngle);
-  const phageRotation = attachmentAngle * (180 / Math.PI) - 90; // Align with radius, pointing legs in
+  const currentCenter = (size * 2.5) / 2;
+  const virusSize = Math.max(30, size * 0.31);
+  const membraneRadius = size * 0.5;
+  const virusAttachmentRadius = membraneRadius + virusSize * 0.16;
+  const virusRotation = attachmentAngle * (180 / Math.PI);
+  const entryThreadLength = Math.max(12, virusSize * 0.46);
 
-  const phagePositionStyle: React.CSSProperties = {
+  const virusPositionStyle: React.CSSProperties = {
     position: 'absolute',
-    top: `${phageAttachmentY - phageSize / 2}px`,
-    left: `${phageAttachmentX - phageSize / 2}px`,
-    width: `${phageSize}px`,
-    height: `${phageSize}px`,
+    top: '50%',
+    left: '50%',
+    width: `${virusSize}px`,
+    height: `${virusSize}px`,
     transformOrigin: '50% 50%',
-    transform: `rotate(${phageRotation}deg)`
+    transform: `translate(-50%, -50%) rotate(${virusRotation}deg) translateX(${virusAttachmentRadius}px)`,
+    zIndex: 4,
+  };
+
+  const entryThreadStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: `${entryThreadLength}px`,
+    height: '2px',
+    transformOrigin: '0 50%',
+    transform: `rotate(${virusRotation}deg) translateX(${membraneRadius - entryThreadLength * 0.62}px)`,
+    zIndex: 3,
   };
 
 
   return (
-    <div style={cellStyle} className="absolute flex items-center justify-center -translate-x-1/2 -translate-y-1/2">
+    <div style={cellStyle} className={`absolute flex items-center justify-center -translate-x-1/2 -translate-y-1/2 ${isInfected ? 'cell-infected' : ''}`}>
+       {shielded && <div className="membrane-shield-ring" />}
        {isInfected && !isDying && (
-         <div style={phagePositionStyle}>
-            {/* Wobble on an inner wrapper: animating transform on the outer
-                div would clobber its positioning rotate(). */}
-            <div className="animate-wobble w-full h-full">
-                <Bacteriophage
-                    position={{x: 0, y: 0}}
-                    size={phageSize}
-                    duration={5}
-                    delay={0}
-                    opacity={1}
-                />
-            </div>
-         </div>
+         <>
+           <div className="infection-entry-thread" style={entryThreadStyle} />
+           <div style={virusPositionStyle}>
+             <GiantAmoebaVirus size={virusSize} />
+           </div>
+         </>
        )}
-      <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
+      <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`} style={{ overflow: 'visible' }}>
         <defs>
-            <filter id="organelle-glow" x="-100%" y="-100%" width="300%" height="300%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-                <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                </feMerge>
-            </filter>
+          <pattern id="player-electron-texture" patternUnits="userSpaceOnUse" width={svgSize} height={svgSize}>
+            <image href="/assets/micrograph-field.webp" width={svgSize} height={svgSize} preserveAspectRatio="xMidYMid slice" />
+          </pattern>
         </defs>
-
         {hasEvolved && (
             <path
                 className="outer-wall"
@@ -547,14 +555,25 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
             />
         )}
         <path
+          className="cell-halo"
+          fill="none"
+          stroke={isInfected ? 'hsl(330 82% 62% / .28)' : 'hsl(var(--primary) / .24)'}
+          strokeWidth="8"
+        />
+        <path
           className="inner-wall"
           fill="url(#mc-cytoplasm)"
           stroke="hsl(var(--foreground))"
           strokeWidth={hasEvolved ? "0" : "3"}
         />
-
+        <path
+          className="electron-texture"
+          fill="url(#player-electron-texture)"
+          opacity={electronMix * 0.42}
+          pointerEvents="none"
+        />
         {/* Collected Organelles */}
-        <g opacity={1 - deathAnimationRef.current}>
+        <g opacity={(1 - deathAnimationRef.current) * (1 - electronMix * 0.42)}>
             {internalOrganelles.map(({ id, Component, size }) => {
                 const motion = organelleMotionRef.current.get(id);
                 return (
@@ -565,7 +584,6 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
                             else organelleElsRef.current.delete(id);
                         }}
                         transform={`translate(${currentCenter + (motion?.x ?? 0) * initialBaseRadius}, ${currentCenter + (motion?.y ?? 0) * initialBaseRadius}) rotate(${motion?.rotation ?? 0})`}
-                        style={{ filter: 'url(#organelle-glow)' }}
                     >
                         <Component size={size} />
                     </g>
@@ -617,6 +635,15 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
             )
         })}
         </g>
+
+        <path
+          className="electron-wall"
+          fill="hsl(0 0% 31% / .5)"
+          stroke="hsl(0 0% 90% / .88)"
+          strokeWidth="1.4"
+          opacity={electronMix * 0.55}
+          pointerEvents="none"
+        />
         
         {/* Damage Particles */}
         {damageParticles.map(p => (
@@ -637,6 +664,3 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
 });
 
 BioCell.displayName = 'BioCell';
-
-    
-    

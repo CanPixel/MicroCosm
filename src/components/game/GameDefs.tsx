@@ -2,11 +2,12 @@
 
 import React from 'react';
 
-// A single hidden SVG holding gradients and filters shared by every entity.
+// A single hidden SVG holding gradients shared by every entity.
 // SVG paint servers referenced as url(#id) resolve document-wide, so defining
 // them once here lets all the small per-organism SVGs share one visual system:
-// vivid gradient fills, thick rim outlines, and soft bloom — the flat, glowing
-// Kurzgesagt / electron-micrograph language.
+// vivid gradient fills and thick rim outlines in the illustrated microscopy
+// language. Paint-server filters are intentionally avoided because WebKit can
+// expose their intermediate texture bounds as rectangular artifacts.
 export function GameDefs() {
   return (
     <svg width="0" height="0" className="absolute" aria-hidden style={{ position: 'absolute' }}>
@@ -52,28 +53,6 @@ export function GameDefs() {
           <stop offset="70%" stopColor="hsl(330 85% 52%)" />
           <stop offset="100%" stopColor="hsl(320 80% 38%)" />
         </radialGradient>
-
-        <radialGradient id="mc-sugar" cx="40%" cy="35%" r="70%">
-          <stop offset="0%" stopColor="hsl(50 100% 85%)" />
-          <stop offset="100%" stopColor="hsl(40 100% 60%)" />
-        </radialGradient>
-
-        {/* Soft bloom for bright objects against the dark field. */}
-        <filter id="mc-bloom" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        <filter id="mc-bloom-strong" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
     </svg>
   );

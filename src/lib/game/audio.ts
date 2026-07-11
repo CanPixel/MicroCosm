@@ -1,4 +1,4 @@
-// Fully procedural Web Audio soundscape — no asset files. Everything is
+// Fully procedural Web Audio soundscape with no asset files. Everything is
 // synthesized on the client, wrapped in an "underwater" low-pass so the whole
 // mix feels muffled and submerged, matching the microscopic setting.
 //
@@ -21,7 +21,7 @@ export class Soundscape {
   unlock() {
     if (this.muted) return;
     if (!this.ctx) {
-      const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+      const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctor) return;
       this.ctx = new Ctor();
       this.buildGraph();
@@ -64,7 +64,7 @@ export class Soundscape {
     }
   }
 
-  // A slow, breathing drone bed — two detuned oscillators plus a filtered
+  // A slow, breathing drone bed: two detuned oscillators plus a filtered
   // noise "current", all very quiet.
   private startAmbient() {
     const ctx = this.ctx!;

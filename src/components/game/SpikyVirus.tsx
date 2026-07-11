@@ -44,7 +44,7 @@ export function SpikyVirus({ position, size, duration, delay, opacity, initialRo
             <OrganismNameLabel name={SpikyVirus.displayName} size={size} showName={showName} />
             <div style={bodyStyle}>
                 <div style={animationStyle} className="w-full h-full">
-                    <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }} filter="url(#mc-bloom)">
+                    <svg width={size} height={size} viewBox="0 0 20 20" style={{ overflow: 'visible' }}>
                         {/* Spikes: bold red corona knobs, like the reference virus. */}
                         {Array.from({ length: NUM_SPIKES }).map((_, i) => {
                             const angle = (i / NUM_SPIKES) * 2 * Math.PI;
