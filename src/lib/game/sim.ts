@@ -272,6 +272,7 @@ export function createSimulation(seed = Math.floor(Math.random() * 0xffffffff)) 
         scoreGained += 3.5 * mult;
         energyGain += 3 * mult;
         sizeGained += mult;
+        events.push({ type: 'sugarEaten', size: sugar.size });
         continue;
       }
       const offScreen = sugar.x < viewLeft || sugar.x > viewRight || sugar.y < viewTop || sugar.y > viewBottom;
@@ -353,6 +354,7 @@ export function createSimulation(seed = Math.floor(Math.random() * 0xffffffff)) 
         sizeGained += bonus / 5;
         energyGain += bonus / 2;
         removedOrganisms.add(o.id);
+        events.push({ type: 'devoured' });
       } else {
         applyDamage(events);
       }

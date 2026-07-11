@@ -90,4 +90,6 @@ export type SimEvent =
   | { type: 'infected' }
   | { type: 'cured' }
   | { type: 'organelleCollected'; organelle: OrganelleType }
+  | { type: 'sugarEaten'; size: number }
+  | { type: 'devoured' }
   | { type: 'died' };

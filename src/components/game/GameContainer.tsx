@@ -12,6 +12,7 @@ import { Antiviral } from "./Antiviral";
 import { OrganismLayer } from "./OrganismLayer";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { createSimulation, Simulation } from "@/lib/game/sim";
+import { Soundscape } from "@/lib/game/audio";
 import {
   INITIAL_CELL_SIZE,
   MAX_THEME_SIZE,
@@ -91,6 +92,11 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const keysRef = useRef<Record<string, boolean>>({});
   const pointerRef = useRef({ down: false, x: 0, y: 0 });
   const viewRef = useRef({ width: 1, height: 1 });
+  const audioRef = useRef<Soundscape | null>(null);
+  const [muted, setMuted] = useState(false);
+  if (audioRef.current === null && typeof window !== "undefined") {
+    audioRef.current = new Soundscape();
+  }
 
   const registerOrganismEl = useCallback((id: string, el: HTMLDivElement | null) => {
     if (el) organismElsRef.current.set(id, el);
@@ -104,6 +110,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       if (key.startsWith("arrow")) event.preventDefault();
       keysRef.current[key] = true;
       if (key === "e") setShowNames(true);
+      audioRef.current?.unlock(); // browsers require a gesture to start audio
     };
     const handleKeyUp = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
@@ -112,6 +119,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     };
     const handlePointerDown = (event: PointerEvent) => {
       pointerRef.current = { down: true, x: event.clientX, y: event.clientY };
+      audioRef.current?.unlock();
     };
     const handlePointerMove = (event: PointerEvent) => {
       if (pointerRef.current.down) {
@@ -159,6 +167,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     sim.initialSpawns(viewRef.current);
     simRef.current = sim;
     setReady(true);
+  }, []);
+
+  // --- Audio: mute sync + teardown ---
+  useEffect(() => {
+    audioRef.current?.setMuted(muted);
+  }, [muted]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => audio?.dispose();
   }, []);
 
   // --- Main game loop ---
@@ -223,17 +241,43 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
       const events = sim.step(dt, readInput(), view);
 
+      const audio = audioRef.current;
+      let sugarThisFrame = 0;
+      let biggestSugar = 0;
       for (const event of events) {
-        if (event.type === "damaged") cellApiRef.current?.takeDamage();
-        if (
-          event.type === "infected" ||
-          event.type === "cured" ||
-          event.type === "organelleCollected" ||
-          event.type === "died"
-        ) {
-          hudTimer = HUD_SYNC_INTERVAL; // force an immediate HUD sync
+        switch (event.type) {
+          case "damaged":
+            cellApiRef.current?.takeDamage();
+            audio?.damageThud();
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "sugarEaten":
+            // Coalesce a cluster eaten in one frame into a single pop.
+            sugarThisFrame++;
+            biggestSugar = Math.max(biggestSugar, event.size);
+            break;
+          case "devoured":
+            audio?.devour();
+            break;
+          case "organelleCollected":
+            audio?.collectChime();
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "infected":
+            audio?.infectionStart();
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "cured":
+            audio?.cure();
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "died":
+            audio?.death();
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
         }
       }
+      if (sugarThisFrame > 0) audio?.absorptionPop(biggestSugar / 8);
 
       const { player, camera } = sim.state;
 
@@ -317,6 +361,30 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       <GameDefs />
       {sim && <ShaderBackground camera={sim.state.camera} />}
       {sim && <Bokeh camera={sim.state.camera} />}
+
+      <button
+        type="button"
+        onClick={() => {
+          audioRef.current?.unlock();
+          setMuted((m) => !m);
+        }}
+        aria-label={muted ? "Unmute" : "Mute"}
+        className="fixed top-16 right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full bg-card/60 text-primary/90 backdrop-blur-sm border border-primary/20 transition-colors hover:bg-card/90"
+      >
+        {muted ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 5 6 9H2v6h4l5 4V5z" />
+            <line x1="23" y1="9" x2="17" y2="15" />
+            <line x1="17" y1="9" x2="23" y2="15" />
+          </svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 5 6 9H2v6h4l5 4V5z" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          </svg>
+        )}
+      </button>
 
       <div
         ref={worldRef}

@@ -7,12 +7,26 @@ import { InnerGolgiApparatus } from './InnerGolgiApparatus';
 import { InnerCellNucleus } from './InnerCellNucleus';
 import { Bacteriophage } from './Bacteriophage';
 import { cn } from '@/lib/utils';
+import { convexHull, hullRadiusAtAngle, Pt } from '@/lib/game/hull';
 
 type Point = { x: number; y: number };
 
 const INITIAL_SIZE = 50;
 const EVOLUTION_SCORE_THRESHOLD = 100;
 const EVOLUTION_SIZE_MULTIPLIER = 1.4;
+
+// Membrane: a springy cytoskeleton ring whose convex hull (together with the
+// internal organelles) forms the cell wall, resampled at fixed angles.
+const NUM_NODES = 16;
+const MEMBRANE_SAMPLES = 30;
+
+// A structural node in the cytoskeleton ring.
+type MembraneNode = {
+  angle: number; // fixed rest angle
+  restR: number; // rest radius as a fraction of the cell's base radius
+  r: number; // current radius (px), spring-animated
+  vr: number; // radial velocity (px/frame)
+};
 
 // Helper function to create a smooth path from points (Catmull-Rom spline)
 function catmullRomSpline(points: Point[], k: number = 1): string {
@@ -153,18 +167,16 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     takeDamage,
   }));
   
-  const numPoints = 12; // Number of points defining the cell shape
-  
   const svgSize = useMemo(() => size * 2.5, [size]);
   const viewboxCenter = useMemo(() => svgSize / 2, [svgSize]);
-  
+
   const initialBaseRadius = useMemo(() => INITIAL_SIZE / 2, []);
 
 
-  // Points for the cell wall, with some randomness
-  const pointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
-  const outerPointsRef = useRef<Array<{ angle: number; radius: number; targetRadius: number }>>([]);
-  
+  // Cytoskeleton nodes and the smoothed per-angle membrane radii (px).
+  const membraneNodesRef = useRef<MembraneNode[]>([]);
+  const membraneSamplesRef = useRef<number[]>([]);
+
   // Internal particles
   const particlesRef = useRef<Particle[]>([]);
   
@@ -201,20 +213,23 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   useEffect(() => {
     if (score >= EVOLUTION_SCORE_THRESHOLD && !hasEvolved) {
       setHasEvolved(true);
-      
-      // Initialize points for the new outer wall
-      outerPointsRef.current = pointsRef.current.map(p => ({ ...p }));
     }
   }, [score, hasEvolved]);
 
 
   useEffect(() => {
-    // Initialize points for the cell wall
-    pointsRef.current = Array.from({ length: numPoints }, (_, i) => {
-      const angle = (i / numPoints) * 2 * Math.PI;
-      const initialRadiusVal = (INITIAL_SIZE / 2) * (0.8 + Math.random() * 0.2);
-      return { angle, radius: initialRadiusVal, targetRadius: initialRadiusVal };
+    // Initialize the springy cytoskeleton ring that seeds the membrane hull.
+    const base = INITIAL_SIZE / 2;
+    membraneNodesRef.current = Array.from({ length: NUM_NODES }, (_, i) => {
+      const restR = 0.82 + Math.random() * 0.1;
+      return {
+        angle: (i / NUM_NODES) * 2 * Math.PI,
+        restR,
+        r: base * restR,
+        vr: 0,
+      };
     });
+    membraneSamplesRef.current = Array.from({ length: MEMBRANE_SAMPLES }, () => base);
 
     // Initialize internal particles with more variety
     particlesRef.current = Array.from({ length: 10 }).map(() => {
@@ -247,7 +262,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
       };
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [numPoints]);
+  }, []);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -334,22 +349,26 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
       radiationTime1 = animateRadiation(radiatingCircle1, radiationTime1);
       radiationTime2 = animateRadiation(radiatingCircle2, radiationTime2);
 
-      // Drift collected organelles around the cytoplasm (imperative — no re-render)
+      // Organelles drift through the cytoplasm and scale with the cell. Their
+      // positions (in px, relative to center) feed the membrane hull below, so
+      // an organelle near the wall visibly bulges the membrane outward.
+      const orgScale = Math.min(3.2, Math.max(0.7, currentBaseRadius / 55));
       organelleMotionRef.current.forEach((motion, id) => {
           motion.x += motion.vx;
           motion.y += motion.vy;
 
-          // Bounce off cell walls (approximate)
-          if (motion.x < -0.4 || motion.x > 0.4) motion.vx *= -1;
-          if (motion.y < -0.4 || motion.y > 0.4) motion.vy *= -1;
+          // Keep organelles just inside the structural ring.
+          if (motion.x < -0.78 || motion.x > 0.78) motion.vx *= -1;
+          if (motion.y < -0.78 || motion.y > 0.78) motion.vy *= -1;
+          motion.x = Math.max(-0.78, Math.min(0.78, motion.x));
+          motion.y = Math.max(-0.78, Math.min(0.78, motion.y));
           motion.rotation += 0.5;
 
           const el = organelleElsRef.current.get(id);
           if (el) {
-              el.setAttribute(
-                  'transform',
-                  `translate(${currentViewboxCenter + motion.x * initialBaseRadius + inertiaOffsetX}, ${currentViewboxCenter + motion.y * initialBaseRadius + inertiaOffsetY}) rotate(${motion.rotation})`
-              );
+              const px = currentViewboxCenter + motion.x * currentBaseRadius + inertiaOffsetX;
+              const py = currentViewboxCenter + motion.y * currentBaseRadius + inertiaOffsetY;
+              el.setAttribute('transform', `translate(${px}, ${py}) scale(${orgScale}) rotate(${motion.rotation})`);
           }
       });
 
@@ -382,50 +401,76 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         })).filter(p => p.opacity > 0);
       });
 
-      // Physics-based stretch logic
+      // --- Deformable membrane: node physics -> convex hull -> resample ---
+      // Movement stretches the cell along its travel axis; the springy nodes
+      // give it jelly-like overshoot; the convex hull of nodes + organelles
+      // produces organelle-driven bulges and can never dent inward.
       const stretchFactor = speed > 0.1 ? Math.min(speed / 10, 0.4) : 0;
-      
-      // Wobble factor decreases as the cell gets bigger
       const wobbleFactor = Math.max(0.2, 1 - (currentSize - INITIAL_SIZE) / 500);
+      const ringRotation = time / (5000 + (currentSize - INITIAL_SIZE) * 10);
 
-      const updateWallPoints = (points: typeof pointsRef.current, radiusMultiplier: number) => {
-        return points.map(point => {
-          // Smoothly move radius towards target
-          point.radius += (point.targetRadius - point.radius) * 0.1;
-  
-          // Occasionally set a new target radius
-          if (Math.random() < 0.02 * wobbleFactor) { // Chance decreases as it grows
-            const randomFactor = (0.7 + Math.random() * 0.6 * wobbleFactor); // Range of change decreases
-            point.targetRadius = currentBaseRadius * randomFactor;
-          }
-          
-          const pointAngle = point.angle + time / (5000 + (currentSize - INITIAL_SIZE) * 10); // Rotation slows down
-          let currentRadius = point.radius * radiusMultiplier * damageScale;
-  
-          // Apply physics-based stretch
-          if (stretchFactor > 0) {
-              const angleDiff = Math.cos(pointAngle - movementAngle);
-              currentRadius += angleDiff * currentBaseRadius * stretchFactor * radiusMultiplier; // Stretch in direction of movement
-              currentRadius -= (1 - Math.abs(angleDiff)) * currentBaseRadius * stretchFactor * 0.5 * radiusMultiplier; // Squash perpendicular to movement
-          }
-  
-          const x = currentViewboxCenter + currentRadius * Math.cos(pointAngle);
-          const y = currentViewboxCenter + currentRadius * Math.sin(pointAngle);
-          return { x, y };
-        });
-      };
-      
-      animatedWallPoints = updateWallPoints(pointsRef.current, 1);
+      // 1. Advance the cytoskeleton nodes and collect the hull point cloud.
+      const cloud: Pt[] = [];
+      for (const node of membraneNodesRef.current) {
+        // Occasionally retarget the rest radius for a slow organic wobble.
+        if (Math.random() < 0.02 * wobbleFactor) {
+          node.restR = 0.82 + Math.random() * 0.12 * wobbleFactor;
+        }
+        const a = node.angle + ringRotation;
+        let targetR = node.restR * currentBaseRadius * damageScale;
+        if (stretchFactor > 0) {
+          const angleDiff = Math.cos(a - movementAngle);
+          targetR += angleDiff * currentBaseRadius * stretchFactor; // elongate along motion
+          targetR -= (1 - Math.abs(angleDiff)) * currentBaseRadius * stretchFactor * 0.5; // squash sides
+        }
+        // Critically-damped-ish spring for a lively but stable membrane.
+        node.vr += (targetR - node.r) * 0.18;
+        node.vr *= 0.72;
+        node.r += node.vr;
+        cloud.push({ x: node.r * Math.cos(a), y: node.r * Math.sin(a) });
+      }
+
+      // 2. Organelles push the hull outward where they orbit near the wall.
+      const orgPush = currentBaseRadius * 0.16;
+      organelleMotionRef.current.forEach((motion) => {
+        const ox = motion.x * currentBaseRadius;
+        const oy = motion.y * currentBaseRadius;
+        const dist = Math.hypot(ox, oy) || 1;
+        cloud.push({ x: ox + (ox / dist) * orgPush, y: oy + (oy / dist) * orgPush });
+      });
+
+      // 3. Convex hull, resampled to fixed angles and temporally smoothed.
+      const hull = convexHull(cloud);
+      const samples = membraneSamplesRef.current;
+      animatedWallPoints = samples.map((prevR, i) => {
+        const ang = (i / MEMBRANE_SAMPLES) * 2 * Math.PI;
+        let r = hullRadiusAtAngle(hull, ang);
+        if (!(r > 0)) r = currentBaseRadius;
+        r = Math.max(minCellRadius, r);
+        const smoothed = prevR + (r - prevR) * 0.35;
+        samples[i] = smoothed;
+        return {
+          x: currentViewboxCenter + smoothed * Math.cos(ang),
+          y: currentViewboxCenter + smoothed * Math.sin(ang),
+        };
+      });
+
       const innerSvgPath = catmullRomSpline(animatedWallPoints);
       innerPath.setAttribute('d', innerSvgPath);
-      innerPath.setAttribute('fill-opacity', `${Math.max(0, 0.2 - deathProgress * 0.2)}`);
+      innerPath.setAttribute('fill-opacity', `${Math.max(0, 1 - deathProgress)}`);
       innerPath.setAttribute('stroke-width', `${Math.max(0, (hasEvolved ? 0 : 3) * (1 - deathProgress))}`);
 
-
-      if(hasEvolved && outerPath) {
-        animatedOuterWallPoints = updateWallPoints(outerPointsRef.current, evolutionFactorRef.current);
-        const outerSvgPath = catmullRomSpline(animatedOuterWallPoints);
-        outerPath.setAttribute('d', outerSvgPath);
+      if (hasEvolved && outerPath) {
+        const evo = evolutionFactorRef.current;
+        animatedOuterWallPoints = samples.map((r, i) => {
+          const ang = (i / MEMBRANE_SAMPLES) * 2 * Math.PI;
+          const rr = r * evo;
+          return {
+            x: currentViewboxCenter + rr * Math.cos(ang),
+            y: currentViewboxCenter + rr * Math.sin(ang),
+          };
+        });
+        outerPath.setAttribute('d', catmullRomSpline(animatedOuterWallPoints));
         outerPath.setAttribute('stroke-width', `${Math.max(0, 3 * (1 - deathProgress))}`);
       }
       
