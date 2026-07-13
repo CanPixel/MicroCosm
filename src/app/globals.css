@@ -101,6 +101,17 @@ body::-webkit-scrollbar {
   * {
     @apply border-border;
   }
+  button {
+    -webkit-tap-highlight-color: transparent;
+    transition-property: color, background-color, border-color, box-shadow, filter, opacity, scale, translate;
+    transition-duration: 140ms;
+    transition-timing-function: ease-out;
+  }
+  button:not(:disabled) { cursor: pointer; }
+  button:not(:disabled):active { scale: .975; filter: brightness(.96); }
+  @media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):hover { filter: brightness(1.1); }
+  }
   body {
     @apply text-foreground;
     -webkit-touch-callout: none; /* iOS Safari */
@@ -193,7 +204,7 @@ body::-webkit-scrollbar {
     color: #a8edf0;
     transition: background .15s ease, transform .15s ease;
   }
-  .hud-icon-button:hover { background: hsl(188 70% 38% / .38); transform: translateY(-1px); }
+  .hud-icon-button:hover { background: hsl(188 70% 38% / .42); transform: translateY(-2px); box-shadow: 0 7px 18px hsl(188 75% 45% / .12); }
 
   .infection-readout {
     border: 1px solid hsl(350 75% 62% / .42);
@@ -208,7 +219,7 @@ body::-webkit-scrollbar {
     padding: 0 8px 0 13px;
     transition: transform .15s ease, background .15s ease, opacity .15s ease;
   }
-  .action-button:hover, .upgrade-button:hover { background: hsl(188 70% 38% / .36); transform: translateY(-1px); }
+  .action-button:hover, .upgrade-button:hover { background: hsl(188 70% 38% / .42); transform: translateY(-2px); border-color: hsl(188 75% 76% / .34); box-shadow: 0 8px 20px hsl(188 80% 42% / .12); }
   .action-button:disabled, .upgrade-button:disabled { cursor: not-allowed; opacity: .3; transform: none; }
   .action-button kbd { margin-left: auto; border-radius: 4px; background: #051219; padding: 1px 5px; color: white; }
   .action-icon { flex: none; margin-left: 1px; margin-right: 1px; }
@@ -232,7 +243,7 @@ body::-webkit-scrollbar {
     color: hsl(100 70% 82%);
     transition: transform .15s ease, background .15s ease;
   }
-  .cell-plan-button:hover { transform: translateY(-1px); background: linear-gradient(100deg, hsl(104 62% 22% / .48), hsl(190 62% 19% / .36)); }
+  .cell-plan-button:hover { transform: translateY(-2px); border-color: hsl(103 76% 70% / .38); background: linear-gradient(100deg, hsl(104 62% 22% / .56), hsl(190 62% 19% / .44)); box-shadow: 0 9px 22px hsl(105 70% 35% / .1); }
   .cell-plan-button b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
   .cell-plan-button small { display: block; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: hsl(190 35% 82% / .48); font-size: 8px; }
   .cell-plan-button kbd { border-radius: 4px; background: hsl(210 55% 5% / .72); padding: 2px 5px; color: white; font-size: 8px; }
@@ -343,7 +354,7 @@ body::-webkit-scrollbar {
   font-weight: 900;
   letter-spacing: .08em;
 }
-.phase-out-button:hover { background: hsl(190 48% 24% / .78); }
+.phase-out-button:hover { translate: 0 -2px; border-color: hsl(185 72% 78% / .38); background: hsl(190 48% 24% / .88); box-shadow: 0 8px 22px hsl(188 80% 48% / .14); }
 
 .ultrastructure-cell-stage {
   position: absolute;
@@ -499,65 +510,85 @@ body::-webkit-scrollbar {
   bottom: 126px;
   z-index: 9;
   display: flex;
-  width: min(292px, 25vw);
+  width: clamp(340px, 23vw, 390px);
+  max-width: calc(100vw - 32px);
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 2px;
+  padding: 1px 4px 2px 1px;
   scrollbar-width: thin;
   scrollbar-color: hsl(184 55% 50% / .35) transparent;
 }
+.ultrastructure-controls::-webkit-scrollbar { width: 6px; }
+.ultrastructure-controls::-webkit-scrollbar-track { background: transparent; }
+.ultrastructure-controls::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: hsl(184 58% 62% / .28);
+  box-shadow: inset 0 0 0 1px hsl(184 65% 80% / .08);
+}
+.ultrastructure-controls::-webkit-scrollbar-thumb:hover { background: hsl(184 68% 68% / .46); }
 
 .ultrastructure-panel {
   flex: none;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  contain: inline-size;
   border: 1px solid hsl(186 72% 75% / .15);
   border-radius: 13px;
   background: linear-gradient(145deg, hsl(192 55% 10% / .72), hsl(226 58% 5% / .75));
-  padding: 11px;
+  padding: 13px;
   box-shadow: inset 0 1px 0 hsl(190 82% 90% / .055), 0 12px 35px hsl(220 90% 2% / .26);
   backdrop-filter: blur(14px);
 }
-.ultrastructure-phase-panel h3 { margin-top: 2px; color: hsl(184 52% 92%); font-size: 13px; font-weight: 900; }
-.ultrastructure-phase-panel > p { margin-top: 5px; color: hsl(190 26% 84% / .5); font-size: 8px; line-height: 1.35; }
+.ultrastructure-panel button,
+.ultrastructure-panel > div { max-width: 100%; }
+.ultrastructure-phase-panel > div > div { min-width: 0; }
+.ultrastructure-phase-panel h3 { overflow-wrap: anywhere; }
+.ultrastructure-panel .eyebrow { font-size: 9px; line-height: 1.25; }
+.ultrastructure-phase-panel h3 { margin-top: 3px; color: hsl(184 52% 92%); font-size: 15px; font-weight: 900; line-height: 1.2; }
+.ultrastructure-phase-panel > p { margin-top: 7px; color: hsl(190 28% 88% / .62); font-size: 10px; line-height: 1.45; }
 
-.live-indicator { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: hsl(97 70% 72% / .72); font-size: 7px; font-weight: 900; letter-spacing: .12em; }
+.live-indicator { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: hsl(97 70% 72% / .8); font-size: 8px; font-weight: 900; letter-spacing: .1em; }
 .live-indicator i { width: 6px; height: 6px; border-radius: 50%; background: #86e85a; animation: live-pulse 1s ease-in-out infinite alternate; }
 
-.ultrastructure-stances { display: grid; gap: 5px; margin-top: 7px; }
+.ultrastructure-stances { display: grid; min-width: 0; gap: 7px; margin-top: 9px; }
 .stance-button {
   display: flex;
   width: 100%;
-  min-height: 43px;
+  min-width: 0;
+  min-height: 54px;
   align-items: center;
   gap: 8px;
   border: 1px solid hsl(188 54% 76% / .1);
   border-radius: 8px;
   background: hsl(210 54% 6% / .44);
-  padding: 7px 8px;
+  padding: 9px 10px;
   text-align: left;
   transition: background .15s ease, border-color .15s ease, transform .15s ease;
 }
-.stance-button:hover { transform: translateX(2px); border-color: hsl(185 70% 72% / .28); }
+.stance-button:hover { transform: translateX(3px); border-color: hsl(185 70% 72% / .36); background: hsl(192 56% 13% / .66); box-shadow: -5px 0 18px hsl(184 80% 48% / .08); }
 .stance-button > svg { flex: none; color: hsl(185 52% 84% / .65); }
-.stance-button > span { min-width: 0; color: hsl(188 50% 86%); }
-.stance-button b { display: block; font-size: 9px; }
-.stance-button small { display: block; overflow: hidden; margin-top: 1px; color: hsl(190 24% 78% / .43); font-size: 7px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.stance-button > span { min-width: 0; flex: 1; overflow: hidden; color: hsl(188 50% 88%); }
+.stance-button b { display: block; font-size: 11px; line-height: 1.25; }
+.stance-button small { display: block; margin-top: 3px; overflow-wrap: anywhere; color: hsl(190 28% 84% / .56); font-size: 9px; line-height: 1.35; white-space: normal; }
 .stance-button-active { border-color: hsl(102 78% 68% / .46); background: linear-gradient(100deg, hsl(104 60% 19% / .42), hsl(190 58% 13% / .45)); }
 
-.automation-toggle { display: flex; width: 100%; min-height: 39px; align-items: center; gap: 8px; border-top: 1px solid hsl(190 45% 75% / .08); padding: 6px 0; text-align: left; }
+.automation-toggle { display: flex; width: 100%; min-width: 0; min-height: 46px; align-items: center; gap: 9px; border-top: 1px solid hsl(190 45% 75% / .08); border-radius: 7px; padding: 7px 5px; text-align: left; }
 .automation-toggle:first-of-type { margin-top: 4px; }
+.automation-toggle:not(:disabled):hover { translate: 2px 0; background: hsl(188 55% 22% / .18); }
 .automation-toggle:disabled { cursor: not-allowed; opacity: .3; }
-.automation-toggle > span:last-child { min-width: 0; }
-.automation-toggle b { display: block; color: hsl(188 46% 86%); font-size: 9px; }
-.automation-toggle small { display: block; margin-top: 1px; color: hsl(190 24% 78% / .42); font-size: 7px; line-height: 1.25; }
+.automation-toggle > span:last-child { min-width: 0; flex: 1; overflow: hidden; }
+.automation-toggle b { display: block; color: hsl(188 46% 88%); font-size: 10px; line-height: 1.25; }
+.automation-toggle small { display: block; margin-top: 2px; overflow-wrap: anywhere; color: hsl(190 26% 82% / .5); font-size: 8.5px; line-height: 1.35; }
 .automation-switch { position: relative; width: 30px; height: 18px; flex: none; border: 1px solid hsl(189 50% 75% / .2); border-radius: 999px; background: hsl(210 45% 4% / .65); }
 .automation-switch i { position: absolute; left: 3px; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: hsl(190 25% 65% / .55); transition: translate .16s ease, background .16s ease; }
 .automation-toggle-active .automation-switch { border-color: hsl(105 72% 66% / .45); background: hsl(105 62% 32% / .25); }
 .automation-toggle-active .automation-switch i { translate: 12px 0; background: #a9ef74; }
 
-.readiness-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 7px; margin-top: 7px; }
-.readiness-check { display: flex; min-height: 20px; align-items: center; gap: 5px; color: hsl(190 24% 80% / .34); font-size: 7px; line-height: 1.2; }
+.readiness-grid { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 9px; margin-top: 9px; }
+.readiness-check { display: flex; min-width: 0; min-height: 23px; align-items: center; gap: 6px; overflow-wrap: anywhere; color: hsl(190 24% 82% / .42); font-size: 8.5px; line-height: 1.25; }
 .readiness-check > span { display: grid; width: 14px; height: 14px; flex: none; place-items: center; border: 1px solid hsl(190 38% 72% / .14); border-radius: 50%; }
 .readiness-check-ready { color: hsl(100 58% 79% / .78); }
 .readiness-check-ready > span { border-color: hsl(104 70% 66% / .44); background: hsl(104 62% 36% / .22); }
@@ -565,7 +596,9 @@ body::-webkit-scrollbar {
 .division-button {
   display: flex;
   width: 100%;
-  min-height: 42px;
+  min-width: 0;
+  min-height: 48px;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -574,11 +607,13 @@ body::-webkit-scrollbar {
   background: linear-gradient(100deg, hsl(104 68% 30% / .72), hsl(176 76% 25% / .72));
   color: #efffdb;
   margin-top: 8px;
-  font-size: 8px;
+  padding: 7px 9px;
+  font-size: 9.5px;
   font-weight: 900;
   letter-spacing: .06em;
 }
-.division-button span { color: hsl(100 55% 88% / .52); font-size: 8px; letter-spacing: 0; }
+.division-button:not(:disabled):hover { translate: 0 -2px; border-color: hsl(100 88% 80% / .68); filter: brightness(1.1); box-shadow: 0 9px 22px hsl(104 80% 44% / .14); }
+.division-button span { color: hsl(100 55% 88% / .58); font-size: 8.5px; letter-spacing: 0; white-space: nowrap; }
 .division-button:disabled { cursor: not-allowed; opacity: .3; }
 .division-meter { height: 6px; overflow: hidden; border-radius: 999px; background: hsl(210 44% 4% / .72); }
 .division-meter i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #76d94d, #67e5dd); transition: width .16s linear; }
@@ -787,13 +822,18 @@ canvas.micrograph-field {
   color: hsl(185 60% 82%);
 }
 
-.zoom-step-button:hover { background: hsl(190 52% 25% / .8); }
+.zoom-step-button:hover { translate: 0 -2px; border-color: hsl(188 70% 76% / .34); background: hsl(190 52% 25% / .88); box-shadow: 0 7px 18px hsl(188 75% 45% / .12); }
 .zoom-step-button:disabled { cursor: not-allowed; opacity: .28; }
 
 .hud-icon-button:focus-visible,
 .zoom-step-button:focus-visible,
 .action-button:focus-visible,
 .upgrade-button:focus-visible,
+.phase-out-button:focus-visible,
+.stance-button:focus-visible,
+.automation-toggle:focus-visible,
+.division-button:focus-visible,
+.architecture-slot:focus-visible,
 .microscope-slider:focus-visible {
   outline: 2px solid hsl(185 92% 72%);
   outline-offset: 3px;
@@ -836,7 +876,7 @@ canvas.micrograph-field {
     left: calc(50% - 112px);
     width: min(520px, calc(100vw - 350px));
   }
-  .ultrastructure-controls { right: 8px; width: 278px; }
+  .ultrastructure-controls { right: 8px; width: 310px; }
   .hud-root-ultrastructure .specimen-panel { opacity: .16; pointer-events: none; }
 }
 
