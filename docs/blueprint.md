@@ -9,6 +9,12 @@
 - Nutrient Gathering: Sugar Consumption: Collect resources for your BioCell through animated interaction to make it grow larger.
 - Genome Hijack Counterplay: Giant-virus infections can be resisted through Nucleus RNA interference or a Golgi autophagy purge after the relevant organelle upgrade.
 - Infinite World: Stream deterministic ecosystem chunks around the player without invisible world borders.
+- Dual Game Loop: The external loop is continuous movement, nutrient foraging, predator avoidance, and infinite exploration. The internal loop is a live nine-slot cell architecture where organelle position and metabolic stance reshape the same movement, economy, defense, and crafting rules.
+- Diegetic Cell Architect: Microscope depth is the mode transition. Approaching ultrastructure fades the architecture over the actual specimen, locks motility only at interactive focus, and zooming out restores world control. There is no separate planning screen.
+- Cell Architecture: Upgrades grow additional placeable organelles. Genome-core nuclei resist viral takeover, metabolic-ring mitochondria increase ATP conversion, membrane mitochondria aid transport and propulsion, and Golgi proximity controls biomass packaging or lysosome reach.
+- Regulatory RNA: Upgraded systems can fold Emergency RNAi and Autophagy Reflex programs. These are conditional automations, not free passive bonuses, and pay the same ATP costs as manual abilities.
+- Complete Run Arc: Metabolic ignition leads to system assembly, homeostatic stabilization, replication reserve building, and controlled cytokinesis. Division can stall under starvation and aborts if viral material enters during genome copying.
+- Fair Onboarding: Deterministic starter organelles, a directional molecular navigator, five seconds of initial membrane protection, phase signals, and cause-specific death reports make the systems learnable without removing risk.
 
 ## Style Guidelines:
 

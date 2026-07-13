@@ -7,7 +7,7 @@ export type SpeciesId =
   | 'rodBacteria'
   | 'flagellateProtist'
   | 'ciliate'
-  | 'bacteriophage'
+  | 'giantVirus'
   | 'fungiWall'
   | 'mitochondrion'
   | 'golgi'
@@ -17,6 +17,30 @@ export type OrganismKind = 'ambient' | 'wall' | 'infectious' | 'organelle';
 
 export type OrganelleType = 'mitochondrion' | 'golgi' | 'nucleus';
 export type OrganelleLevels = Record<OrganelleType, number>;
+
+export type MetabolicStance = 'forage' | 'homeostasis' | 'replicate';
+export type AutomationRule = 'rnai' | 'autophagy';
+export type CellAutomation = Record<AutomationRule, boolean>;
+
+export type CellStage = 'forage' | 'assemble' | 'stabilize' | 'replicate' | 'division' | 'complete';
+export type DeathCause = 'starvation' | 'membrane-rupture' | 'genome-hijack';
+
+export type OrganellePlacement = {
+  id: string;
+  type: OrganelleType;
+  slot: number;
+};
+
+export type ArchitectureBonuses = {
+  score: number;
+  atpConversion: number;
+  glucoseUptake: number;
+  movementSpeed: number;
+  damageReduction: number;
+  viralResistance: number;
+  biomassSynthesis: number;
+  lysosomeRadius: number;
+};
 
 export type EntitySize = number | { width: number; height: number };
 
@@ -85,6 +109,15 @@ export type PlayerState = {
   infected: boolean;
   infectionStart: number;
   infectionProgress: number; // 0..100
+  metabolicStance: MetabolicStance;
+  automation: CellAutomation;
+  architecture: OrganellePlacement[];
+  sugarsEaten: number;
+  stage: CellStage;
+  divisionActive: boolean;
+  divisionProgress: number;
+  won: boolean;
+  deathCause: DeathCause | null;
   dying: boolean;
   dyingSince: number;
   dead: boolean;
@@ -105,5 +138,12 @@ export type SimEvent =
   | { type: 'devoured' }
   | { type: 'ability'; organelle: OrganelleType }
   | { type: 'upgrade'; organelle: OrganelleType }
+  | { type: 'architectureChanged' }
+  | { type: 'stanceChanged'; stance: MetabolicStance }
+  | { type: 'automationChanged'; rule: AutomationRule; enabled: boolean }
+  | { type: 'stageChanged'; stage: CellStage }
+  | { type: 'divisionStarted' }
+  | { type: 'divisionCancelled' }
+  | { type: 'won' }
   | { type: 'wave'; level: number }
   | { type: 'died' };

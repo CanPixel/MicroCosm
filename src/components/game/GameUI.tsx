@@ -1,5 +1,6 @@
-import { Activity, Biohazard, Box, BrainCircuit, ChevronUp, Dna, FlaskConical, Gauge, Microscope, Minus, Plus, Shield, Sparkles, Volume2, VolumeX, Zap } from 'lucide-react';
-import { OrganelleType } from '@/lib/game/types';
+import { Activity, ArrowUp, BatteryCharging, Biohazard, Box, BrainCircuit, ChevronUp, Dna, FlaskConical, Gauge, Microscope, Minus, Network, PackageOpen, Plus, Recycle, ShieldCheck, Volume2, VolumeX, Zap } from 'lucide-react';
+import { CellStage, OrganelleType } from '@/lib/game/types';
+import { DIVISION_MIN_ARCHITECTURE_SCORE, MAX_ORGANELLE_LEVEL } from '@/lib/game/constants';
 import type { ReactNode } from 'react';
 
 type Cost = { glucose: number; biomass: number };
@@ -24,18 +25,25 @@ type Props = {
   muted: boolean;
   zoomMultiplier: number;
   electronMix: number;
+  ultrastructureActive: boolean;
+  stage: CellStage;
+  sugarsEaten: number;
+  divisionProgress: number;
+  architectureScore: number;
+  objective: { bearing: number; distance: number; label: string } | null;
   onToggleMute: () => void;
   onZoomChange: (value: number) => void;
   getUpgradeCost: (type: OrganelleType) => Cost;
   getAbilityState: (type: OrganelleType) => AbilityState;
   onUpgrade: (type: OrganelleType) => void;
   onAbility: (type: OrganelleType) => void;
+  onOpenArchitect: () => void;
 };
 
-const systems: Array<{ type: OrganelleType; name: string; action: string; key: string; icon: typeof Zap }> = [
-  { type: 'mitochondrion', name: 'Mitochondria', action: 'ATP surge', key: '1', icon: Zap },
-  { type: 'nucleus', name: 'Nucleus', action: 'Membrane shield', key: '2', icon: Shield },
-  { type: 'golgi', name: 'Golgi', action: 'Lysosome burst', key: '3', icon: Dna },
+const systems: Array<{ type: OrganelleType; name: string; action: string; key: string; icon: typeof Zap; abilityIcon: typeof Zap }> = [
+  { type: 'mitochondrion', name: 'Mitochondria', action: 'ATP surge', key: '1', icon: BatteryCharging, abilityIcon: Zap },
+  { type: 'nucleus', name: 'Nucleus', action: 'Membrane shield', key: '2', icon: Dna, abilityIcon: ShieldCheck },
+  { type: 'golgi', name: 'Golgi', action: 'Lysosome burst', key: '3', icon: PackageOpen, abilityIcon: Recycle },
 ];
 
 function Meter({ value, max = 100, tone = 'cyan' }: { value: number; max?: number; tone?: 'cyan' | 'amber' | 'red' | 'green' }) {
@@ -53,10 +61,19 @@ export function GameUI(props: Props) {
   const microscopeReadout = props.electronMix > 0.12
     ? `EM ${electronMagnification.toLocaleString()}×`
     : `OPTICAL ${props.zoomMultiplier.toFixed(1)}×`;
+  const stageMeta: Record<CellStage, { label: string; detail: string; progress: number }> = {
+    forage: { label: 'Ignite metabolism', detail: props.objective ? `${Math.round(props.objective.distance)} μm to ${props.objective.label}` : `${Math.min(8, props.sugarsEaten)}/8 glucose crystals`, progress: Math.min(100, props.sugarsEaten / 8 * 100) },
+    assemble: { label: 'Assemble systems', detail: props.objective ? `${Math.round(props.objective.distance)} μm to ${props.objective.label}` : `${props.collectedOrganelles.size}/3 organelles`, progress: props.collectedOrganelles.size / 3 * 100 },
+    stabilize: { label: 'Stabilize architecture', detail: `${props.architectureScore}/${DIVISION_MIN_ARCHITECTURE_SCORE} coherence`, progress: Math.min(100, props.architectureScore / DIVISION_MIN_ARCHITECTURE_SCORE * 100) },
+    replicate: { label: 'Prepare cytokinesis', detail: 'Build division reserves', progress: 88 },
+    division: { label: 'Controlled cytokinesis', detail: `${Math.round(props.divisionProgress)}% separated`, progress: props.divisionProgress },
+    complete: { label: 'Lineage established', detail: 'Viable daughter cell', progress: 100 },
+  };
+  const currentStage = stageMeta[props.stage];
 
   return (
-    <div data-game-ui className="hud-root pointer-events-none fixed inset-0 z-40 text-white">
-      <section className="hud-panel pointer-events-auto w-[min(320px,calc(100vw-24px))] p-4">
+    <div data-game-ui className={`hud-root pointer-events-none fixed inset-0 z-40 text-white ${props.ultrastructureActive ? 'hud-root-ultrastructure' : ''}`}>
+      <section className="specimen-panel hud-panel pointer-events-auto w-[min(320px,calc(100vw-24px))] p-4">
         <div className="mb-4 flex items-start justify-between">
           <div>
             <p className="eyebrow">LIVE SPECIMEN 07</p>
@@ -78,6 +95,20 @@ export function GameUI(props: Props) {
           <Stat icon={Activity} label="INTEGRITY" value={`${Math.round(props.integrity)}%`}><Meter value={props.integrity} max={props.maxIntegrity} tone="green" /></Stat>
           <Stat icon={Box} label="BIOMASS" value={`${Math.floor(props.biomass)}`} />
         </div>
+
+        <button type="button" onClick={props.onOpenArchitect} className="cell-plan-button mt-3" aria-label={`Focus ultrastructure for Cell Architect. Current objective: ${currentStage.label}`}>
+          <span className="cell-plan-icon"><Network size={16} /></span>
+          <span className="min-w-0 flex-1 text-left"><b>{currentStage.label}</b><small>{currentStage.detail}</small></span>
+          {props.objective && (
+            <span className="objective-bearing" title={`${Math.round(props.objective.distance)} μm to ${props.objective.label}`}>
+              <ArrowUp size={15} style={{ transform: `rotate(${props.objective.bearing + 90}deg)` }} />
+              <small>{Math.round(props.objective.distance)}</small>
+            </span>
+          )}
+          <span className="cell-plan-score">{props.architectureScore}</span>
+          <kbd>TAB</kbd>
+          <i style={{ width: `${currentStage.progress}%` }} />
+        </button>
 
         {(props.isInfected || props.isStarving) && (
           <div className="infection-readout mt-3 rounded-lg p-2.5">
@@ -120,7 +151,7 @@ export function GameUI(props: Props) {
           <button type="button" className="zoom-step-button" aria-label="Zoom in" disabled={props.zoomMultiplier >= 2.3999} onClick={() => props.onZoomChange(props.zoomMultiplier + 0.1)}><Plus size={14} /></button>
         </div>
         <div className="mt-2 flex items-center justify-between text-[8px] font-bold tracking-[.12em] text-white/30">
-          <span>ECOSYSTEM</span><span>[ &nbsp; ]</span><span>ULTRASTRUCTURE</span>
+          <span>ECOSYSTEM</span><span className={props.ultrastructureActive ? 'microscope-mode-active' : ''}>{props.ultrastructureActive ? 'ARCHITECT' : '[  ]'}</span><span>ULTRASTRUCTURE</span>
         </div>
       </section>
 
@@ -143,7 +174,9 @@ export function GameUI(props: Props) {
           const Icon = system.icon;
           const affordable = props.glucose >= cost.glucose && props.biomass >= cost.biomass;
           const ability = props.getAbilityState(system.type);
+          const AbilityIcon = system.abilityIcon;
           const abilityReady = props.energy >= ability.cost && ability.cooldown <= 0;
+          const maxed = props.organelleLevels[system.type] >= MAX_ORGANELLE_LEVEL;
           const actionLabel = props.isInfected && system.type === 'nucleus' && props.organelleLevels.nucleus >= 1
             ? 'RNA interference'
             : props.isInfected && system.type === 'golgi' && props.organelleLevels.golgi >= 1
@@ -165,10 +198,10 @@ export function GameUI(props: Props) {
               </div>
               <div className="mt-2 grid gap-1 sm:grid-cols-[1fr_auto]">
                 <button disabled={!unlocked || !abilityReady} onClick={() => props.onAbility(system.type)} className="action-button" title={`${ability.cost} ATP`} aria-label={`${displayedAction}, costs ${ability.cost} ATP`}>
-                  <Sparkles size={13} /><span className="action-label truncate">{displayedAction}</span><span className="action-label-compact">{compactAction}</span><span className="ability-cost">{ability.cost} ATP</span><kbd>{system.key}</kbd>
+                  <AbilityIcon className="action-icon" size={13} /><span className="action-label truncate">{displayedAction}</span><span className="action-label-compact">{compactAction}</span><span className="ability-cost">{ability.cost} ATP</span><kbd>{system.key}</kbd>
                 </button>
-                <button disabled={!unlocked || !affordable} onClick={() => props.onUpgrade(system.type)} className="upgrade-button" title={`Upgrade: ${cost.glucose} glucose, ${cost.biomass} biomass`} aria-label={`Upgrade ${system.name}, costs ${cost.glucose} glucose and ${cost.biomass} biomass`}>
-                  <ChevronUp size={14} /><span className="upgrade-cost sm:hidden">{cost.glucose}G · {cost.biomass}B</span>
+                <button disabled={!unlocked || !affordable || maxed} onClick={() => props.onUpgrade(system.type)} className="upgrade-button" title={maxed ? 'Maximum specialization reached' : `Upgrade: ${cost.glucose} glucose, ${cost.biomass} biomass`} aria-label={maxed ? `${system.name} fully specialized` : `Upgrade ${system.name}, costs ${cost.glucose} glucose and ${cost.biomass} biomass`}>
+                  {maxed ? <span className="text-[8px]">MAX</span> : <><ChevronUp size={14} /><span className="upgrade-cost sm:hidden">{cost.glucose}G · {cost.biomass}B</span></>}
                 </button>
               </div>
             </article>

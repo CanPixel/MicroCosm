@@ -7,6 +7,8 @@ import { InnerGolgiApparatus } from './InnerGolgiApparatus';
 import { InnerCellNucleus } from './InnerCellNucleus';
 import { GiantAmoebaVirus } from './GiantAmoebaVirus';
 import { convexHull, hullRadiusAtAngle, Pt } from '@/lib/game/hull';
+import { CELL_ARCHITECTURE_SLOTS } from '@/lib/game/architecture';
+import type { OrganellePlacement, OrganelleType } from '@/lib/game/types';
 
 type Point = { x: number; y: number };
 
@@ -61,7 +63,7 @@ type BioCellProps = {
   size: number;
   score: number;
   isDying: boolean;
-  collectedOrganelles: Set<string>;
+  architecture: OrganellePlacement[];
   isInfected: boolean;
   shielded?: boolean;
   electronMix?: number;
@@ -89,7 +91,7 @@ type DamageParticle = {
 
 type InternalOrganelle = {
     id: string;
-    type: string;
+    type: OrganelleType;
     Component: React.FC<{ size: number }>;
     size: number;
 };
@@ -99,8 +101,8 @@ type InternalOrganelle = {
 type OrganelleMotion = {
     x: number;
     y: number;
-    vx: number;
-    vy: number;
+    targetX: number;
+    targetY: number;
     rotation: number;
 };
 
@@ -111,19 +113,18 @@ const organelleMap: Record<string, React.FC<{ size: number }>> = {
 };
 
 
-export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, isDying, collectedOrganelles, isInfected, shielded = false, electronMix = 0 }, ref) => {
+export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, isDying, architecture, isInfected, shielded = false, electronMix = 0 }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const sizeRef = useRef(size);
-  const collectedOrganellesRef = useRef(collectedOrganelles);
   const electronMixRef = useRef(electronMix);
 
   sizeRef.current = size;
-  collectedOrganellesRef.current = collectedOrganelles;
   electronMixRef.current = electronMix;
 
   const [hasEvolved, setHasEvolved] = useState(false);
   const [damageParticles, setDamageParticles] = useState<DamageParticle[]>([]);
+  const damageParticlesActiveRef = useRef(false);
   const [internalOrganelles, setInternalOrganelles] = useState<InternalOrganelle[]>([]);
   const organelleMotionRef = useRef<Map<string, OrganelleMotion>>(new Map());
   const organelleElsRef = useRef<Map<string, SVGGElement>>(new Map());
@@ -160,6 +161,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         });
     }
     setDamageParticles(d => [...d, ...newParticles]);
+    damageParticlesActiveRef.current = true;
 
   }, []);
 
@@ -183,34 +185,48 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
   // Internal particles
   const particlesRef = useRef<Particle[]>([]);
   
-  // Add new organelles when collected
-  useEffect(() => {
-    const existingTypes = new Set(internalOrganelles.map(o => o.type));
-    const newOrganelles: InternalOrganelle[] = [];
-    
-    collectedOrganelles.forEach(type => {
-        if (!existingTypes.has(type) && organelleMap[type]) {
-            const id = `${type}-${Date.now()}`;
-            organelleMotionRef.current.set(id, {
-                x: (Math.random() * 0.6 - 0.3), // Start away from center
-                y: (Math.random() * 0.6 - 0.3),
-                vx: (Math.random() - 0.5) * 0.015,
-                vy: (Math.random() - 0.5) * 0.015,
-                rotation: Math.random() * 360,
-            });
-            newOrganelles.push({
-                id,
-                type: type,
-                Component: organelleMap[type],
-                size: initialBaseRadius * 0.5,
-            });
-        }
-    });
+  const architectureKey = architecture
+    .map((unit) => `${unit.id}:${unit.slot}`)
+    .sort()
+    .join('|');
 
-    if (newOrganelles.length > 0) {
-        setInternalOrganelles(prev => [...prev, ...newOrganelles]);
+  // Reconcile the visible internal organelles with the player's planned
+  // architecture. Slot changes ease toward new coordinates in the animation
+  // loop, so reorganizing the cell feels physical instead of teleporting.
+  useEffect(() => {
+    const activeIds = new Set(architecture.map((unit) => unit.id));
+    for (const id of organelleMotionRef.current.keys()) {
+      if (!activeIds.has(id)) organelleMotionRef.current.delete(id);
     }
-  }, [collectedOrganelles, internalOrganelles, initialBaseRadius]);
+    const nextOrganelles = architecture.flatMap((unit): InternalOrganelle[] => {
+      const Component = organelleMap[unit.type];
+      const slot = CELL_ARCHITECTURE_SLOTS[unit.slot];
+      if (!Component || !slot) return [];
+      const motion = organelleMotionRef.current.get(unit.id);
+      if (motion) {
+        motion.targetX = slot.x;
+        motion.targetY = slot.y;
+      } else {
+        organelleMotionRef.current.set(unit.id, {
+          x: slot.x * 0.2,
+          y: slot.y * 0.2,
+          targetX: slot.x,
+          targetY: slot.y,
+          rotation: unit.slot * 31,
+        });
+      }
+      return [{
+        id: unit.id,
+        type: unit.type,
+        Component,
+        size: initialBaseRadius * (unit.type === 'nucleus' ? 0.58 : 0.48),
+      }];
+    });
+    setInternalOrganelles(nextOrganelles);
+  // architectureKey is a stable structural signature. The architecture array
+  // itself is copied for HUD safety on every sync interval.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [architectureKey, initialBaseRadius]);
 
 
   useEffect(() => {
@@ -361,15 +377,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
       // an organelle near the wall visibly bulges the membrane outward.
       const orgScale = Math.min(3.2, Math.max(0.7, currentBaseRadius / 55));
       organelleMotionRef.current.forEach((motion, id) => {
-          motion.x += motion.vx;
-          motion.y += motion.vy;
-
-          // Keep organelles just inside the structural ring.
-          if (motion.x < -0.78 || motion.x > 0.78) motion.vx *= -1;
-          if (motion.y < -0.78 || motion.y > 0.78) motion.vy *= -1;
-          motion.x = Math.max(-0.78, Math.min(0.78, motion.x));
-          motion.y = Math.max(-0.78, Math.min(0.78, motion.y));
-          motion.rotation += 0.5;
+          motion.x += (motion.targetX - motion.x) * 0.09;
+          motion.y += (motion.targetY - motion.y) * 0.09;
+          motion.rotation += 0.12;
 
           const el = organelleElsRef.current.get(id);
           if (el) {
@@ -398,15 +408,18 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
       
       // Skip the state update entirely while there are no live particles, so
       // the burst only costs re-renders for the moment it is visible.
-      setDamageParticles(prev => {
-        if (prev.length === 0) return prev;
-        return prev.map(p => ({
-            ...p,
-            x: p.x + p.vx,
-            y: p.y + p.vy,
-            opacity: p.opacity - 0.02,
-        })).filter(p => p.opacity > 0);
-      });
+      if (damageParticlesActiveRef.current) {
+        setDamageParticles(prev => {
+          const next = prev.map(p => ({
+              ...p,
+              x: p.x + p.vx,
+              y: p.y + p.vy,
+              opacity: p.opacity - 0.02,
+          })).filter(p => p.opacity > 0);
+          if (next.length === 0) damageParticlesActiveRef.current = false;
+          return next;
+        });
+      }
 
       // --- Deformable membrane: node physics -> convex hull -> resample ---
       // Movement stretches the cell along its travel axis; the springy nodes

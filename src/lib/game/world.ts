@@ -27,7 +27,7 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       return rng() > 0.5 ? { width: length, height: thickness } : { width: thickness, height: length };
     },
   },
-  bacteriophage: { kind: 'infectious', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.38 },
+  giantVirus: { kind: 'infectious', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.42 },
   amoeba: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: (rng) => rng() * 150 + 250, collisionScale: 0.34 },
   tardigrade: { kind: 'ambient', autonomous: true, permanentlyHostile: false, size: defaultSize, collisionScale: 0.39 },
   spikyVirus: { kind: 'ambient', autonomous: true, permanentlyHostile: true, size: defaultSize, collisionScale: 0.46 },
@@ -38,7 +38,7 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
 
 const SPAWN_TABLE: Array<[number, SpeciesId]> = [
   [0.08, 'mitochondrion'], [0.16, 'golgi'], [0.24, 'nucleus'], [0.29, 'fungiWall'],
-  [0.35, 'bacteriophage'], [0.45, 'amoeba'], [0.55, 'tardigrade'], [0.65, 'spikyVirus'],
+  [0.35, 'giantVirus'], [0.45, 'amoeba'], [0.55, 'tardigrade'], [0.65, 'spikyVirus'],
   [0.75, 'rodBacteria'], [0.85, 'flagellateProtist'], [1.01, 'ciliate'],
 ];
 

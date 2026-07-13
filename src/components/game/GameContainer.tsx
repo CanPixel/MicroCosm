@@ -9,6 +9,8 @@ import { ShaderBackground } from "./ShaderBackground";
 import { GameDefs } from "./GameDefs";
 import { Antiviral } from "./Antiviral";
 import { OrganismLayer } from "./OrganismLayer";
+import { CellArchitect } from "./CellArchitect";
+import { GameWinDialog } from "./GameWinDialog";
 import { THEME_CALM, THEME_VIBRANT } from "@/lib/theme";
 import { createSimulation, Simulation } from "@/lib/game/sim";
 import { Soundscape } from "@/lib/game/audio";
@@ -20,10 +22,15 @@ import {
   USER_ZOOM_MIN,
   USER_ZOOM_STEP,
 } from "@/lib/game/constants";
-import { OrganelleType } from "@/lib/game/types";
+import { ArchitectureBonuses, CellAutomation, CellStage, DeathCause, MetabolicStance, OrganellePlacement, OrganelleType } from "@/lib/game/types";
+import { architectureBonuses } from "@/lib/game/architecture";
 import { renderDimensions } from "@/lib/game/world";
 
 const HUD_SYNC_INTERVAL = 0.1; // seconds between React HUD updates
+const ULTRASTRUCTURE_FADE_START = 1.45;
+const ULTRASTRUCTURE_INTERACTIVE_ZOOM = 1.75;
+const ULTRASTRUCTURE_FOCUS_ZOOM = 2.2;
+const ULTRASTRUCTURE_EXIT_ZOOM = 1.25;
 
 type GameContainerProps = {
   onGameOver: () => void;
@@ -49,6 +56,16 @@ type HudState = {
   collectedOrganelles: Set<string>;
   zoomMultiplier: number;
   electronMix: number;
+  architecture: OrganellePlacement[];
+  architectureBonuses: ArchitectureBonuses;
+  metabolicStance: MetabolicStance;
+  automation: CellAutomation;
+  stage: CellStage;
+  sugarsEaten: number;
+  divisionProgress: number;
+  won: boolean;
+  deathCause: DeathCause | null;
+  objective: { bearing: number; distance: number; label: string } | null;
 };
 
 const lerpHSL = (
@@ -83,12 +100,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const simRef = useRef<Simulation | null>(null);
   const [ready, setReady] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isGameWon, setIsGameWon] = useState(false);
+  const [signal, setSignal] = useState<{ title: string; detail: string; tone: 'cyan' | 'lime' | 'red' } | null>(null);
+  const signalTimerRef = useRef<number | null>(null);
   const [showNames, setShowNames] = useState(false);
 
   // Membership versions: bumping these re-renders the corresponding lists.
   const [, setOrganismsVersion] = useState(0);
   const [, setSugarsVersion] = useState(0);
   const [, setAntiviralsVersion] = useState(0);
+  const renderedVersionsRef = useRef({ organisms: -1, sugars: -1, antivirals: -1 });
 
   const [hud, setHud] = useState<HudState>({
     size: INITIAL_CELL_SIZE,
@@ -110,7 +131,22 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     collectedOrganelles: new Set(),
     zoomMultiplier: 1,
     electronMix: 0,
+    architecture: [],
+    architectureBonuses: architectureBonuses([]),
+    metabolicStance: 'forage',
+    automation: { rnai: false, autophagy: false },
+    stage: 'forage',
+    sugarsEaten: 0,
+    divisionProgress: 0,
+    won: false,
+    deathCause: null,
+    objective: null,
   });
+  const ultrastructureIntensity = Math.min(1, Math.max(0,
+    (hud.zoomMultiplier - ULTRASTRUCTURE_FADE_START)
+      / (ULTRASTRUCTURE_INTERACTIVE_ZOOM - ULTRASTRUCTURE_FADE_START),
+  ));
+  const ultrastructureActive = hud.zoomMultiplier >= ULTRASTRUCTURE_INTERACTIVE_ZOOM;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -126,6 +162,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   if (audioRef.current === null && typeof window !== "undefined") {
     audioRef.current = new Soundscape();
   }
+
+  const showSignal = useCallback((next: { title: string; detail: string; tone: 'cyan' | 'lime' | 'red' }) => {
+    setSignal(next);
+    if (signalTimerRef.current !== null) window.clearTimeout(signalTimerRef.current);
+    signalTimerRef.current = window.setTimeout(() => setSignal(null), 3200);
+  }, []);
 
   const registerOrganismEl = useCallback((id: string, el: HTMLDivElement | null) => {
     if (el) organismElsRef.current.set(id, el);
@@ -143,6 +185,9 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       electronMix: Math.min(1, Math.max(0, (zoomMultiplier - 1.05) / 1.35)),
     }));
   }, []);
+
+  const openArchitect = useCallback(() => applyZoom(ULTRASTRUCTURE_FOCUS_ZOOM), [applyZoom]);
+  const closeArchitect = useCallback(() => applyZoom(ULTRASTRUCTURE_EXIT_ZOOM), [applyZoom]);
 
   const runAbility = useCallback((type: OrganelleType) => {
     const sim = simRef.current;
@@ -181,6 +226,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       const target = event.target as Element | null;
       if (target?.closest('button,input,textarea,select,[role="slider"],[contenteditable="true"]')) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        if (ultrastructureActive) closeArchitect();
+        else openArchitect();
+        keysRef.current = {};
+        pointerRef.current.activeId = null;
+        return;
+      }
+      if (event.key === 'Escape' && ultrastructureActive) {
+        event.preventDefault();
+        closeArchitect();
+        return;
+      }
       if (event.code === 'BracketLeft') {
         event.preventDefault();
         const sim = simRef.current;
@@ -193,6 +251,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         if (sim) applyZoom(Math.min(USER_ZOOM_MAX, sim.state.camera.zoomMultiplier + USER_ZOOM_STEP));
         return;
       }
+      if (ultrastructureActive) return;
       const key = event.key.toLowerCase();
       if (key.startsWith("arrow")) event.preventDefault();
       keysRef.current[key] = true;
@@ -209,6 +268,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     };
     const handlePointerDown = (event: PointerEvent) => {
       if ((event.target as Element | null)?.closest('[data-game-ui]')) return;
+      if (ultrastructureActive) return;
       if (!event.isPrimary || event.button !== 0 || pointerRef.current.activeId !== null) return;
       pointerRef.current = { activeId: event.pointerId, x: event.clientX, y: event.clientY };
       container?.setPointerCapture(event.pointerId);
@@ -260,7 +320,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       container?.removeEventListener("pointercancel", handlePointerEnd);
       container?.removeEventListener("lostpointercapture", handleLostPointerCapture);
     };
-  }, [applyZoom, runAbility]);
+  }, [applyZoom, closeArchitect, openArchitect, runAbility, ultrastructureActive]);
 
   // --- Track viewport size ---
   useEffect(() => {
@@ -297,12 +357,15 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   useEffect(() => {
     const audio = audioRef.current;
-    return () => audio?.dispose();
+    return () => {
+      audio?.dispose();
+      if (signalTimerRef.current !== null) window.clearTimeout(signalTimerRef.current);
+    };
   }, []);
 
   // --- Main game loop ---
   useEffect(() => {
-    if (!ready || isGameOver) return;
+    if (!ready || isGameOver || isGameWon) return;
     const sim = simRef.current;
     if (!sim) return;
 
@@ -336,6 +399,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     const syncHud = () => {
       const p = sim.state.player;
+      const objectiveTarget = sim.objectiveTarget();
+      const objective = objectiveTarget ? {
+        bearing: Math.atan2(objectiveTarget.y - p.pos.y, objectiveTarget.x - p.pos.x) * 180 / Math.PI,
+        distance: Math.hypot(objectiveTarget.x - p.pos.x, objectiveTarget.y - p.pos.y),
+        label: objectiveTarget.label,
+      } : null;
       setHud((prev) => {
         const collected =
           prev.collectedOrganelles.size === sim.state.collectedOrganelles.size
@@ -361,6 +430,16 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
           collectedOrganelles: collected,
           zoomMultiplier: sim.state.camera.zoomMultiplier,
           electronMix: Math.min(1, Math.max(0, (sim.state.camera.zoomMultiplier - 1.05) / 1.35)),
+          architecture: p.architecture.map((unit) => ({ ...unit })),
+          architectureBonuses: sim.getArchitectureBonuses(),
+          metabolicStance: p.metabolicStance,
+          automation: { ...p.automation },
+          stage: p.stage,
+          sugarsEaten: p.sugarsEaten,
+          divisionProgress: p.divisionProgress,
+          won: p.won,
+          deathCause: p.deathCause,
+          objective,
         };
       });
       applyTheme(sim.state.player.size);
@@ -393,14 +472,21 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             break;
           case "organelleCollected":
             audio?.collectChime();
+            showSignal({
+              title: `${event.organelle.toUpperCase()} ENGULFED`,
+              detail: 'A new unit is ready to place in Cell Architect.',
+              tone: 'lime',
+            });
             hudTimer = HUD_SYNC_INTERVAL;
             break;
           case "infected":
             audio?.infectionStart();
+            showSignal({ title: 'GENOME HIJACK', detail: 'Find an antiviral or trigger RNA interference before replication completes.', tone: 'red' });
             hudTimer = HUD_SYNC_INTERVAL;
             break;
           case "cured":
             audio?.cure();
+            showSignal({ title: 'VIRAL LOAD CLEARED', detail: 'Genome control restored. Rebuild ATP reserves.', tone: 'cyan' });
             hudTimer = HUD_SYNC_INTERVAL;
             break;
           case "died":
@@ -409,10 +495,33 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             break;
           case "wave":
             audio?.infectionStart();
+            showSignal({ title: `VIRAL WAVE ${event.level}`, detail: 'Giant amoeba viruses are converging on the membrane.', tone: 'red' });
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "divisionStarted":
+            audio?.collectChime();
+            showSignal({ title: 'CYTOKINESIS INITIATED', detail: 'Keep ATP and membrane integrity stable until separation completes.', tone: 'lime' });
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "divisionCancelled":
+            audio?.damageThud();
+            showSignal({ title: 'DIVISION ABORTED', detail: 'Viral material entered during genome copying. Clear the infection and rebuild reserves.', tone: 'red' });
+            hudTimer = HUD_SYNC_INTERVAL;
+            break;
+          case "won":
+            audio?.cure();
             hudTimer = HUD_SYNC_INTERVAL;
             break;
           case "ability":
           case "upgrade":
+          case "architectureChanged":
+          case "stanceChanged":
+          case "automationChanged":
+            break;
+          case "stageChanged":
+            if (event.stage === 'assemble') showSignal({ title: 'PHASE 2: ASSEMBLY', detail: 'Follow the navigator to engulf three internal systems.', tone: 'cyan' });
+            if (event.stage === 'stabilize') showSignal({ title: 'PHASE 3: HOMEOSTASIS', detail: 'Upgrade and rearrange organelles into a coherent cell plan.', tone: 'cyan' });
+            if (event.stage === 'replicate') showSignal({ title: 'PHASE 4: REPLICATION', detail: 'Accumulate division reserves, then begin controlled cytokinesis.', tone: 'lime' });
             break;
         }
       }
@@ -467,9 +576,19 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       }
 
       // React syncs: membership versions bail out when unchanged.
-      setOrganismsVersion(sim.state.organismsVersion);
-      setSugarsVersion(sim.state.sugarsVersion);
-      setAntiviralsVersion(sim.state.antiviralsVersion);
+      const renderedVersions = renderedVersionsRef.current;
+      if (renderedVersions.organisms !== sim.state.organismsVersion) {
+        renderedVersions.organisms = sim.state.organismsVersion;
+        setOrganismsVersion(sim.state.organismsVersion);
+      }
+      if (renderedVersions.sugars !== sim.state.sugarsVersion) {
+        renderedVersions.sugars = sim.state.sugarsVersion;
+        setSugarsVersion(sim.state.sugarsVersion);
+      }
+      if (renderedVersions.antivirals !== sim.state.antiviralsVersion) {
+        renderedVersions.antivirals = sim.state.antiviralsVersion;
+        setAntiviralsVersion(sim.state.antiviralsVersion);
+      }
 
       hudTimer += dt;
       if (hudTimer >= HUD_SYNC_INTERVAL) {
@@ -483,12 +602,18 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         return;
       }
 
+      if (player.won) {
+        syncHud();
+        setIsGameWon(true);
+        return;
+      }
+
       frameId = requestAnimationFrame(tick);
     };
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [ready, isGameOver]);
+  }, [ready, isGameOver, isGameWon, showSignal]);
 
   const sim = simRef.current;
 
@@ -529,10 +654,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
                 size={hud.size}
                 score={hud.score}
                 isDying={hud.dying}
-                collectedOrganelles={hud.collectedOrganelles}
                 isInfected={hud.infected}
                 shielded={hud.shielded}
                 electronMix={hud.electronMix}
+                architecture={hud.architecture}
               />
             </div>
           </>
@@ -544,6 +669,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         style={{ opacity: hud.electronMix * 0.13 }}
         aria-hidden="true"
       />
+
+      {signal && (
+        <div className={`game-signal game-signal-${signal.tone}`} role="status" aria-live="polite">
+          <i />
+          <span><b>{signal.title}</b><small>{signal.detail}</small></span>
+        </div>
+      )}
 
       <div
         className={
@@ -572,6 +704,13 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         muted={muted}
         zoomMultiplier={hud.zoomMultiplier}
         electronMix={hud.electronMix}
+        ultrastructureActive={ultrastructureActive}
+        stage={hud.stage}
+        sugarsEaten={hud.sugarsEaten}
+        divisionProgress={hud.divisionProgress}
+        architectureScore={hud.architectureBonuses.score}
+        objective={hud.objective}
+        onOpenArchitect={openArchitect}
         onZoomChange={applyZoom}
         onToggleMute={() => {
           audioRef.current?.unlock();
@@ -596,7 +735,59 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         onAbility={runAbility}
       />
 
-      <GameOverDialog score={hud.score} isOpen={isGameOver} onRestart={onGameOver} />
+      {ultrastructureIntensity > 0 && sim && (
+        <CellArchitect
+          intensity={ultrastructureIntensity}
+          interactive={ultrastructureActive}
+          architecture={hud.architecture}
+          bonuses={hud.architectureBonuses}
+          stance={hud.metabolicStance}
+          automation={hud.automation}
+          stage={hud.stage}
+          divisionProgress={hud.divisionProgress}
+          readiness={sim.divisionReadiness()}
+          organelleLevels={hud.organelleLevels}
+          onMove={(unitId, slot) => {
+            if (!sim.moveOrganelle(unitId, slot)) return;
+            setHud((current) => ({
+              ...current,
+              architecture: sim.state.player.architecture.map((unit) => ({ ...unit })),
+              architectureBonuses: sim.getArchitectureBonuses(),
+            }));
+          }}
+          onStance={(stance) => {
+            sim.setMetabolicStance(stance);
+            setHud((current) => ({ ...current, metabolicStance: sim.state.player.metabolicStance }));
+          }}
+          onAutomation={(rule, enabled) => {
+            if (!sim.setAutomation(rule, enabled)) return;
+            setHud((current) => ({ ...current, automation: { ...sim.state.player.automation } }));
+          }}
+          onBeginDivision={() => {
+            if (!sim.beginDivision()) return;
+            audioRef.current?.collectChime();
+            setHud((current) => ({
+              ...current,
+              energy: sim.state.player.energy,
+              glucose: sim.state.player.glucose,
+              biomass: sim.state.player.biomass,
+              metabolicStance: sim.state.player.metabolicStance,
+              stage: 'division',
+              divisionProgress: 0,
+            }));
+          }}
+          onClose={closeArchitect}
+        />
+      )}
+
+      <GameOverDialog score={hud.score} elapsed={hud.elapsed} cause={hud.deathCause} isOpen={isGameOver} onRestart={onGameOver} />
+      <GameWinDialog
+        isOpen={isGameWon}
+        elapsed={hud.elapsed}
+        score={hud.score}
+        architectureScore={hud.architectureBonuses.score}
+        onRestart={onGameOver}
+      />
     </div>
   );
 }

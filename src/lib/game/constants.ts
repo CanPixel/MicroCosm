@@ -36,7 +36,7 @@ export const MAX_ANTIVIRALS = 3;
 export const ANTIVIRAL_SPAWN_INTERVAL = 15; // seconds
 
 // Combat / damage
-export const COLLISION_DAMAGE = 15;
+export const COLLISION_DAMAGE = 6;
 export const DAMAGE_COOLDOWN = 3; // seconds of solid invulnerability
 export const FLICKER_DURATION = 2; // seconds of flickering afterwards
 export const TOTAL_INVINCIBILITY_DURATION = DAMAGE_COOLDOWN + FLICKER_DURATION;
@@ -58,6 +58,16 @@ export const BASE_INTEGRITY = 100;
 export const ATP_PER_GLUCOSE = 2.4;
 export const BASE_GLUCOSE_CONVERSION = 1.4;
 export const THREAT_WAVE_SECONDS = 45;
+export const MAX_ORGANELLE_LEVEL = 2;
+
+// Controlled cytokinesis is the run's success condition.
+export const DIVISION_DURATION = 12;
+export const DIVISION_ATP_COST = 35;
+export const DIVISION_GLUCOSE_COST = 45;
+export const DIVISION_BIOMASS_COST = 22;
+export const DIVISION_MIN_SIZE = 95;
+export const DIVISION_MIN_INTEGRITY_RATIO = 0.75;
+export const DIVISION_MIN_ARCHITECTURE_SCORE = 72;
 
 // Rendering hints
 export const RENDER_PADDING = 300;

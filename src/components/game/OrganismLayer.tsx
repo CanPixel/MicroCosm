@@ -8,7 +8,7 @@ import { SpikyVirus } from './SpikyVirus';
 import { RodBacteria } from './RodBacteria';
 import { FlagellateProtist } from './FlagellateProtist';
 import { Ciliate } from './Ciliate';
-import { Bacteriophage } from './Bacteriophage';
+import { GiantVirusEntity } from './GiantVirusEntity';
 import { FungiWall } from './FungiWall';
 import { Mitochondrion } from './Mitochondrion';
 import { GolgiApparatus } from './GolgiApparatus';
@@ -36,7 +36,7 @@ const SPECIES_COMPONENTS: Record<SpeciesId, React.FC<OrganismComponentProps>> = 
   rodBacteria: RodBacteria,
   flagellateProtist: FlagellateProtist,
   ciliate: Ciliate,
-  bacteriophage: Bacteriophage,
+  giantVirus: GiantVirusEntity,
   fungiWall: FungiWall,
   mitochondrion: Mitochondrion,
   golgi: GolgiApparatus,
