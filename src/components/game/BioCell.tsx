@@ -2,6 +2,7 @@
 "use client";
 
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useMemo, useState, useCallback } from 'react';
+import { CytoplasmDetails } from './CytoplasmDetails';
 import { InnerMitochondrion } from './InnerMitochondrion';
 import { InnerGolgiApparatus } from './InnerGolgiApparatus';
 import { InnerCellNucleus } from './InnerCellNucleus';
@@ -19,7 +20,7 @@ const EVOLUTION_SIZE_MULTIPLIER = 1.4;
 // Membrane: a springy cytoskeleton ring whose convex hull (together with the
 // internal organelles) forms the cell wall, resampled at fixed angles.
 const NUM_NODES = 16;
-const MEMBRANE_SAMPLES = 30;
+const MEMBRANE_SAMPLES = 64;
 
 // A structural node in the cytoskeleton ring.
 type MembraneNode = {
@@ -291,8 +292,12 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
     const haloPath = svgEl.querySelector('.cell-halo') as SVGPathElement | null;
     const electronPath = svgEl.querySelector('.electron-wall') as SVGPathElement | null;
     const electronTexturePath = svgEl.querySelector('.electron-texture') as SVGPathElement | null;
+    const clipPath = svgEl.querySelector('.cytoplasm-clip') as SVGPathElement | null;
+    const details = svgEl.querySelector('.cytoplasm-details') as SVGGElement | null;
+    const bilayer = svgEl.querySelector('.membrane-bilayer') as SVGPathElement | null;
     const outerPath = svgEl.querySelector('.outer-wall') as SVGPathElement | null;
     const particleElements = svgEl.querySelectorAll('.internal-particle');
+    const vesicles = svgEl.querySelectorAll('.surface-vesicle');
     const nucleusGroup = svgEl.querySelector('.nucleus-group') as SVGGElement | null;
     const nucleus = nucleusGroup?.querySelector('.nucleus') as SVGCircleElement | null;
     const radiatingCircle1 = nucleusGroup?.querySelector('.radiating-circle-1') as SVGCircleElement | null;
@@ -352,7 +357,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
       // Animate nucleus
       const nucleusScale = isDying ? 1 : 1 + Math.sin(time / 500) * 0.1;
       const electron = electronMixRef.current;
-      const nucleusColor = `hsl(${263 * (1 - electron)} ${90 * (1 - electron)}% ${58 + electron * 12}% / ${1 - deathProgress})`;
+      const nucleusColor = `hsl(${320 * (1 - electron)} ${54 * (1 - electron)}% ${33 + electron * 18}% / ${1 - deathProgress})`;
       nucleus.setAttribute('r', `${nucleusBaseRadius * nucleusScale}`);
       nucleus.setAttribute('fill', nucleusColor);
       (nucleus.nextElementSibling as SVGCircleElement)?.setAttribute('r', `${INITIAL_SIZE * 0.1 * nucleusScale}`);
@@ -466,7 +471,11 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         const ang = (i / MEMBRANE_SAMPLES) * 2 * Math.PI;
         let r = hullRadiusAtAngle(hull, ang);
         if (!(r > 0)) r = currentBaseRadius;
-        r = Math.max(minCellRadius, r);
+        // Smooth lobes and pseudopod indentations give the membrane an amoeboid
+        // silhouette while the bounded radial samples preserve a simple loop.
+        const lobes = 1 + .17 * Math.sin(ang * 3 + time * .00032)
+          + .09 * Math.sin(ang * 5 - time * .00019);
+        r = Math.max(minCellRadius, r * lobes);
         const smoothed = prevR + (r - prevR) * 0.35;
         samples[i] = smoothed;
         return {
@@ -475,13 +484,22 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         };
       });
 
+      vesicles.forEach((el, i) => {
+        const a = i / vesicles.length * Math.PI * 2 + time * .00012;
+        const sample = Math.floor(((a % (Math.PI * 2)) / (Math.PI * 2)) * MEMBRANE_SAMPLES);
+        const radius = (samples[sample] || currentBaseRadius) * 1.18;
+        el.setAttribute('transform', `translate(${currentViewboxCenter + Math.cos(a) * radius} ${currentViewboxCenter + Math.sin(a) * radius}) rotate(${a * 180 / Math.PI + 90})`);
+      });
       const innerSvgPath = catmullRomSpline(animatedWallPoints);
       innerPath.setAttribute('d', innerSvgPath);
+      clipPath?.setAttribute('d', innerSvgPath);
+      bilayer?.setAttribute('d', innerSvgPath);
+      details?.setAttribute('transform', `translate(${currentViewboxCenter} ${currentViewboxCenter}) scale(${currentBaseRadius / 50})`);
       haloPath.setAttribute('d', innerSvgPath);
       electronPath.setAttribute('d', innerSvgPath);
       electronTexturePath.setAttribute('d', innerSvgPath);
       innerPath.setAttribute('fill-opacity', `${Math.max(0, 1 - deathProgress)}`);
-      innerPath.setAttribute('stroke-width', `${Math.max(0, (hasEvolved ? 0 : 3) * (1 - deathProgress))}`);
+      innerPath.setAttribute('stroke-width', `${Math.max(0, (hasEvolved ? 1 : 1.6) * (1 - deathProgress))}`);
 
       if (hasEvolved && outerPath) {
         const evo = evolutionFactorRef.current;
@@ -494,7 +512,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
           };
         });
         outerPath.setAttribute('d', catmullRomSpline(animatedOuterWallPoints));
-        outerPath.setAttribute('stroke-width', `${Math.max(0, 3 * (1 - deathProgress))}`);
+        outerPath.setAttribute('stroke-width', `${Math.max(0, 1.6 * (1 - deathProgress))}`);
       }
       
       animationFrameId = requestAnimationFrame(animate);
@@ -553,8 +571,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
            </div>
          </>
        )}
-      <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`} style={{ overflow: 'visible' }}>
+      <svg ref={svgRef} width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`} style={{ overflow: 'visible', filter: `grayscale(${electronMix})` }}>
         <defs>
+          <clipPath id="player-cytoplasm-clip"><path className="cytoplasm-clip" /></clipPath>
           <pattern id="player-electron-texture" patternUnits="userSpaceOnUse" width={svgSize} height={svgSize}>
             <image href="/assets/micrograph-field.webp" width={svgSize} height={svgSize} preserveAspectRatio="xMidYMid slice" />
           </pattern>
@@ -571,7 +590,7 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
           className="cell-halo"
           fill="none"
           stroke={isInfected ? 'hsl(330 82% 62% / .28)' : 'hsl(var(--primary) / .24)'}
-          strokeWidth="8"
+          strokeWidth="5"
         />
         <path
           className="inner-wall"
@@ -585,6 +604,10 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
           opacity={electronMix * 0.42}
           pointerEvents="none"
         />
+        <g clipPath="url(#player-cytoplasm-clip)" opacity={1 - deathAnimationRef.current}>
+          <g className="cytoplasm-details"><CytoplasmDetails electron={electronMix} /></g>
+        </g>
+        <path className="membrane-bilayer" fill="none" stroke="#97dfdb" strokeWidth=".6" opacity=".7" />
         {/* Collected Organelles */}
         <g opacity={(1 - deathAnimationRef.current) * (1 - electronMix * 0.42)}>
             {internalOrganelles.map(({ id, Component, size }) => {
@@ -607,11 +630,16 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
         {/* Nucleus */}
         <g className="nucleus-group" transform={`translate(${viewboxCenter}, ${viewboxCenter})`}>
             <circle className="nucleus" cx={0} cy={0} r={INITIAL_SIZE * 0.15} fill="hsl(var(--accent))" opacity="0.8" />
-            <circle cx={0} cy={0} r={INITIAL_SIZE * 0.1} fill="hsl(var(--accent) / 0.5)" opacity={1-deathAnimationRef.current}/>
-            <circle className="radiating-circle-1" cx={0} cy={0} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
-            <circle className="radiating-circle-2" cx={0} cy={0} r={0} fill="none" stroke="hsl(var(--accent))" strokeWidth="1" />
+            <circle cx={0} cy={0} r={INITIAL_SIZE * 0.1} fill="#f17cad" opacity={1-deathAnimationRef.current}/>
+            <circle className="radiating-circle-1" cx={0} cy={0} r={0} fill="none" stroke="#d9a8d5" strokeWidth=".5" />
+            <circle className="radiating-circle-2" cx={0} cy={0} r={0} fill="none" stroke="#d9a8d5" strokeWidth=".5" />
         </g>
 
+        <g transform={`translate(${viewboxCenter} ${viewboxCenter})`} opacity={.8 * (1 - electronMix)}>
+          <ellipse cx="-2.8" cy="-2.4" rx="2.2" ry="1.5" fill="#ffb5d8" />
+          <circle cx="2.2" cy="2.4" r="1.4" fill="#641c5c" />
+          <circle cx="3.3" cy="-1.8" r=".7" fill="#fbe9f4" />
+        </g>
         {/* Internal Particles */}
         <g opacity={1 - deathAnimationRef.current}>
         {particlesRef.current.map((p, i) => {
@@ -658,6 +686,9 @@ export const BioCell = forwardRef<BioCellHandle, BioCellProps>(({ size, score, i
           pointerEvents="none"
         />
         
+        <g opacity={.7 * (1 - electronMix * .3)} fill="none" stroke="#d9f8ee" strokeWidth=".55">
+          {Array.from({ length: 9 }, (_, i) => <ellipse key={i} className="surface-vesicle" rx={1.6 + i % 3} ry={.75 + (i % 2) * .3} />)}
+        </g>
         {/* Damage Particles */}
         {damageParticles.map(p => (
             <rect 

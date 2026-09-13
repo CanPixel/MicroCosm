@@ -305,3 +305,38 @@ describe('controlled cytokinesis victory loop', () => {
     expect(player.won).toBe(false);
   });
 });
+
+describe('evasive swim burst', () => {
+  const view = { width: 1440, height: 900 };
+  test('spends ATP once, accelerates, and enforces its cooldown', () => {
+    const burst = createSimulation(42);
+    const normal = createSimulation(42);
+    expect(burst.dash()).toBe(true);
+    expect(burst.state.player.energy).toBe(86);
+    expect(burst.dash()).toBe(false);
+    expect(burst.state.player.energy).toBe(86);
+    for (let i = 0; i < 24; i++) {
+      burst.step(1 / 60, { moveX: 1, moveY: 0 }, view);
+      normal.step(1 / 60, { moveX: 1, moveY: 0 }, view);
+    }
+    expect(burst.state.player.pos.x).toBeGreaterThan(normal.state.player.pos.x * 2);
+    advance(burst, .3, view);
+    expect(burst.dashState().active).toBe(false);
+    expect(burst.dash()).toBe(false);
+    advance(burst, 3.4, view);
+    expect(burst.dashState().cooldown).toBe(0);
+    expect(burst.dash()).toBe(true);
+  });
+  test('cannot spend energy during division, death, or with insufficient ATP', () => {
+    const sim = createSimulation(4);
+    sim.state.player.energy = 13;
+    expect(sim.dash()).toBe(false);
+    sim.state.player.energy = 100;
+    sim.state.player.divisionActive = true;
+    expect(sim.dash()).toBe(false);
+    sim.state.player.divisionActive = false;
+    sim.state.player.dying = true;
+    expect(sim.dash()).toBe(false);
+    expect(sim.state.player.energy).toBe(100);
+  });
+});

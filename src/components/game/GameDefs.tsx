@@ -21,9 +21,9 @@ export function GameDefs() {
 
         {/* Player cytoplasm fill. */}
         <radialGradient id="mc-cytoplasm" cx="42%" cy="38%" r="75%">
-          <stop offset="0%" stopColor="hsl(var(--accent) / 0.35)" />
-          <stop offset="60%" stopColor="hsl(224 71% 8% / 0.55)" />
-          <stop offset="100%" stopColor="hsl(224 71% 5% / 0.75)" />
+          <stop offset="0%" stopColor="hsl(185 55% 58% / 0.72)" />
+          <stop offset="60%" stopColor="hsl(192 55% 28% / 0.65)" />
+          <stop offset="100%" stopColor="hsl(184 48% 58% / 0.55)" />
         </radialGradient>
 
         {/* Virus body: deep blue orb with a bright top highlight. */}

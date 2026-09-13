@@ -92,7 +92,7 @@ void main() {
   vec2 uv = (frag - 0.5 * u_resolution) / u_resolution.y;
 
   // Background parallax: field drifts slower than the world for depth.
-  vec2 world = u_camera * 0.06 + uv * (900.0 / max(u_zoom, 0.2));
+  vec2 world = u_camera * vec2(0.22, -0.22) + uv * (900.0 / max(u_zoom, 0.2));
 
   float t = u_time * 0.06;
 
@@ -120,7 +120,32 @@ void main() {
   // Extracellular membranes stay subordinate to the organisms.
   float edge = 1.0 - smoothstep(0.03, 0.16, vor.y);
   vec3 edgeTone = mix(u_primary, vec3(0.72), u_electron);
-  col += edgeTone * edge * 0.14;
+  col += edgeTone * edge * 0.018;
+
+  // Out-of-focus organisms suspended behind the focal plane. Analytic ellipses
+  // keep the field continuous during travel without image seams or extra textures.
+  vec2 field = world * .0042;
+  vec2 cell = floor(field);
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 id = cell + vec2(float(i), float(j));
+      vec2 seed = hash2(id + 12.7);
+      vec2 center = id + .2 + seed * .6;
+      vec2 p = field - center;
+      float a = seed.x * 6.28 + sin(t + seed.y * 6.28) * .1;
+      p = mat2(cos(a), -sin(a), sin(a), cos(a)) * p;
+      p /= vec2(.18 + seed.x * .19, .11 + seed.y * .12);
+      float d = length(p);
+      float rim = exp(-pow((d - 1.0) * 10.0, 2.0));
+      float body = 1.0 - smoothstep(.76, 1.12, d);
+      vec3 tint = mix(vec3(.16,.42,.43), vec3(.28,.43,.15), seed.y);
+      col += tint * (body * .16 + rim * .24);
+      float nucleus = exp(-dot(p - vec2(.15, .1), p - vec2(.15, .1)) * 12.0);
+      col *= 1.0 - nucleus * body * .3;
+      float inclusions = noise(p * 6.0 + seed * 30.0);
+      col += tint * body * smoothstep(.64,.81,inclusions) * .17;
+    }
+  }
 
   // Continuous micro-detail avoids a second expensive Voronoi pass.
   if (u_quality > 0.5) {
@@ -132,6 +157,15 @@ void main() {
   float moteField = noise(world * 0.006 + vec2(t * 0.24, -t * 0.16));
   float motes = smoothstep(0.82, 0.97, moteField);
   col += u_primary * motes * 0.08;
+
+  // Sparse suspended particles at a separate depth from the soft background cells.
+  vec2 dust = world * .045 + vec2(t * .12, -t * .07);
+  vec2 dustId = floor(dust);
+  vec2 dustSeed = hash2(dustId + 47.2);
+  float dustDistance = length(fract(dust) - (.12 + dustSeed * .76));
+  float dustPoint = (1.0 - smoothstep(.018, .065, dustDistance)) * step(.68, dustSeed.x);
+  float dustGlow = exp(-dustDistance * dustDistance * 85.0) * step(.9, dustSeed.x);
+  col += mix(vec3(.26,.54,.62), vec3(.47,.83,.53), dustSeed.y) * (dustPoint * .45 + dustGlow * .1);
 
   // Close inspection shifts toward DIC/electron microscopy: monochrome,
   // directional relief, granular cytoplasm and restrained silver rims.

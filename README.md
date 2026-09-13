@@ -24,7 +24,7 @@ MicroCosm runs two interdependent game loops at once. Every decision inside the 
 | Ecosystem survival | Cellular strategy |
 | --- | --- |
 | Swim through a borderless, procedurally streamed micro-world | Build a functional internal architecture around the genome |
-| Hunt white glucose crystals and engulf useful organelles | Place and rearrange mitochondria, nuclei, and Golgi systems |
+| Hunt green glucose crystals and engulf useful organelles | Place and rearrange mitochondria, nuclei, and Golgi systems |
 | Evade predators, armored organisms, fungal barriers, and viruses | Balance ATP generation, uptake, repair, biomass, and viral resistance |
 | Read currents, threats, scale, and spatial opportunities in real time | Switch metabolic stances and fold regulatory RNA programs |
 
@@ -155,3 +155,13 @@ MicroCosm is an actively developed experimental game. The complete run structure
 <div align="center">
   <sub>Built for people who look at a cell and see both an organism and a factory.</sub>
 </div>
+
+## Expedition controls and feedback
+
+An expedition briefing now explains the loop before the simulation starts. Press Escape or click Pause to freeze metabolism, threats, and ability cooldowns. Switching away automatically pauses the expedition. Cell Architect still runs in real time.
+
+- **Space / Swim burst:** a 0.55-second evasive burst for 14 ATP, with a four-second cooldown. Steer during the burst, or continue along your last velocity (upward when stationary). Unavailable during division.
+- **Local biosphere radar:** actual nearby nutrients, organelles, antivirals, and threats within 1,100 μm. The outlined ring indicates the current objective, including a bearing at the edge for distant targets.
+- **Fluid feedback:** world-space swim wakes, nutrient absorption sparks, and a phosphor burst ripple. Particles are capped at 120 and respect reduced-motion preferences.
+
+Build the macOS application with `bun run tauri build --bundles app`.

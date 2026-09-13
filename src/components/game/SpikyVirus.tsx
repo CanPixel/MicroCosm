@@ -54,13 +54,14 @@ export function SpikyVirus({ position, size, duration, delay, opacity, initialRo
                             const y2 = 10 + 9 * Math.sin(angle);
                             return (
                               <g key={i}>
-                                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(350 85% 55%)" strokeWidth="1.1" strokeLinecap="round" />
-                                <circle cx={x2} cy={y2} r="1" fill="hsl(345 90% 62%)" />
+                                <path d={`M${x1} ${y1} Q${x2 + Math.sin(angle)} ${y2 - Math.cos(angle)} ${x2} ${y2}`} fill="none" stroke="#ff827e" strokeWidth=".65" strokeLinecap="round" />
                               </g>
                             );
                         })}
 
-                        <circle cx="10" cy="10" r="6.8" fill="url(#mc-virus-body)" stroke="hsl(350 80% 45%)" strokeWidth="1" />
+                        <circle cx="10" cy="10" r="6.8" fill="url(#mc-virus-body)" stroke="#70cedf" strokeWidth=".8" />
+                        <circle cx="10" cy="10" r="4.3" fill="#203a69" stroke="#86d8dc" strokeWidth=".4" />
+                        <path d="M8 8C11 5 14 9 11 11S7 14 8 8Z" fill="#bc547a" stroke="#f17c9b" strokeWidth=".5" />
                         {/* Genetic speckles + highlight. */}
                         <circle cx="8" cy="8" r="1.3" fill="hsl(200 100% 88% / 0.8)" />
                         <circle cx="12" cy="9" r="0.8" fill="hsl(210 90% 78% / 0.5)" />

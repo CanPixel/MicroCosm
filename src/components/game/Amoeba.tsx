@@ -1,6 +1,7 @@
 
 "use client";
-import React from 'react';
+import React, { useId } from 'react';
+import { CytoplasmDetails } from './CytoplasmDetails';
 import { OrganismNameLabel } from './OrganismNameLabel';
 
 type AmoebaProps = {
@@ -16,6 +17,8 @@ type AmoebaProps = {
 };
 
 export function Amoeba({ position, size, duration, delay, opacity, initialRotation = 0, animationDirection = 'normal', rotation = initialRotation, showName = false }: AmoebaProps) {
+    const clipId = useId().replace(/:/g, '');
+    const outline = 'M18 58C7 52 9 40 23 36C20 24 31 16 42 24C49 11 65 15 66 29C79 23 90 32 84 44C97 50 92 65 79 65C82 79 68 86 58 77C49 91 32 86 34 72C22 78 11 69 18 58Z';
     const animationName = animationDirection === 'reverse' ? 'spin-reverse' : 'spin';
     
     const animationStyle: React.CSSProperties = {
@@ -54,9 +57,9 @@ export function Amoeba({ position, size, duration, delay, opacity, initialRotati
                         />
                         <path
                             d="M18 58C7 52 9 40 23 36C20 24 31 16 42 24C49 11 65 15 66 29C79 23 90 32 84 44C97 50 92 65 79 65C82 79 68 86 58 77C49 91 32 86 34 72C22 78 11 69 18 58Z"
-                            fill="hsl(263 62% 38% / .58)"
-                            stroke="hsl(263 88% 68%)"
-                            strokeWidth="3.2"
+                            fill="url(#mc-cytoplasm)"
+                            stroke="#b8eee4"
+                            strokeWidth="1.7"
                         />
                         <path
                             d="M18 58C7 52 9 40 23 36C20 24 31 16 42 24C49 11 65 15 66 29C79 23 90 32 84 44C97 50 92 65 79 65C82 79 68 86 58 77C49 91 32 86 34 72C22 78 11 69 18 58Z"
@@ -66,6 +69,8 @@ export function Amoeba({ position, size, duration, delay, opacity, initialRotati
                             transform="translate(-.8 -.8)"
                         />
 
+                        <defs><clipPath id={clipId}><path d={outline} /></clipPath></defs>
+                        <g clipPath={`url(#${clipId})`}><g transform="translate(50 50) scale(.85)"><CytoplasmDetails /></g></g>
                         {/* Endoplasm, contractile vacuoles and granular inclusions. */}
                         <ellipse cx="49" cy="51" rx="14" ry="12" fill="url(#mc-core-hot)" opacity=".88" />
                         <circle cx="45" cy="47" r="4" fill="hsl(340 100% 92% / .72)" />

@@ -625,6 +625,22 @@ export function createSimulation(seed = Math.floor(Math.random() * 0xffffffff)) 
     events.push({ type: 'damaged' });
   }
 
+  let dashDirection = { x: 0, y: -1 };
+  let dashUntil = 0;
+  let dashCooldownUntil = 0;
+  function dash(): boolean {
+    if (player.dead || player.dying || player.won || player.divisionActive || player.energy < 14 || state.time < dashCooldownUntil) return false;
+    const speed = Math.hypot(player.vel.x, player.vel.y);
+    if (speed > 1) dashDirection = { x: player.vel.x / speed, y: player.vel.y / speed };
+    player.energy -= 14;
+    dashUntil = state.time + 0.55;
+    dashCooldownUntil = state.time + 4;
+    return true;
+  }
+  function dashState() {
+    return { active: state.time < dashUntil, cooldown: Math.max(0, dashCooldownUntil - state.time), cost: 14 };
+  }
+
   function step(dt: number, input: SimInput, view: ViewInfo): SimEvent[] {
     const events: SimEvent[] = pendingEvents.splice(0);
     if (player.dead || player.won) return events;
@@ -653,11 +669,11 @@ export function createSimulation(seed = Math.floor(Math.random() * 0xffffffff)) 
     const boost = now < player.boostUntil ? 1.55 : 1;
     const divisionSpeed = player.divisionActive ? 0.62 : 1;
     const maxSpeed = (player.starving ? MAX_SPEED * STARVING_SPEED_FACTOR : MAX_SPEED)
-      * boost * bonuses.movementSpeed * stance.speed * divisionSpeed;
+      * (now < dashUntil ? 2.6 : boost) * bonuses.movementSpeed * stance.speed * divisionSpeed;
     const inputLen = Math.hypot(input.moveX, input.moveY);
-    const dirX = inputLen > 0 ? input.moveX / Math.max(1, inputLen) : 0;
-    const dirY = inputLen > 0 ? input.moveY / Math.max(1, inputLen) : 0;
-    const velAlpha = smoothing(VELOCITY_SMOOTHING, dt);
+    const dirX = inputLen > 0 ? input.moveX / Math.max(1, inputLen) : now < dashUntil ? dashDirection.x : 0;
+    const dirY = inputLen > 0 ? input.moveY / Math.max(1, inputLen) : now < dashUntil ? dashDirection.y : 0;
+    const velAlpha = smoothing(now < dashUntil ? 22 : VELOCITY_SMOOTHING, dt);
     player.vel.x += (dirX * maxSpeed - player.vel.x) * velAlpha;
     player.vel.y += (dirY * maxSpeed - player.vel.y) * velAlpha;
     player.pos.x += player.vel.x * dt;
@@ -985,6 +1001,8 @@ export function createSimulation(seed = Math.floor(Math.random() * 0xffffffff)) 
     state,
     step,
     initialSpawns,
+    dash,
+    dashState,
     seed,
     upgrade,
     upgradeCosts,

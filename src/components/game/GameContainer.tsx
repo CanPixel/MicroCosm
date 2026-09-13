@@ -2,6 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BioCell, BioCellHandle } from "./BioCell";
+import { FluidLife } from "./FluidLife";
+import { EcosystemRadar } from "./EcosystemRadar";
+import { ExpeditionPause } from "./ExpeditionPause";
+import { Pause, MoveUpRight } from "lucide-react";
 import { GameUI } from "./GameUI";
 import { GameOverDialog } from "./GameOverDialog";
 import { Sugar } from "./Sugar";
@@ -98,6 +102,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   // The simulation lives outside React and is created on the client only,
   // so SSR markup stays deterministic.
   const simRef = useRef<Simulation | null>(null);
+  const [paused, setPaused] = useState(true);
+  const [intro, setIntro] = useState(true);
+  const pausedRef = useRef(true);
+  const [pickup, setPickup] = useState(0);
   const [ready, setReady] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isGameWon, setIsGameWon] = useState(false);
@@ -189,10 +197,27 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
   const openArchitect = useCallback(() => applyZoom(ULTRASTRUCTURE_FOCUS_ZOOM), [applyZoom]);
   const closeArchitect = useCallback(() => applyZoom(ULTRASTRUCTURE_EXIT_ZOOM), [applyZoom]);
 
+  const pauseGame = useCallback(() => {
+    pausedRef.current = true;
+    keysRef.current = {};
+    pointerRef.current.activeId = null;
+    setPaused(true);
+  }, []);
+  const resumeGame = useCallback(() => {
+    pausedRef.current = false;
+    setPaused(false);
+    setIntro(false);
+    audioRef.current?.unlock();
+  }, []);
+  const runDash = useCallback(() => {
+    if (pausedRef.current || !simRef.current?.dash()) return;
+    audioRef.current?.devour();
+  }, []);
+
   const runAbility = useCallback((type: OrganelleType) => {
     const sim = simRef.current;
     audioRef.current?.unlock();
-    if (!sim?.activate(type)) return;
+    if (pausedRef.current || !sim?.activate(type)) return;
 
     audioRef.current?.devour();
     const cell = cellWrapperRef.current;
@@ -224,8 +249,20 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     const container = containerRef.current;
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as Element | null;
-      if (target?.closest('button,input,textarea,select,[role="slider"],[contenteditable="true"]')) return;
+      if (target?.closest('input,textarea,select,[role="slider"],[contenteditable="true"]')) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === 'Escape' && !ultrastructureActive) {
+        event.preventDefault();
+        if (!pausedRef.current) pauseGame();
+        return;
+      }
+      if (pausedRef.current) return;
+      if (event.code === 'Space' && !ultrastructureActive) {
+        if (target?.closest('button')) return;
+        event.preventDefault();
+        if (!event.repeat) runDash();
+        return;
+      }
       if (event.key === 'Tab') {
         event.preventDefault();
         if (ultrastructureActive) closeArchitect();
@@ -268,7 +305,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     };
     const handlePointerDown = (event: PointerEvent) => {
       if ((event.target as Element | null)?.closest('[data-game-ui]')) return;
-      if (ultrastructureActive) return;
+      if (ultrastructureActive || pausedRef.current) return;
       if (!event.isPrimary || event.button !== 0 || pointerRef.current.activeId !== null) return;
       pointerRef.current = { activeId: event.pointerId, x: event.clientX, y: event.clientY };
       container?.setPointerCapture(event.pointerId);
@@ -296,12 +333,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       setShowNames(false);
     };
     const handleVisibilityChange = () => {
-      if (document.hidden) clearInput();
+      if (document.hidden) { clearInput(); pauseGame(); }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    window.addEventListener("blur", clearInput);
+    window.addEventListener("blur", pauseGame);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     container?.addEventListener("pointerdown", handlePointerDown);
     container?.addEventListener("pointermove", handlePointerMove);
@@ -312,7 +349,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
-      window.removeEventListener("blur", clearInput);
+      window.removeEventListener("blur", pauseGame);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       container?.removeEventListener("pointerdown", handlePointerDown);
       container?.removeEventListener("pointermove", handlePointerMove);
@@ -320,7 +357,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
       container?.removeEventListener("pointercancel", handlePointerEnd);
       container?.removeEventListener("lostpointercapture", handleLostPointerCapture);
     };
-  }, [applyZoom, closeArchitect, openArchitect, runAbility, ultrastructureActive]);
+  }, [applyZoom, closeArchitect, openArchitect, runAbility, ultrastructureActive, pauseGame, runDash]);
 
   // --- Track viewport size ---
   useEffect(() => {
@@ -352,8 +389,8 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   // --- Audio: mute sync + teardown ---
   useEffect(() => {
-    audioRef.current?.setMuted(muted);
-  }, [muted]);
+    audioRef.current?.setMuted(muted || paused);
+  }, [muted, paused]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -365,7 +402,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
   // --- Main game loop ---
   useEffect(() => {
-    if (!ready || isGameOver || isGameWon) return;
+    if (!ready || isGameOver || isGameWon || paused) return;
     const sim = simRef.current;
     if (!sim) return;
 
@@ -446,6 +483,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
     };
 
     const tick = (timestamp: number) => {
+      if (pausedRef.current) return;
       const dt = lastTime === 0 ? 1 / 60 : (timestamp - lastTime) / 1000;
       lastTime = timestamp;
       const view = viewRef.current;
@@ -525,7 +563,10 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             break;
         }
       }
-      if (sugarThisFrame > 0) audio?.absorptionPop(biggestSugar / 8);
+      if (sugarThisFrame > 0) {
+        audio?.absorptionPop(biggestSugar / 8);
+        setPickup((value) => value + sugarThisFrame);
+      }
 
       const { player, camera } = sim.state;
       const electronMix = Math.min(1, Math.max(0, (camera.zoomMultiplier - 1.05) / 1.35));
@@ -539,6 +580,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
       if (cellWrapperRef.current) {
         cellWrapperRef.current.style.transform = `translate(${player.pos.x}px, ${player.pos.y}px)`;
+        cellWrapperRef.current.classList.toggle("cell-dashing", sim.dashState().active);
         const invulnerable = sim.state.time < player.invulnerableUntil;
         cellWrapperRef.current.classList.toggle("cell-invulnerable", invulnerable && !player.flickering);
         cellWrapperRef.current.classList.toggle("cell-damage-flicker", player.flickering);
@@ -613,7 +655,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [ready, isGameOver, isGameWon, showSignal]);
+  }, [ready, isGameOver, isGameWon, showSignal, paused]);
 
   const sim = simRef.current;
 
@@ -649,6 +691,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
             </div>
 
             <div ref={cellWrapperRef} className="absolute z-30 transition-opacity duration-100">
+              {pickup > 0 && <span key={pickup} className="absorb-feedback">+ GLUCOSE</span>}
               <BioCell
                 ref={cellApiRef}
                 size={hud.size}
@@ -664,6 +707,7 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         )}
       </div>
 
+      {sim && <FluidLife sim={sim} paused={paused || isGameOver || isGameWon} />}
       <div
         className="electron-micrograph-overlay pointer-events-none absolute inset-0 z-[35]"
         style={{ opacity: hud.electronMix * 0.13 }}
@@ -684,6 +728,12 @@ export function GameContainer({ onGameOver }: GameContainerProps) {
         }
       />
 
+      {!ultrastructureActive && sim && <EcosystemRadar sim={sim} paused={paused} />}
+      <div data-game-ui className="expedition-toolbar">
+        <button onClick={pauseGame} aria-label="Pause expedition"><Pause size={15} /><span>Pause</span><kbd>ESC</kbd></button>
+        {!ultrastructureActive && <button onClick={runDash} disabled={paused || hud.energy < 14 || (sim?.dashState().cooldown ?? 0) > 0} aria-label="Swim burst, costs 14 ATP"><MoveUpRight size={16} /><span>{(sim?.dashState().cooldown ?? 0) > 0 ? `${sim?.dashState().cooldown.toFixed(1)}s` : 'Swim burst'}</span><kbd>SPACE</kbd></button>}
+      </div>
+      {!isGameOver && !isGameWon && <ExpeditionPause open={paused} intro={intro} onResume={resumeGame} elapsed={hud.elapsed} sugars={hud.sugarsEaten} />}
       <GameUI
         cellSize={hud.size}
         score={hud.score}
