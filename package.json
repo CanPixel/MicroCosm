@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
+    "deploy": "bun run build && firebase deploy --only hosting",
     "tauri": "tauri",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
