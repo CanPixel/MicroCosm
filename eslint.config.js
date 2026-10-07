@@ -34,10 +34,4 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
-  {
-    files: ['tailwind.config.ts', 'src/tailwind.config.ts'],
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-    },
-  }
 );

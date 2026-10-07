@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="src-tauri/icons/icon.png" width="132" alt="MicroCosm amoeba icon">
+  <img src="icon.png" width="132" alt="MicroCosm amoeba icon">
 
-# MicroCosm
+# MicroCosm: Playable Game
 
 ### Engulf. Endosymbiose. Divide. Become multicellular.
 
@@ -15,7 +15,11 @@ A real-time cellular survival game for desktop and browser: part agar.io, part F
 
 </div>
 
-![A young cell among Paramecium, Euglena and cyanobacteria in the Sunlit Shallows](docs/screenshots/ecosystem.webp)
+![A young cell among Paramecium, Euglena and cyanobacteria in the Sunlit Shallows](screenshots/ecosystem.webp)
+
+First playable game loop from the `opus` branch at commit `a57f178`: endosymbiosis, division, specialized daughters, and multicellular colonies. Intended to become the main version after the manual merge.
+
+[Browse the playable branch](https://github.com/CanPixel/MicroCosm/tree/opus). The canonical browser address is [micro-cosmos.web.app](https://micro-cosmos.web.app); deployment of this version is still pending.
 
 ## The run
 
@@ -27,9 +31,7 @@ You begin as a single amoeboid cell in an infinite, procedurally streamed drop o
 4. **Divide.** At critical mass, replicate your genome (it costs DNA) and pinch in two. The daughter stays attached, and you choose its fate and a heritable mutation.
 5. **Multicellularity.** Grow a colony of six specialized cells: photocytes, ciliocytes, phagocytes, cnidocytes and germ cells, tessellated like tissue.
 
-The opening is deliberately quiet: a close-up of a lone cell, a few drifting glucose crystals, nothing that hunts. The ecosystem wakes up over the first few minutes, and the interface grows with the organism. The chemotaxis radar, pseudopod dash, Cell Architect and microscope light each appear once the cell has earned them.
-
-![A five-cell colony of specialized daughters](docs/screenshots/colony.webp)
+![A five-cell colony of specialized daughters](screenshots/colony.webp)
 
 ## A living ecosystem
 
@@ -63,14 +65,14 @@ Press <kbd>Q</kbd> to switch illumination. Each light shows different things.
 
 | Darkfield | Fluorescence |
 | --- | --- |
-| ![Darkfield](docs/screenshots/darkfield.webp) | ![Fluorescence](docs/screenshots/fluorescence.webp) |
+| ![Darkfield](screenshots/darkfield.webp) | ![Fluorescence](screenshots/fluorescence.webp) |
 | Scattered light outlines every edge on a black field. Reveals transparent agents (prions, viroids, satellites) and the bristles of traps. | Real probe colors: DAPI-blue nuclei, MitoTracker-green mitochondria, red chlorophyll, magenta lysosomes, orange membrane dye. Reveals infected prey and proviruses, but excitation light costs ATP (phototoxicity). |
 
 Brightfield is the vivid illustrated default. Zooming into the **Cell Architect** shifts the grade toward an electron micrograph.
 
 ## Cell Architect
 
-![The Cell Architect: organelles placed in genome, cytoplasm and cortex slots](docs/screenshots/cell-architect.webp)
+![The Cell Architect: organelles placed in genome, cytoplasm and cortex slots](screenshots/cell-architect.webp)
 
 Press <kbd>TAB</kbd> to zoom into your own ultrastructure. Time slows but never stops. Drag organelles between genome, cytoplasm and cortex slots. Placement creates synergies, for example:
 
@@ -94,8 +96,6 @@ Your cell's size follows from what it contains: every organelle is real biomass 
 | Hold <kbd>E</kbd> | Identify specimens |
 | Mouse wheel, <kbd>[</kbd> <kbd>]</kbd> | Magnification |
 | <kbd>Esc</kbd> | Pause (also automatic when the window loses focus) |
-
-Dash, the Cell Architect and microscope light unlock during the first objectives.
 
 ## Under the hood
 
