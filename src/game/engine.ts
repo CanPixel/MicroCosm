@@ -624,6 +624,8 @@ export class GameEngine {
     if (pressed.has('KeyQ')) this.cycleLight();
     if (pressed.has('KeyR')) this.divide();
     if (wheel && !this.architect) this.camera.setUserZoom(this.camera.userZoom * Math.pow(1.12, -wheel));
+    const pinch = this.input.consumePinch();
+    if (pinch !== 1 && !this.architect) this.camera.setUserZoom(this.camera.userZoom * pinch);
     if (pressed.has('BracketLeft') || pressed.has('Minus')) this.camera.setUserZoom(this.camera.userZoom / 1.15);
     if (pressed.has('BracketRight') || pressed.has('Equal')) this.camera.setUserZoom(this.camera.userZoom * 1.15);
   }

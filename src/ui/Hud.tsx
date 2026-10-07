@@ -254,7 +254,7 @@ export function Hud({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
       )}
       {!quiet && <Objective hud={hud} />}
       <div className="hud-right">
-        {shown && has(hud, 'radar') && (
+        {shown && !quiet && has(hud, 'radar') && (
           <Radar engine={engine} biome={hud.biome.id} label={<><SunIcon size={12} level={hud.light} /> {hud.biome.name}</>} />
         )}
         <div className="hud-buttons">

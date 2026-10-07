@@ -32,16 +32,19 @@ export class Camera {
     // Opening shot: start on a close-up of the cell and slowly pull back.
     const e = intro * intro * (3 - 2 * intro);
     const play = base * this.userZoom * sizeFactor * (1 + 2.4 * (1 - e));
-    const inspect = (minDim * 0.3) / Math.max(10, primeR);
+    // In the architect view, frame the cell in the space the build panel leaves
+    // free: right of it on wide screens, above the bottom sheet on narrow ones.
+    const side = this.viewW > 760;
+    const panel = side ? 422 : 0;
+    const freeH = side ? this.viewH : this.viewH * 0.54;
+    const inspect = (Math.min(this.viewW - panel, freeH) * 0.32) / Math.max(10, primeR);
     const targetZoom = play + (inspect - play) * architect;
     if (intro < 1) this.zoom = targetZoom;
     else this.zoom += (targetZoom - this.zoom) * approach(architect > 0.01 ? 5 : 2.6, dt);
 
     const look = (1 - architect) * 0.24;
-    // In the architect view, keep the cell left of the build panel.
-    const offset = architect * (this.viewW * 0.12) / this.zoom;
-    const tx = focusX + vx * look + offset;
-    const ty = focusY + vy * look;
+    const tx = focusX + vx * look + (architect * panel) / 2 / this.zoom;
+    const ty = focusY + vy * look + (architect * (this.viewH - freeH)) / 2 / this.zoom;
     const k = approach(architect > 0.01 ? 8 : 3.4, dt);
     this.x += (tx - this.x) * k;
     this.y += (ty - this.y) * k;

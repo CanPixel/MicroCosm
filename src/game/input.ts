@@ -6,6 +6,10 @@ export class Input {
   private pressed = new Set<string>();
   pointer = { x: 0, y: 0, down: false, right: false, active: false, touch: false };
   wheel = 0;
+  // Multiplicative zoom from two-finger pinches since the last frame.
+  pinch = 1;
+  private touches = new Map<number, { x: number; y: number }>();
+  private pinchDist = 0;
   private rightClicks = 0;
   private cleanup: Array<() => void> = [];
 
@@ -28,8 +32,22 @@ export class Input {
       this.pointer.right = false;
     };
     const rect = () => this.surface.getBoundingClientRect();
+    const spread = () => {
+      const [a, b] = [...this.touches.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
     const onPointerDown = (e: PointerEvent) => {
       const r = rect();
+      if (e.pointerType === 'touch') {
+        this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        // A second finger turns swimming into a pinch-to-magnify gesture.
+        if (this.touches.size >= 2) {
+          this.pointer.down = false;
+          this.pinchDist = spread();
+          this.surface.setPointerCapture?.(e.pointerId);
+          return;
+        }
+      }
       this.pointer.x = e.clientX - r.left;
       this.pointer.y = e.clientY - r.top;
       this.pointer.active = true;
@@ -44,11 +62,27 @@ export class Input {
     };
     const onPointerMove = (e: PointerEvent) => {
       const r = rect();
+      if (this.touches.has(e.pointerId)) {
+        this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (this.touches.size >= 2) {
+          const d = spread();
+          if (this.pinchDist > 0 && d > 0) this.pinch *= d / this.pinchDist;
+          this.pinchDist = d;
+          return;
+        }
+      }
       this.pointer.x = e.clientX - r.left;
       this.pointer.y = e.clientY - r.top;
       this.pointer.active = true;
     };
     const onPointerUp = (e: PointerEvent) => {
+      const wasPinch = this.touches.size >= 2;
+      this.touches.delete(e.pointerId);
+      if (wasPinch) {
+        this.pinchDist = 0;
+        if (this.surface.hasPointerCapture?.(e.pointerId)) this.surface.releasePointerCapture(e.pointerId);
+        return;
+      }
       if (e.button === 2) this.pointer.right = false;
       else this.pointer.down = false;
       if (this.surface.hasPointerCapture?.(e.pointerId)) this.surface.releasePointerCapture(e.pointerId);
@@ -103,6 +137,12 @@ export class Input {
     const w = this.wheel;
     this.wheel = 0;
     return w;
+  }
+
+  consumePinch() {
+    const p = this.pinch;
+    this.pinch = 1;
+    return p;
   }
 
   // Simulate a key press from on-screen controls.
