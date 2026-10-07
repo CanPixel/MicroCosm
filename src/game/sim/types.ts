@@ -279,6 +279,10 @@ export type Projectile = {
 
 export type Shockwave = { x: number; y: number; t: number; duration: number; radius: number; strength: number; color: string };
 
+// HUD elements and controls the player earns as the run unfolds.
+export const UNLOCK_IDS = ['glucose', 'radar', 'biomass', 'dash', 'architect', 'dna', 'microscope', 'colony'] as const;
+export type UnlockId = (typeof UNLOCK_IDS)[number];
+
 export type SimEvent =
   | { type: 'eat'; species: SpeciesId; x: number; y: number; amount: number }
   | { type: 'engulfStart'; species: SpeciesId; x: number; y: number; unit: number }
@@ -305,6 +309,7 @@ export type SimEvent =
   | { type: 'cellLost'; x: number; y: number }
   | { type: 'event'; kind: DirectorEventKind; x: number; y: number }
   | { type: 'objective'; index: number }
+  | { type: 'unlock'; id: UnlockId }
   | { type: 'discover'; species: SpeciesId }
   | { type: 'npcBurst'; species: SpeciesId; x: number; y: number }
   | { type: 'stun'; x: number; y: number }

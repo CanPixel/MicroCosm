@@ -23,16 +23,19 @@ export class Camera {
 
   update(
     dt: number, focusX: number, focusY: number, vx: number, vy: number, colonyR: number, primeR: number,
-    architect: number, reducedMotion: boolean,
+    architect: number, reducedMotion: boolean, intro = 1,
   ) {
     this.t += dt;
     const minDim = Math.min(this.viewW, this.viewH);
     const base = minDim / 500;
     const sizeFactor = Math.pow(30 / Math.max(24, colonyR), 0.62);
-    const play = base * this.userZoom * sizeFactor;
+    // Opening shot: start on a close-up of the cell and slowly pull back.
+    const e = intro * intro * (3 - 2 * intro);
+    const play = base * this.userZoom * sizeFactor * (1 + 2.4 * (1 - e));
     const inspect = (minDim * 0.3) / Math.max(10, primeR);
     const targetZoom = play + (inspect - play) * architect;
-    this.zoom += (targetZoom - this.zoom) * approach(architect > 0.01 ? 5 : 2.6, dt);
+    if (intro < 1) this.zoom = targetZoom;
+    else this.zoom += (targetZoom - this.zoom) * approach(architect > 0.01 ? 5 : 2.6, dt);
 
     const look = (1 - architect) * 0.24;
     // In the architect view, keep the cell left of the build panel.

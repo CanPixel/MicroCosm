@@ -27,6 +27,8 @@ You begin as a single amoeboid cell in an infinite, procedurally streamed drop o
 4. **Divide.** At critical mass, replicate your genome (it costs DNA) and pinch in two. The daughter stays attached, and you choose its fate and a heritable mutation.
 5. **Multicellularity.** Grow a colony of six specialized cells: photocytes, ciliocytes, phagocytes, cnidocytes and germ cells, tessellated like tissue.
 
+The opening is deliberately quiet: a close-up of a lone cell, a few drifting glucose crystals, nothing that hunts. The ecosystem wakes up over the first few minutes, and the interface grows with the organism. The chemotaxis radar, pseudopod dash, Cell Architect and microscope light each appear once the cell has earned them.
+
 ![A five-cell colony of specialized daughters](docs/screenshots/colony.webp)
 
 ## A living ecosystem
@@ -92,6 +94,8 @@ Your cell's size follows from what it contains: every organelle is real biomass 
 | Hold <kbd>E</kbd> | Identify specimens |
 | Mouse wheel, <kbd>[</kbd> <kbd>]</kbd> | Magnification |
 | <kbd>Esc</kbd> | Pause (also automatic when the window loses focus) |
+
+Dash, the Cell Architect and microscope light unlock during the first objectives.
 
 ## Under the hood
 

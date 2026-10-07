@@ -21,15 +21,21 @@ import {
 import { createGame, stepGame } from './sim/sim';
 import { SPECIES, SPECIES_LIST } from './sim/species';
 import { NO_INPUT, spawnEntity, type GameState, type SimInput } from './sim/state';
+import { openness, spawnGroup } from './sim/world';
 import type {
   AbilityId, BiomeId, CellFate, DeathCause, LightMode, Mutation, MutationId, OrganelleType, SimEvent, SpeciesId, Stats,
-  Traits,
+  Traits, UnlockId,
 } from './sim/types';
 
 export type Screen = 'title' | 'playing' | 'paused' | 'division' | 'dead' | 'victory';
 
-export type ToastKind = 'discover' | 'objective' | 'event' | 'warn' | 'good' | 'info';
-export type Toast = { id: number; kind: ToastKind; title: string; text: string; color: string; species?: SpeciesId; born: number; ttl: number };
+export type ToastKind = 'discover' | 'objective' | 'event' | 'warn' | 'good' | 'info' | 'unlock';
+export type Toast = {
+  id: number; kind: ToastKind; title: string; text: string; color: string; species?: SpeciesId; key?: string; born: number; ttl: number;
+};
+
+// A large, quiet caption for arriving somewhere (biomes, the opening shot).
+export type Banner = { id: number; title: string; sub: string };
 
 export type AbilityView = { id: AbilityId; name: string; key: string; atp: number; cooldown: number; remaining: number; affordable: boolean; description: string };
 
@@ -65,6 +71,14 @@ export type HudSnapshot = {
   biome: { id: BiomeId; name: string; tagline: string };
   light: number;
   pressure: number;
+  unlocked: UnlockId[];
+  banner: Banner | null;
+  hint: string | null;
+  // 0 → 1 over the opening shot; the HUD stays out of the way until it ends.
+  intro: number;
+  // Seconds since the current objective began, and the one just completed.
+  objectiveAge: number;
+  completed: { title: string; reward: number } | null;
   objective: { index: number; total: number; title: string; text: string; progress: string } | null;
   infection: { viralLoad: number; prophages: number; colonies: number; misfolded: number; attached: number; viroids: number; satellite: number };
   starving: boolean;
@@ -102,6 +116,13 @@ const EVENT_TEXT: Record<string, { title: string; text: string; color: string; k
   virophageSwarm: { title: 'Virophage swarm', text: 'Sputnik virophages hunting giant viruses. Absorb them as allies.', color: '#7dffb0', kind: 'good' },
   currentSurge: { title: 'Current surge', text: 'A strong current sweeps the plankton. Swim hard to hold position.', color: '#7de8ff', kind: 'event' },
   neoplasm: { title: 'Neoplasm detected', text: 'A mutant cell mass is hunting. It splits when wounded. Burn it down for DNA.', color: '#ff2e4d', kind: 'warn' },
+};
+
+const UNLOCK_TEXT: Partial<Record<UnlockId, { title: string; text: string; key?: string; color: string }>> = {
+  radar: { title: 'Chemotaxis', text: 'Your cell now senses chemical gradients. Green is food, blue is prey, red is danger.', color: '#7be0c0' },
+  dash: { title: 'Pseudopod dash', text: 'A burst of speed that also shakes off anything clinging to you.', key: 'SPACE', color: '#7be0c0' },
+  architect: { title: 'Cell Architect', text: 'Look inside your cell to grow and arrange organelles. Time slows while you build.', key: 'TAB', color: '#c4f53a' },
+  microscope: { title: 'Microscope light', text: 'Switch illumination. Darkfield and fluorescence reveal what brightfield hides.', key: 'Q', color: '#9fe8ff' },
 };
 
 const DEATH_TEXT: Record<DeathCause, string> = {
@@ -154,6 +175,13 @@ export class GameEngine {
   debugFocus: { x: number; y: number } | null = null;
   private frameAvg = 1 / 60;
   private scaleTimer = 0;
+  // Opening shot progress, 0 → 1.
+  private introT = 1;
+  private swum = 0;
+  private banner: (Banner & { at: number }) | null = null;
+  private objectiveAt = 0;
+  private completed: { title: string; reward: number } | null = null;
+  private bannerId = 1;
 
   constructor(host: HTMLElement) {
     this.host = host;
@@ -190,6 +218,13 @@ export class GameEngine {
   private attractState() {
     const s = createGame(Math.floor(Math.random() * 1e9), Object.keys(this.journal) as SpeciesId[]);
     s.player.invulnUntil = 1e9;
+    // The title screen shows the ecosystem in full, not the quiet opening.
+    s.objective.index = 5;
+    const fauna: SpeciesId[] = ['euglena', 'paramecium', 'diatom', 'proteo', 'cyano', 'bacillus', 'spirillum', 'cocci', 'euglena', 'diatom'];
+    fauna.forEach((id, i) => {
+      const a = (i / fauna.length) * Math.PI * 2;
+      spawnGroup(s, id, Math.cos(a) * 420, Math.sin(a) * 300, s.rng);
+    });
     return s;
   }
 
@@ -220,10 +255,15 @@ export class GameEngine {
     this.renderer.floaters = [];
     this.camera.x = 0;
     this.camera.y = 0;
-    this.camera.zoom = 2.2;
+    this.introT = this.settings.reducedMotion ? 1 : 0;
+    this.swum = 0;
+    this.objectiveAt = this.clock + 3;
+    this.completed = null;
+    this.lastBiome = this.state.biome;
+    const b = BIOMES[this.state.biome];
+    this.showBanner(b.name, 'A single cell in a drop of pond water', 1.6);
     this.setLight('bright', true);
     this.audio.setPaused(false);
-    this.toast('info', 'A world within a drop', 'Swim with WASD or hold the mouse. Engulf glucose and anything smaller than you.', '#7be0c0');
     this.publish();
   }
 
@@ -233,6 +273,7 @@ export class GameEngine {
     this.architect = false;
     this.desat = 0;
     this.toasts.set([]);
+    this.banner = null;
     this.audio.setPaused(false);
     this.publish();
   }
@@ -255,6 +296,7 @@ export class GameEngine {
 
   setLight(mode: LightMode, silent = false) {
     if (this.state.lightMode === mode && !silent) return;
+    if (!silent && !this.state.unlocked.has('microscope')) return;
     this.state.lightMode = mode;
     this.audio.setLightMode(mode);
     if (!silent) {
@@ -280,6 +322,7 @@ export class GameEngine {
     if (this.screen !== 'playing') return;
     const next = force ?? !this.architect;
     if (next === this.architect) return;
+    if (next && !this.state.unlocked.has('architect')) return;
     this.architect = next;
     this.audio.ui();
     this.input.clear();
@@ -422,6 +465,7 @@ export class GameEngine {
     const dtReal = this.last === 0 ? 1 / 60 : clamp((now - this.last) / 1000, 0, 0.1);
     this.last = now;
     this.clock += dtReal;
+    if (this.screen === 'playing') this.introT = Math.min(1, this.introT + dtReal / 6.5);
     const pressed = this.input.consume();
     this.globalKeys(pressed);
 
@@ -483,8 +527,9 @@ export class GameEngine {
     } else if (this.debugFocus) {
       this.camera.update(dtReal, this.debugFocus.x, this.debugFocus.y, 0, 0, colonyR, prime.radius, 0, this.settings.reducedMotion);
     } else {
-      this.camera.update(dtReal, fx, fy, prime.vx, prime.vy, colonyR, prime.radius, 0, this.settings.reducedMotion);
+      this.camera.update(dtReal, fx, fy, prime.vx, prime.vy, colonyR, prime.radius, 0, this.settings.reducedMotion, this.introT);
     }
+    if (this.screen === 'playing' && Math.hypot(prime.vx, prime.vy) > 50) this.swum += dtReal;
 
     // Light mode blends.
     const k = approach(7, dtReal);
@@ -510,7 +555,7 @@ export class GameEngine {
         labels: this.labels,
         aim: this.input.pointer.active && !this.input.pointer.touch ? pointerWorld : null,
         aimActive: toxicyst && this.screen === 'playing',
-        nav: this.screen === 'playing' ? objectiveNavTarget(s) : null,
+        nav: this.screen === 'playing' && this.introT > 0.9 ? objectiveNavTarget(s) : null,
       },
       showPlayer: this.screen !== 'title',
       glowBoost: 0,
@@ -519,10 +564,11 @@ export class GameEngine {
     // Audio intensity from nearby danger.
     if (this.screen !== 'title') {
       this.audio.setBiome(s.biome);
+      this.audio.setGrowth(openness(s));
       if (s.biome !== this.lastBiome && this.screen === 'playing') {
         this.lastBiome = s.biome;
         const b = BIOMES[s.biome];
-        this.toast('event', b.name, b.tagline, '#9fe8ff');
+        this.showBanner(b.name, b.tagline);
       }
       let danger = 0;
       for (const e of s.entities) {
@@ -635,7 +681,8 @@ export class GameEngine {
         abilities.push(p.traits.abilities.includes('toxicyst') ? 'toxicyst' : 'lysosome');
       }
     }
-    return { moveX: mx, moveY: my, aimX, aimY, dash: pressed.has('Space') && !this.architect, abilities, divide: false };
+    const dash = pressed.has('Space') && !this.architect && s.unlocked.has('dash');
+    return { moveX: mx, moveY: my, aimX, aimY, dash, abilities, divide: false };
   }
 
   // --- Event feedback ------------------------------------------------------
@@ -838,7 +885,17 @@ export class GameEngine {
         case 'objective': {
           const def = OBJECTIVES[ev.index];
           this.audio.objective();
-          this.toast('objective', `Objective complete: ${def.title}`, def.reward ? `+${def.reward} DNA` : 'Well done.', '#fff2a8');
+          this.objectiveAt = this.clock;
+          this.completed = { title: def.title, reward: def.reward };
+          if (def.reward) R.addFloater(prime.x, prime.y - prime.radius * 1.6, `+${def.reward} DNA`, '#fff2a8', 14);
+          break;
+        }
+        case 'unlock': {
+          const info = UNLOCK_TEXT[ev.id];
+          if (!info) break;
+          this.audio.unlocked();
+          R.particles.ring(prime.x, prime.y, prime.radius * 2.4, info.color, 0.7, 1.8);
+          this.toast('unlock', info.title, info.text, info.color, undefined, info.key);
           break;
         }
         case 'discover': {
@@ -942,9 +999,33 @@ export class GameEngine {
     saveRecords(r);
   }
 
-  private toast(kind: ToastKind, title: string, text: string, color: string, species?: SpeciesId) {
-    const t: Toast = { id: this.toastId++, kind, title, text, color, species, born: this.clock, ttl: kind === 'discover' ? 6 : 5 };
-    this.toasts.update((list) => [...list.filter((x) => x.title !== title), t].slice(-4));
+  private toast(kind: ToastKind, title: string, text: string, color: string, species?: SpeciesId, key?: string) {
+    const ttl = kind === 'unlock' ? 8 : kind === 'discover' ? 5 : 5.5;
+    const t: Toast = { id: this.toastId++, kind, title, text, color, species, key, born: this.clock, ttl };
+    this.toasts.update((list) => [...list.filter((x) => x.title !== title), t].slice(-3));
+  }
+
+  private showBanner(title: string, sub: string, delay = 0) {
+    this.banner = { id: this.bannerId++, title, sub, at: this.clock + delay };
+  }
+
+  private currentBanner(): Banner | null {
+    const b = this.banner;
+    if (!b || this.clock < b.at) return null;
+    if (this.clock > b.at + 5.5) {
+      this.banner = null;
+      return null;
+    }
+    return { id: b.id, title: b.title, sub: b.sub };
+  }
+
+  private currentHint(): string | null {
+    if (this.screen !== 'playing' || this.introT < 0.55) return null;
+    if (this.swum < 1.5 && this.state.time < 40) {
+      const touch = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+      return touch ? 'Touch and hold to swim' : 'Swim with WASD, or hold the mouse button';
+    }
+    return null;
   }
 
   private expireToasts() {
@@ -1019,6 +1100,12 @@ export class GameEngine {
       biome: { id: s.biome, name: b.name, tagline: b.tagline },
       light: s.light,
       pressure: s.director.pressure,
+      unlocked: [...s.unlocked],
+      banner: this.currentBanner(),
+      hint: this.currentHint(),
+      intro: this.introT,
+      objectiveAge: this.clock - this.objectiveAt,
+      completed: this.clock - this.objectiveAt < 2.8 ? this.completed : null,
       objective: objective ? { index: s.objective.index, total: OBJECTIVES.length, title: objective.title, text: objective.text, progress: s.objective.progressText } : null,
       infection: {
         viralLoad: p.infection.viralLoad,

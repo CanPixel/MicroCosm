@@ -47,6 +47,8 @@ export class Soundscape {
   private degree = 0;
   private biome: BiomeId = 'shallows';
   private intensity = 0;
+  // 0 at the quiet opening, 1 once the ecosystem is fully awake.
+  private growth = 1;
   private muted = false;
   private paused = false;
   volumes = { master: 0.8, music: 0.7, sfx: 0.85 };
@@ -204,6 +206,11 @@ export class Soundscape {
     this.intensity = Math.max(0, Math.min(1, v));
   }
 
+  // Sparse, slow phrases at the start of a run; fuller melody as life grows.
+  setGrowth(v: number) {
+    this.growth = Math.max(0, Math.min(1, v));
+  }
+
   setLightMode(mode: LightMode) {
     const ctx = this.ctx;
     if (!ctx || !this.filter) return;
@@ -245,7 +252,7 @@ export class Soundscape {
     const ahead = ctx.currentTime + 0.25;
     const sc = SCALES[this.biome];
     while (this.nextNote < ahead) {
-      if (Math.random() < sc.density * (this.paused ? 0.4 : 1)) {
+      if (Math.random() < sc.density * (0.35 + 0.65 * this.growth) * (this.paused ? 0.4 : 1)) {
         const weights = INTERVAL_WEIGHTS.map(([iv, w]) => {
           const target = this.degree + iv;
           // Gravity toward the tonic region keeps phrases grounded.
@@ -266,7 +273,7 @@ export class Soundscape {
         if (Math.random() < 0.18) this.bell(this.nextNote + sc.tempo * 0.5, freq * 1.5, 0.025, (Math.random() - 0.5) * 0.8);
       }
       const beats = [1, 1, 1, 2, 2, 0.5][Math.floor(Math.random() * 6)];
-      this.nextNote += sc.tempo * beats * (1 - this.intensity * 0.3);
+      this.nextNote += sc.tempo * beats * (1 - this.intensity * 0.3) * (1.5 - 0.5 * this.growth);
     }
     while (this.nextGrain < ahead) {
       this.grain(this.nextGrain);
@@ -513,6 +520,10 @@ export class Soundscape {
 
   discover() {
     this.chord([880, 1174.66, 1318.51], 0.035, 0.07, 1);
+  }
+
+  unlocked() {
+    this.chord([392, 587.33, 783.99, 1174.66], 0.04, 0.16, 1.8);
   }
 
   objective() {

@@ -2,22 +2,26 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { GameEngine, HudSnapshot } from '@/game/engine';
 import { FATES } from '@/game/sim/organelles';
 import { SPECIES } from '@/game/sim/species';
-import type { AbilityId, LightMode } from '@/game/sim/types';
-import { clock, fmt } from './hooks';
+import type { LightMode, UnlockId } from '@/game/sim/types';
+import { fmt } from './hooks';
 import { AbilityIcon, AtpIcon, BiomassIcon, DnaIcon, GlucoseIcon, IntegrityIcon, LightIcon, PauseIcon, SpeakerIcon, SunIcon } from './icons';
 import { Radar } from './Radar';
 
+// The HUD grows with the organism: each element appears (with a soft reveal
+// animation on mount) once the run has given the player a reason to need it.
+const has = (hud: HudSnapshot, id: UnlockId) => hud.unlocked.includes(id);
+
 function Ring({ value, max, color, icon, label, warn }: { value: number; max: number; color: string; icon: ReactNode; label: string; warn?: boolean }) {
-  const r = 26;
+  const r = 22;
   const c = 2 * Math.PI * r;
   const k = Math.max(0, Math.min(1, value / Math.max(1, max)));
   return (
-    <div className={`ring ${warn ? 'ring-warn' : ''}`} title={`${label}: ${fmt(value)} / ${fmt(max)}`}>
-      <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
+    <div className={`ring reveal ${warn ? 'ring-warn' : ''}`} title={`${label}: ${fmt(value)} / ${fmt(max)}`}>
+      <svg width="54" height="54" viewBox="0 0 54 54">
+        <circle cx="27" cy="27" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
         <circle
-          cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
-          strokeDasharray={`${c * k} ${c}`} transform="rotate(-90 32 32)"
+          cx="27" cy="27" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+          strokeDasharray={`${c * k} ${c}`} transform="rotate(-90 27 27)"
         />
       </svg>
       <div className="ring-center">
@@ -29,34 +33,44 @@ function Ring({ value, max, color, icon, label, warn }: { value: number; max: nu
   );
 }
 
+function Meter({ icon, k, value, max, gradient, title }: { icon: ReactNode; k: number; value: string; max: number; gradient: string; title: string }) {
+  return (
+    <div className="meter-row reveal" title={title}>
+      {icon}
+      <div className="meter">
+        <i style={{ width: `${Math.min(1, k) * 100}%`, background: gradient }} />
+      </div>
+      <b>{value}<small>/{max}</small></b>
+    </div>
+  );
+}
+
 function Vitals({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
-  const biomassK = Math.min(1, hud.biomass / hud.division.threshold);
-  const dnaK = Math.min(1, hud.dna / hud.division.dna);
   return (
     <section className="panel vitals">
       <div className="rings">
-        <Ring value={hud.atp} max={hud.atpCap} color="#ffd23f" icon={<AtpIcon />} label="ATP" warn={hud.atp < 15} />
-        <Ring value={hud.integrity} max={hud.maxIntegrity} color="#ff4f8b" icon={<IntegrityIcon />} label="Membrane" warn={hud.integrity < hud.maxIntegrity * 0.35} />
-        <Ring value={hud.glucose} max={hud.glucoseCap} color="#c4f53a" icon={<GlucoseIcon />} label="Glucose" warn={hud.glucose < 6} />
+        <Ring value={hud.atp} max={hud.atpCap} color="#ffd23f" icon={<AtpIcon size={15} />} label="ATP" warn={hud.atp < 15} />
+        <Ring value={hud.integrity} max={hud.maxIntegrity} color="#ff4f8b" icon={<IntegrityIcon size={15} />} label="Membrane" warn={hud.integrity < hud.maxIntegrity * 0.35} />
+        {has(hud, 'glucose') && (
+          <Ring value={hud.glucose} max={hud.glucoseCap} color="#c4f53a" icon={<GlucoseIcon size={15} />} label="Glucose" warn={hud.glucose < 6} />
+        )}
       </div>
-      <div className="meter-row" title="Biomass: builds organelles and drives growth. Reach the threshold to divide.">
-        <BiomassIcon />
-        <div className="meter">
-          <i style={{ width: `${biomassK * 100}%`, background: 'linear-gradient(90deg,#ff9a6b,#b48cff)' }} />
-        </div>
-        <b>{fmt(hud.biomass)}<small>/{hud.division.threshold}</small></b>
-      </div>
-      <div className="meter-row" title="Nucleotides: needed to replicate the genome and to mutate.">
-        <DnaIcon />
-        <div className="meter">
-          <i style={{ width: `${dnaK * 100}%`, background: 'linear-gradient(90deg,#5ab0ff,#ff5f9e)' }} />
-        </div>
-        <b>{fmt(hud.dna, 1)}<small>/{hud.division.dna}</small></b>
-      </div>
+      {has(hud, 'biomass') && (
+        <Meter
+          icon={<BiomassIcon />} k={hud.biomass / hud.division.threshold} value={fmt(hud.biomass)} max={hud.division.threshold}
+          gradient="linear-gradient(90deg,#ff9a6b,#b48cff)" title="Biomass: builds organelles and drives growth. Reach the threshold to divide."
+        />
+      )}
+      {has(hud, 'dna') && (
+        <Meter
+          icon={<DnaIcon />} k={hud.dna / hud.division.dna} value={fmt(hud.dna, 1)} max={hud.division.dna}
+          gradient="linear-gradient(90deg,#5ab0ff,#ff5f9e)" title="Nucleotides: needed to replicate the genome and to mutate."
+        />
+      )}
       {hud.division.progress > 0 ? (
         <div className="divide-progress"><span>Cytokinesis</span><div className="meter"><i style={{ width: `${hud.division.progress * 100}%` }} /></div></div>
       ) : hud.division.ok ? (
-        <button className="btn btn-divide" onClick={() => engine.divide()}>
+        <button className="btn btn-divide reveal" onClick={() => engine.divide()}>
           Divide <kbd>R</kbd>
         </button>
       ) : null}
@@ -65,74 +79,62 @@ function Vitals({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
 }
 
 function Objective({ hud }: { hud: HudSnapshot }) {
+  if (hud.intro < 0.95) return null;
+  const done = hud.completed;
+  if (done) {
+    return (
+      <section className="objective">
+        <div key={`done-${done.title}`} className="panel obj-card obj-done">
+          <div className="obj-head">
+            <span className="obj-check">✓</span>
+            <b>{done.title}</b>
+            {done.reward > 0 && <span className="obj-progress">+{done.reward} DNA</span>}
+          </div>
+        </div>
+      </section>
+    );
+  }
   const o = hud.objective;
+  const title = o ? o.title : 'Free evolution';
+  const text = o ? o.text : 'The microcosmos is yours. Explore deeper biomes, fill the Field Journal, and outgrow everything.';
+  // The instructions show while the objective is fresh, then fold away (hover to reread).
+  const fresh = hud.objectiveAge < 14;
   return (
     <section className="objective">
-      <div className="obj-chips">
-        <span className="chip chip-biome" title={hud.biome.tagline}>
-          <SunIcon level={hud.light} /> {hud.biome.name}
-        </span>
-        <span className="chip">{clock(hud.time)}</span>
-        <span className="chip chip-gen">Gen {hud.generation}</span>
-        <span className="chip chip-pressure" title="Ecosystem pressure rises with time, distance and generation">
-          Pressure {fmt(hud.pressure, 1)}
-        </span>
+      <div key={title} className={`panel obj-card ${fresh ? '' : 'obj-folded'}`}>
+        <div className="obj-head">
+          <b>{title}</b>
+          {o?.progress && <span className="obj-progress">{o.progress}</span>}
+        </div>
+        <p>{text}</p>
       </div>
-      {o ? (
-        <div className="panel obj-card">
-          <div className="obj-head">
-            <span className="obj-step">{o.index + 1}/{o.total}</span>
-            <b>{o.title}</b>
-            {o.progress && <span className="obj-progress">{o.progress}</span>}
-          </div>
-          <p>{o.text}</p>
-        </div>
-      ) : (
-        <div className="panel obj-card">
-          <div className="obj-head"><b>Free evolution</b></div>
-          <p>The microcosmos is yours. Explore deeper biomes, fill the Field Journal, and outgrow everything.</p>
-        </div>
-      )}
     </section>
   );
 }
 
-const LOCKED: Array<{ id: AbilityId; hint: string }> = [
-  { id: 'lysosome', hint: 'Build a lysosome' },
-  { id: 'toxicyst', hint: 'Build an extrusome' },
-  { id: 'rnai', hint: 'Build an ER' },
-  { id: 'encyst', hint: 'Build a cytoskeleton hub' },
-];
-
 function Hotbar({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
-  const owned = new Set(hud.abilities.map((a) => a.id));
+  const abilities = hud.abilities.filter((a) => a.id !== 'dash' || has(hud, 'dash'));
+  if (!abilities.length) return null;
   return (
     <section className="hotbar">
-      {hud.abilities.map((a) => {
+      {abilities.map((a) => {
         const k = a.remaining > 0 ? a.remaining / a.cooldown : 0;
         const style = { '--cd': `${k * 360}deg` } as CSSProperties;
         return (
           <button
             key={a.id}
-            className={`ability ${a.remaining > 0 ? 'cooling' : ''} ${!a.affordable ? 'poor' : ''} ${a.id === 'dash' ? 'ability-dash' : ''}`}
+            className={`ability reveal ${a.remaining > 0 ? 'cooling' : ''} ${!a.affordable ? 'poor' : ''} ${a.id === 'dash' ? 'ability-dash' : ''}`}
             style={style}
             onClick={() => engine.ability(a.id)}
             title={`${a.name}: ${a.description} (${a.atp} ATP)`}
           >
-            <span className="ability-icon"><AbilityIcon id={a.id} /></span>
+            <span className="ability-icon"><AbilityIcon id={a.id} size={a.id === 'dash' ? 28 : 24} /></span>
             {a.remaining > 0 && <span className="ability-cd">{a.remaining.toFixed(1)}</span>}
             <kbd>{a.key === 'SPACE' ? '␣' : a.key}</kbd>
-            <span className="ability-cost">{a.atp}<AtpIcon size={10} /></span>
             {a.id === 'virophage' && <span className="ability-count">{hud.storedVirophages}</span>}
           </button>
         );
       })}
-      {LOCKED.filter((l) => !owned.has(l.id)).map((l) => (
-        <div key={l.id} className="ability locked" title={l.hint}>
-          <span className="ability-icon"><AbilityIcon id={l.id} /></span>
-          <span className="ability-lock">{l.hint}</span>
-        </div>
-      ))}
     </section>
   );
 }
@@ -143,41 +145,39 @@ const LIGHTS: Array<{ mode: LightMode; name: string }> = [
   { mode: 'fluor', name: 'Fluorescence' },
 ];
 
-function Scope({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
+function Tools({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
+  const scope = has(hud, 'microscope');
+  const architect = has(hud, 'architect');
+  if (!scope && !architect) return null;
   const canBuild = hud.build.some((b) => b.ok);
   return (
-    <section className="panel scope">
-      <header>
-        <span className="eyebrow">Microscope</span>
-        <kbd>Q</kbd>
-      </header>
-      <div className="seg">
-        {LIGHTS.map((l) => (
-          <button key={l.mode} className={hud.lightMode === l.mode ? 'on' : ''} onClick={() => engine.setLight(l.mode)} title={l.name}>
-            <LightIcon mode={l.mode} />
-            <span>{l.name}</span>
-          </button>
-        ))}
-      </div>
-      <label className="zoom">
-        <span>Magnification</span>
-        <input
-          type="range" min={0.55} max={2.6} step={0.01} value={hud.userZoom}
-          onChange={(e) => engine.setUserZoom(Number(e.target.value))}
-        />
-      </label>
-      <button className={`btn btn-architect ${canBuild ? 'pulse' : ''}`} onClick={() => engine.toggleArchitect()}>
-        Cell Architect <kbd>TAB</kbd>
-      </button>
+    <section className="tools">
+      {scope && (
+        <div className="panel light-pill reveal" title="Microscope illumination (Q)">
+          {LIGHTS.map((l) => (
+            <button key={l.mode} className={hud.lightMode === l.mode ? 'on' : ''} onClick={() => engine.setLight(l.mode)} title={l.name}>
+              <LightIcon mode={l.mode} />
+            </button>
+          ))}
+          <span className="light-name">{LIGHTS.find((l) => l.mode === hud.lightMode)?.name}</span>
+          <kbd>Q</kbd>
+        </div>
+      )}
+      {architect && (
+        <button className={`btn btn-architect reveal ${canBuild ? 'pulse' : ''}`} onClick={() => engine.toggleArchitect()}>
+          Cell Architect <kbd>TAB</kbd>
+        </button>
+      )}
     </section>
   );
 }
 
 function Colony({ hud }: { hud: HudSnapshot }) {
+  if (hud.cells < 2 && hud.generation < 2) return null;
   return (
-    <section className="panel colony">
+    <section className="panel colony reveal">
       <header>
-        <span className="eyebrow">Colony</span>
+        <span className="eyebrow">Colony · Gen {hud.generation}</span>
         <b>{hud.cells} {hud.cells === 1 ? 'cell' : 'cells'}</b>
       </header>
       <div className="cells">
@@ -230,13 +230,33 @@ function Status({ hud }: { hud: HudSnapshot }) {
   );
 }
 
-export function Hud({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
+function Banner({ hud }: { hud: HudSnapshot }) {
+  const b = hud.banner;
+  if (!b) return null;
   return (
-    <div className={`hud ${hud.architect ? 'hud-architect' : ''}`}>
-      <Vitals hud={hud} engine={engine} />
-      {!hud.architect && <Objective hud={hud} />}
+    <div key={b.id} className="banner" aria-live="polite">
+      <h2>{b.title}</h2>
+      <p>{b.sub}</p>
+    </div>
+  );
+}
+
+export function Hud({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
+  const quiet = hud.architect;
+  const shown = hud.intro >= 0.6;
+  return (
+    <div className={`hud ${quiet ? 'hud-architect' : ''}`}>
+      {shown && (
+        <div className="hud-left">
+          <Vitals hud={hud} engine={engine} />
+          {!quiet && <Status hud={hud} />}
+        </div>
+      )}
+      {!quiet && <Objective hud={hud} />}
       <div className="hud-right">
-        <Radar engine={engine} biome={hud.biome.id} />
+        {shown && has(hud, 'radar') && (
+          <Radar engine={engine} biome={hud.biome.id} label={<><SunIcon size={12} level={hud.light} /> {hud.biome.name}</>} />
+        )}
         <div className="hud-buttons">
           <button className="icon-btn" onClick={() => engine.updateSettings({ muted: !hud.settings.muted })} title="Mute (M)">
             <SpeakerIcon muted={hud.settings.muted} />
@@ -244,10 +264,11 @@ export function Hud({ hud, engine }: { hud: HudSnapshot; engine: GameEngine }) {
           <button className="icon-btn" onClick={() => engine.pause()} title="Pause (ESC)"><PauseIcon /></button>
         </div>
       </div>
-      {!hud.architect && <Status hud={hud} />}
-      {!hud.architect && <Hotbar hud={hud} engine={engine} />}
-      {!hud.architect && <Scope hud={hud} engine={engine} />}
-      {!hud.architect && <Colony hud={hud} />}
+      {!quiet && <Banner hud={hud} />}
+      {!quiet && hud.hint && <div key={hud.hint} className="hint-swim">{hud.hint}</div>}
+      {!quiet && shown && <Hotbar hud={hud} engine={engine} />}
+      {!quiet && shown && <Tools hud={hud} engine={engine} />}
+      {!quiet && shown && <Colony hud={hud} />}
       {hud.labels && <div className="hint-identify">Identifying specimens</div>}
     </div>
   );

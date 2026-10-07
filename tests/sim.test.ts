@@ -13,6 +13,7 @@ import { createGame, stepGame } from '../src/game/sim/sim';
 import { BODY_BIOMASS, NO_INPUT, spawnEntity, type GameState, type SimInput } from '../src/game/sim/state';
 import { chunkKey, generateChunk } from '../src/game/sim/world';
 import { createState } from '../src/game/sim/state';
+import { SPECIES } from '../src/game/sim/species';
 import type { OrganelleType } from '../src/game/sim/types';
 
 const view = (s: GameState) => ({ x: s.player.units[0].x, y: s.player.units[0].y, halfW: 720, halfH: 450 });
@@ -299,5 +300,32 @@ describe('angle helpers', () => {
   test('shortest signed difference wraps around', () => {
     expect(angleDiff(0.1, Math.PI * 2 - 0.1)).toBeCloseTo(-0.2, 6);
     expect(angleDiff(-3, 3)).toBeCloseTo(6 - Math.PI * 2, 6);
+  });
+});
+
+describe('opening pacing', () => {
+  test('the opening field is quiet: no threats or endosymbionts near the spawn', () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const s = createGame(seed);
+      run(s, 8);
+      const near = s.entities.filter((e) => Math.hypot(e.x, e.y) < 1300);
+      expect(near.some((e) => SPECIES[e.species].threat >= 1)).toBe(false);
+      expect(near.some((e) => e.species === 'proteo' || e.species === 'cyano')).toBe(false);
+      expect(s.director.pressure).toBeLessThan(0.3);
+    }
+  });
+
+  test('the HUD and controls unlock with progress, and objectives introduce their subject', () => {
+    const s = createGame(7);
+    run(s, 2);
+    expect(s.unlocked.has('radar')).toBe(false);
+    expect(s.unlocked.has('architect')).toBe(false);
+    s.stats.glucose = 10;
+    run(s, 0.5);
+    expect(s.objective.index).toBe(1);
+    expect([...s.unlocked]).toEqual(expect.arrayContaining(['glucose', 'radar']));
+    const prime = s.player.units[0];
+    expect(s.entities.some((e) => e.species === 'proteo' && Math.hypot(e.x - prime.x, e.y - prime.y) < 1200)).toBe(true);
+    expect(s.unlocked.has('microscope')).toBe(false);
   });
 });

@@ -5,6 +5,15 @@ import { removeEntity, spawnEntity, type GameState, type ViewRect } from './stat
 import { BIOME_IDS, type SpeciesId } from './types';
 
 export const CHUNK = 900;
+// The opening "nursery" around the spawn point stays sparse and harmless.
+const NURSERY = 1400;
+
+// How far the run has unfolded, 0 (quiet opening) to 1 (full ecosystem).
+export function openness(state: GameState) {
+  return Math.min(1, Math.max(state.time / 480, state.objective.index / 5));
+}
+
+const isSymbiont = (id: SpeciesId) => id === 'proteo' || id === 'cyano';
 export const chunkKey = (cx: number, cy: number) => `${cx},${cy}`;
 
 // Dangerous species phase in as ecosystem pressure rises.
@@ -60,8 +69,10 @@ export function generateChunk(state: GameState, cx: number, cy: number) {
   const x0 = cx * CHUNK;
   const y0 = cy * CHUNK;
   const pressure = state.director.pressure;
+  const far = Math.min(1, Math.max(0, (Math.hypot(x0 + CHUNK / 2, y0 + CHUNK / 2) - 900) / 2200));
+  const fill = 0.3 + 0.7 * Math.max(far, openness(state));
 
-  const groups = 4 + Math.floor(rng() * 4);
+  const groups = Math.round((4 + Math.floor(rng() * 4)) * fill);
   for (let i = 0; i < groups; i++) {
     const x = x0 + rng() * CHUNK;
     const y = y0 + rng() * CHUNK;
@@ -70,16 +81,17 @@ export function generateChunk(state: GameState, cx: number, cy: number) {
     if (!species) continue;
     const def = SPECIES[species];
     const fromOrigin = Math.hypot(x, y);
-    // Keep the opening microscope field gentle and uncluttered.
-    if (fromOrigin < 900 && def.threat >= 2) continue;
+    // Keep the opening microscope field gentle and uncluttered. The
+    // endosymbionts are introduced by their objective instead.
+    if (fromOrigin < NURSERY && (def.threat >= 1 || isSymbiont(species))) continue;
     if (fromOrigin < 320 && def.group !== 'resource') continue;
     spawnGroup(state, species, x, y, rng, key);
   }
 
   const glucose = biomeProperty(x0 + CHUNK / 2, y0 + CHUNK / 2, state.seed, 'glucose');
-  const clusters = Math.round(glucose * (1.4 + rng() * 2));
+  const clusters = Math.round(glucose * (1.4 + rng() * 2) * fill);
   for (let i = 0; i < clusters; i++) {
-    spawnGlucoseCluster(state, x0 + rng() * CHUNK, y0 + rng() * CHUNK, rng, randInt(rng, 4, 9), key);
+    spawnGlucoseCluster(state, x0 + rng() * CHUNK, y0 + rng() * CHUNK, rng, randInt(rng, 3, 3 + Math.round(6 * fill)), key);
   }
 }
 
@@ -145,6 +157,7 @@ export function ambientUpkeep(state: GameState, view: ViewRect, dt: number) {
   }
 
   const richness = biomeProperty(view.x, view.y, state.seed, 'glucose');
+  const open = openness(state);
   const rng = state.rng;
   const p = state.player.units[0];
   const heading = Math.atan2(p.vy, p.vx);
@@ -155,14 +168,16 @@ export function ambientUpkeep(state: GameState, view: ViewRect, dt: number) {
     return { x: view.x + Math.cos(a) * d, y: view.y + Math.sin(a) * d };
   };
 
-  if (glucose < 26 * richness) {
+  if (glucose < (9 + 17 * open) * richness) {
     const at = offscreen();
-    spawnGlucoseCluster(state, at.x, at.y, rng, randInt(rng, 4, 9));
+    spawnGlucoseCluster(state, at.x, at.y, rng, randInt(rng, 3, 4 + Math.round(5 * open)));
   }
-  if (prey < 12) {
+  if (prey < 3 + 9 * open) {
     const at = offscreen();
+    const symbionts = state.objective.index >= 1;
     const table = speciesWeightsAt(at.x, at.y, state.seed, state.director.pressure, (d) =>
-      d.group === 'bacteria' || d.id === 'euglena' || d.id === 'diatom' || d.id === 'paramecium',
+      (d.group === 'bacteria' && (symbionts || !isSymbiont(d.id))) || d.id === 'euglena' || d.id === 'diatom'
+      || (d.id === 'paramecium' && open > 0.4),
     );
     const species = weightedPick(rng, table);
     if (species) spawnGroup(state, species, at.x, at.y, rng);

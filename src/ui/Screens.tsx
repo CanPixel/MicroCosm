@@ -377,7 +377,7 @@ export function Toasts({ toasts, engine, docked }: { toasts: Toast[]; engine: Ga
         <button key={t.id} className={`toast toast-${t.kind}`} style={{ '--c': t.color } as CSSProperties} onClick={() => engine.dismissToast(t.id)}>
           {t.species && <img src={speciesIcon(t.species, 72)} alt="" />}
           <span>
-            <b>{t.title}</b>
+            <b>{t.kind === 'unlock' && <em className="toast-new">New</em>}{t.title}{t.key && <kbd>{t.key}</kbd>}</b>
             <small>{t.text}</small>
           </span>
         </button>

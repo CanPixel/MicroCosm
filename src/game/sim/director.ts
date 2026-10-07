@@ -4,8 +4,8 @@ import { canDivide, divisionDnaCost, divisionThreshold, livingUnits, spendableBi
 import { pick, rand, randInt, weightedPick } from './rng';
 import { SPECIES } from './species';
 import { emit, spawnEntity, type GameState } from './state';
-import { spawnGlucoseCluster } from './world';
-import { BIOME_IDS, type DirectorEventKind, type SpeciesId } from './types';
+import { spawnGlucoseCluster, spawnGroup } from './world';
+import { BIOME_IDS, type DirectorEventKind, type SpeciesId, type UnlockId } from './types';
 
 export type ObjectiveDef = {
   id: string;
@@ -15,6 +15,9 @@ export type ObjectiveDef = {
   check: (s: GameState) => boolean;
   progress?: (s: GameState) => string;
   nav?: SpeciesId[] | ((s: GameState) => SpeciesId[] | null);
+  // Organisms that drift into view when the objective begins, so the opening
+  // field can stay sparse without leaving the player searching.
+  intro?: SpeciesId[];
 };
 
 const has = (s: GameState, type: Parameters<typeof countOrganelles>[1]) => countOrganelles(s.player, type, true) > 0;
@@ -23,8 +26,8 @@ export const OBJECTIVES: ObjectiveDef[] = [
   {
     id: 'feed', title: 'Ignite metabolism', reward: 0,
     text: 'Swim into glucose crystals. Glycolysis turns each one into ATP.',
-    check: (s) => s.stats.glucose >= 8,
-    progress: (s) => `${Math.min(8, s.stats.glucose)}/8 glucose`,
+    check: (s) => s.stats.glucose >= 10,
+    progress: (s) => `${Math.min(10, s.stats.glucose)}/10 glucose`,
     nav: ['glucose'],
   },
   {
@@ -32,13 +35,15 @@ export const OBJECTIVES: ObjectiveDef[] = [
     text: 'Engulf a purple α-proteobacterium. Instead of digesting it, you keep it as your first mitochondrion.',
     check: (s) => has(s, 'mitochondrion'),
     nav: ['proteo'],
+    intro: ['proteo', 'proteo', 'cyano'],
   },
   {
     id: 'hunt', title: 'Gather biomass', reward: 1,
     text: 'Engulf microbes smaller than you (dashed green ring). Digested prey becomes spare biomass for building.',
-    check: (s) => s.stats.eaten >= 6 || has(s, 'er'),
-    progress: (s) => `${Math.min(6, s.stats.eaten)}/6 engulfed · ${Math.floor(Math.max(0, spendableBiomass(s.player)))} spare`,
+    check: (s) => s.stats.eaten - s.objective.startEaten >= 6 || has(s, 'er'),
+    progress: (s) => `${Math.min(6, s.stats.eaten - s.objective.startEaten)}/6 engulfed · ${Math.floor(Math.max(0, spendableBiomass(s.player)))} spare`,
     nav: ['bacillus', 'cocci', 'spirillum', 'euglena', 'diatom'],
+    intro: ['cocci', 'bacillus'],
   },
   {
     id: 'er', title: 'Endomembrane system', reward: 2,
@@ -122,7 +127,10 @@ export function updateEnvironment(state: GameState) {
   const dist = Math.hypot(prime.x, prime.y);
   state.stats.maxDistance = Math.max(state.stats.maxDistance, dist);
   const p = state.player;
-  state.director.pressure = Math.min(4, 0.2 + state.time / 240 + dist / 7000 + (p.generation - 1) * 0.15 + (danger - 1) * 0.2);
+  // A slow dawn: the first three minutes stay quiet, then the world wakes up.
+  const t = state.time;
+  const timeTerm = t < 180 ? t / 720 : 0.25 + (t - 180) / 240;
+  state.director.pressure = Math.min(4, 0.1 + timeTerm + dist / 7000 + (p.generation - 1) * 0.15 + (danger - 1) * 0.2);
 }
 
 function ahead(state: GameState, distance: number, jitter = 0.8) {
@@ -224,7 +232,7 @@ export function updateDirector(state: GameState, dt: number) {
   const pressure = d.pressure;
   const kind = weightedPick<DirectorEventKind>(state.rng, {
     glucoseBloom: 1,
-    viralStorm: pressure >= 0.45 ? 1.3 : 0,
+    viralStorm: pressure >= 0.55 ? 1.3 : 0,
     prionFog: pressure >= 0.8 ? 0.6 : 0,
     phageBurst: 0.7,
     virophageSwarm: pressure >= 0.9 ? 0.5 : 0,
@@ -235,18 +243,60 @@ export function updateDirector(state: GameState, dt: number) {
   if (kind) runEvent(state, kind);
 }
 
+function introduce(state: GameState, species: SpeciesId[]) {
+  const rng = state.rng;
+  const prime = state.player.units[0];
+  const edge = Math.max(state.view.halfW, state.view.halfH) + 90;
+  for (const id of species) {
+    const at = ahead(state, edge + rng() * 160, 1.1);
+    if (id !== 'proteo' && id !== 'cyano') {
+      spawnGroup(state, id, at.x, at.y, rng);
+    } else {
+      const a = Math.atan2(prime.y - at.y, prime.x - at.x) + (rng() - 0.5) * 0.8;
+      spawnEntity(state, id, at.x, at.y, { vx: Math.cos(a) * 30, vy: Math.sin(a) * 30 });
+    }
+  }
+  state.introducedAt = state.time;
+}
+
 export function updateObjectives(state: GameState) {
   const o = state.objective;
   const def = OBJECTIVES[o.index];
   if (!def) return;
   o.progressText = def.progress ? def.progress(state) : '';
+  // If the subject has drifted away or been eaten, send another one in.
+  if (def.intro && state.time - state.introducedAt > 25 && !objectiveNavTarget(state)) introduce(state, def.intro.slice(0, 1));
   if (!def.check(state)) return;
   state.player.dna += def.reward;
   o.index++;
+  o.startEaten = state.stats.eaten;
   emit(state, { type: 'objective', index: o.index - 1 });
+  const next = OBJECTIVES[o.index];
+  if (next?.intro) introduce(state, next.intro);
   if (def.id === 'multicellular' && !state.victory) {
     state.victory = true;
     emit(state, { type: 'victory' });
+  }
+}
+
+const UNLOCK_CHECKS: Record<UnlockId, (s: GameState) => boolean> = {
+  glucose: (s) => s.stats.glucose >= 1,
+  radar: (s) => s.objective.index >= 1,
+  biomass: (s) => s.stats.eaten >= 1 || s.objective.index >= 2,
+  // Dash arrives early, or immediately if something grabs you first.
+  dash: (s) => s.stats.eaten >= 2 || s.objective.index >= 2 || !!s.player.capture
+    || s.player.units.some((u) => u.attached.length > 0),
+  architect: (s) => s.objective.index >= 2,
+  dna: (s) => s.player.dna >= 0.5 || s.objective.index >= 4,
+  microscope: (s) => s.objective.index >= 3 || s.time > 540,
+  colony: (s) => s.player.generation >= 2,
+};
+
+export function updateUnlocks(state: GameState) {
+  for (const id of Object.keys(UNLOCK_CHECKS) as UnlockId[]) {
+    if (state.unlocked.has(id) || !UNLOCK_CHECKS[id](state)) continue;
+    state.unlocked.add(id);
+    emit(state, { type: 'unlock', id });
   }
 }
 

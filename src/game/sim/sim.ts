@@ -1,37 +1,40 @@
 import { updateEntities } from './ai';
 import { updateInteractions, updateProjectiles, castAbility } from './combat';
-import { checkDivisionReady, updateDirector, updateDiscovery, updateEnvironment, updateObjectives } from './director';
+import {
+  checkDivisionReady, updateDirector, updateDiscovery, updateEnvironment, updateObjectives, updateUnlocks,
+} from './director';
 import { updateInfection } from './infection';
 import {
   refreshTraits, startDivision, updateDigestion, updateDivision, updateMetabolism, updatePlayerMovement, updateUnitBodies,
 } from './player';
 import { mulberry32, rand } from './rng';
 import { createState, spawnEntity, type GameState, type SimInput, type ViewRect } from './state';
-import { ambientUpkeep, spawnGlucoseCluster, streamChunks } from './world';
+import { ambientUpkeep, streamChunks } from './world';
 import type { SpeciesId } from './types';
 
 export function createGame(seed: number, knownSpecies: Iterable<SpeciesId> = []): GameState {
   const state = createState(seed, knownSpecies);
   const rng = mulberry32(seed ^ 0x2c1b3c6d);
-  // A gentle, legible opening field: glucose to learn movement, and the two
-  // endosymbiotic ancestors close enough to find.
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2 + rng();
-    spawnGlucoseCluster(state, Math.cos(a) * rand(rng, 140, 260), Math.sin(a) * rand(rng, 140, 260), rng, 5, '', 55);
-  }
-  for (let i = 0; i < 3; i++) {
-    const a = rng() * Math.PI * 2;
-    const d = rand(rng, 330, 560);
-    spawnEntity(state, 'proteo', Math.cos(a) * d, Math.sin(a) * d, { rng });
+  // A quiet opening field: a few meandering trails of single glucose crystals
+  // to learn swimming, and almost nothing else. The endosymbiotic ancestors
+  // drift in later, when their objective begins.
+  const trails = 3;
+  for (let t = 0; t < trails; t++) {
+    let a = (t / trails) * Math.PI * 2 + rng() * 1.2;
+    let d = rand(rng, 90, 150);
+    let heading = a;
+    for (let i = 0; i < 5; i++) {
+      spawnEntity(state, 'glucose', Math.cos(a) * d, Math.sin(a) * d, { rng });
+      heading += (rng() - 0.5) * 1.1;
+      const x = Math.cos(a) * d + Math.cos(heading) * rand(rng, 80, 130);
+      const y = Math.sin(a) * d + Math.sin(heading) * rand(rng, 80, 130);
+      a = Math.atan2(y, x);
+      d = Math.hypot(x, y);
+    }
   }
   for (let i = 0; i < 2; i++) {
     const a = rng() * Math.PI * 2;
-    const d = rand(rng, 380, 620);
-    spawnEntity(state, 'cyano', Math.cos(a) * d, Math.sin(a) * d, { rng });
-  }
-  for (let i = 0; i < 4; i++) {
-    const a = rng() * Math.PI * 2;
-    const d = rand(rng, 260, 520);
+    const d = rand(rng, 320, 520);
     spawnEntity(state, 'cocci', Math.cos(a) * d, Math.sin(a) * d, { rng });
   }
   return state;
@@ -68,6 +71,7 @@ export function stepGame(state: GameState, dt: number, input: SimInput, view: Vi
   refreshTraits(state);
   updateUnitBodies(state, dt);
   updateObjectives(state);
+  updateUnlocks(state);
   updateDiscovery(state, dt);
   checkDivisionReady(state);
 

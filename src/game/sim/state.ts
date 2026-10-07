@@ -5,7 +5,7 @@ import { SpatialHash } from './spatial';
 import { SPECIES } from './species';
 import type {
   AbilityId, BiomeId, CellFate, CellUnit, DirectorState, DivisionChoices, Entity, LightMode, Player, Projectile,
-  Shockwave, SimEvent, SpeciesId, Stats,
+  Shockwave, SimEvent, SpeciesId, Stats, UnlockId,
 } from './types';
 
 export const START_BIOMASS = 40;
@@ -30,7 +30,8 @@ export type SimInput = {
 
 export const NO_INPUT: SimInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, dash: false, abilities: [], divide: false };
 
-export type ObjectiveState = { index: number; progressText: string };
+// startEaten: prey engulfed before the current objective began.
+export type ObjectiveState = { index: number; progressText: string; startEaten: number };
 
 export type GameState = {
   seed: number;
@@ -47,6 +48,9 @@ export type GameState = {
   loadedChunks: Set<string>;
   director: DirectorState;
   objective: ObjectiveState;
+  unlocked: Set<UnlockId>;
+  // Time the current objective's subject was last introduced into view.
+  introducedAt: number;
   lightMode: LightMode;
   stats: Stats;
   discovered: Set<SpeciesId>;
@@ -149,8 +153,10 @@ export function createState(seed: number, knownSpecies: Iterable<SpeciesId> = []
     shockwaves: [],
     events: [],
     loadedChunks: new Set(),
-    director: { pressure: 0.2, nextEventAt: 70, activeEvent: null, surge: 0, bossSpawned: -999 },
-    objective: { index: 0, progressText: '' },
+    director: { pressure: 0.1, nextEventAt: 150, activeEvent: null, surge: 0, bossSpawned: -999 },
+    objective: { index: 0, progressText: '', startEaten: 0 },
+    unlocked: new Set(),
+    introducedAt: -999,
     lightMode: 'bright',
     stats: { eaten: 0, kills: 0, glucose: 0, maxDistance: 0, divisions: 0, infectionsCleared: 0, peakCells: 1, peakBiomass: START_BIOMASS, discovered: 0 },
     discovered: new Set(),

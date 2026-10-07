@@ -1,15 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { GameEngine } from '@/game/engine';
 import { BIOME_PALETTES } from '@/game/render/palette';
 import { objectiveNavTarget } from '@/game/sim/director';
 import { SPECIES } from '@/game/sim/species';
 import type { BiomeId } from '@/game/sim/types';
 
-const SIZE = 168;
+const SIZE = 140;
 const RANGE = 1200;
 
 // A local chemosensory map of what is actually streamed around the cell.
-export function Radar({ engine, biome }: { engine: GameEngine; biome: BiomeId }) {
+export function Radar({ engine, biome, label }: { engine: GameEngine; biome: BiomeId; label: ReactNode }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const biomeRef = useRef(biome);
   biomeRef.current = biome;
@@ -92,11 +92,21 @@ export function Radar({ engine, biome }: { engine: GameEngine; biome: BiomeId })
         ctx.stroke();
       }
       ctx.restore();
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(c, c, c - 2, 0, Math.PI * 2);
       ctx.stroke();
+      // Ecosystem pressure creeps around the rim as a red arc.
+      const k = Math.min(1, s.director.pressure / 4);
+      if (k > 0.02) {
+        ctx.strokeStyle = `rgba(255, 70, 100, ${0.35 + k * 0.5})`;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(c, c, c - 2, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2);
+        ctx.stroke();
+        ctx.lineCap = 'butt';
+      }
       // Heading marker.
       const h = prime.heading;
       ctx.fillStyle = '#7be0c0';
@@ -112,13 +122,9 @@ export function Radar({ engine, biome }: { engine: GameEngine; biome: BiomeId })
   }, [engine]);
 
   return (
-    <div className="radar" title="Chemosensory map: glucose, prey, threats and your objective">
+    <div className="radar reveal" title="Chemosensory map. Green: food, blue: prey, red: danger, ring: your objective. The red rim is ecosystem pressure.">
       <canvas ref={ref} style={{ width: SIZE, height: SIZE }} />
-      <div className="radar-legend">
-        <span style={{ color: '#c4f53a' }}>● food</span>
-        <span style={{ color: '#5fd0ff' }}>● prey</span>
-        <span style={{ color: '#ff3b5c' }}>● threat</span>
-      </div>
+      <div className="radar-label">{label}</div>
     </div>
   );
 }
