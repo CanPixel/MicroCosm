@@ -21,12 +21,12 @@ An experimental real-time cellular survival strategy game for desktop and browse
 
 MicroCosm runs two interdependent game loops at once. Every decision inside the cell changes how well it survives outside, while every resource gathered outside determines what can be built within.
 
-| Ecosystem survival | Cellular strategy |
-| --- | --- |
-| Swim through a borderless, procedurally streamed micro-world | Build a functional internal architecture around the genome |
-| Hunt green glucose crystals and engulf useful organelles | Place and rearrange mitochondria, nuclei, and Golgi systems |
-| Evade predators, armored organisms, fungal barriers, and viruses | Balance ATP generation, uptake, repair, biomass, and viral resistance |
-| Read currents, threats, scale, and spatial opportunities in real time | Switch metabolic stances and fold regulatory RNA programs |
+| Ecosystem survival                                                    | Cellular strategy                                                     |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Swim through a borderless, procedurally streamed micro-world          | Build a functional internal architecture around the genome            |
+| Hunt green glucose crystals and engulf useful organelles              | Place and rearrange mitochondria, nuclei, and Golgi systems           |
+| Evade predators, armored organisms, fungal barriers, and viruses      | Balance ATP generation, uptake, repair, biomass, and viral resistance |
+| Read currents, threats, scale, and spatial opportunities in real time | Switch metabolic stances and fold regulatory RNA programs             |
 
 The world does not pause while the cell is being redesigned. Survival and architecture remain part of the same continuous simulation.
 
@@ -64,16 +64,16 @@ The microscope is more than a camera zoom. At ecosystem scale the game uses a vi
 
 ## Controls
 
-| Input | Action |
-| --- | --- |
-| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrow keys | Swim |
-| Drag or tap the world | Steer toward the pointer |
-| <kbd>[</kbd> / <kbd>]</kbd> | Zoom the microscope out / in |
-| Microscope slider | Move between ecosystem and ultrastructure |
-| <kbd>Tab</kbd> | Enter or leave Cell Architect when available |
-| Hold <kbd>E</kbd> | Identify nearby biological structures |
-| <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> | Trigger organelle abilities |
-| Mouse or touch drag | Reposition organelles in Cell Architect |
+| Input                                                             | Action                                       |
+| ----------------------------------------------------------------- | -------------------------------------------- |
+| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrow keys | Swim                                         |
+| Drag or tap the world                                             | Steer toward the pointer                     |
+| <kbd>[</kbd> / <kbd>]</kbd>                                       | Zoom the microscope out / in                 |
+| Microscope slider                                                 | Move between ecosystem and ultrastructure    |
+| <kbd>Tab</kbd>                                                    | Enter or leave Cell Architect when available |
+| Hold <kbd>E</kbd>                                                 | Identify nearby biological structures        |
+| <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>                            | Trigger organelle abilities                  |
+| Mouse or touch drag                                               | Reposition organelles in Cell Architect      |
 
 ## Core systems
 
@@ -130,15 +130,15 @@ bun run build
 
 ## Technology
 
-| Layer | Stack |
-| --- | --- |
-| Simulation and interface | React 18 + TypeScript |
-| Build system | Vite 7 + Bun |
-| Native shell | Tauri 2 + Rust |
-| Styling | Tailwind CSS + project-specific CSS |
-| Spatial generation | D3 Delaunay + deterministic chunk generation |
-| Interface primitives | Radix UI + Lucide |
-| Persistence and services | Fully local, no backend required |
+| Layer                    | Stack                                        |
+| ------------------------ | -------------------------------------------- |
+| Simulation and interface | React 18 + TypeScript                        |
+| Build system             | Vite 7 + Bun                                 |
+| Native shell             | Tauri 2 + Rust                               |
+| Styling                  | Tailwind CSS + project-specific CSS          |
+| Spatial generation       | D3 Delaunay + deterministic chunk generation |
+| Interface primitives     | Radix UI + Lucide                            |
+| Persistence and services | Fully local, no backend required             |
 
 ## Project structure
 

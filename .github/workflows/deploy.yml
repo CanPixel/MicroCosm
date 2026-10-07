@@ -1,0 +1,44 @@
+name: Deploy
+
+# Publishes https://micro-cosmos.web.app:
+#   /            the game on `main`
+#   /prototype/  the original prototype on the `prototype` branch
+on:
+  push:
+    branches:
+      - main
+      - prototype
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      # Always build the site from main; a push to `prototype` just refreshes /prototype.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build site (game + /prototype)
+        run: bash scripts/build-site.sh
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MICRO_COSMOS }}
+          projectId: micro-cosmos
+          channelId: live

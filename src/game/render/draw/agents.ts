@@ -268,16 +268,26 @@ function satellite(ctx: CanvasRenderingContext2D, r: number, t: number) {
 
 export function drawAgentShape(ctx: CanvasRenderingContext2D, species: SpeciesId, r: number, t: number, seed: number, detail = true) {
   switch (species) {
-    case 'adenovirus': return adenovirus(ctx, r, t, detail);
-    case 'retrovirus': return retrovirus(ctx, r, t, detail);
-    case 'tmv': return tmv(ctx, r, detail);
-    case 'phage': return phage(ctx, r, t, detail);
-    case 'mimivirus': return mimivirus(ctx, r, t, detail);
-    case 'virophage': return virophage(ctx, r);
-    case 'prion': return prion(ctx, r, t, seed);
-    case 'viroid': return viroid(ctx, r, t);
-    case 'satellite': return satellite(ctx, r, t);
-    default: break;
+    case 'adenovirus':
+      return adenovirus(ctx, r, t, detail);
+    case 'retrovirus':
+      return retrovirus(ctx, r, t, detail);
+    case 'tmv':
+      return tmv(ctx, r, detail);
+    case 'phage':
+      return phage(ctx, r, t, detail);
+    case 'mimivirus':
+      return mimivirus(ctx, r, t, detail);
+    case 'virophage':
+      return virophage(ctx, r);
+    case 'prion':
+      return prion(ctx, r, t, seed);
+    case 'viroid':
+      return viroid(ctx, r, t);
+    case 'satellite':
+      return satellite(ctx, r, t);
+    default:
+      break;
   }
 }
 
@@ -292,7 +302,9 @@ export function drawAgent(dc: DrawCtx, e: Entity, look: EntityLook) {
   const detail = look.lod > 7;
 
   // Glow: hidden agents scatter light in darkfield; viruses are tagged in fluorescence.
-  const glow = hidden ? Math.max(dc.dark, dc.fluor) * 0.9 + (dc.hiddenAlpha - 0.08) * 0.4 : dc.fluor * 0.9 + (e.species === 'virophage' ? 0.5 : 0.08);
+  const glow = hidden
+    ? Math.max(dc.dark, dc.fluor) * 0.9 + (dc.hiddenAlpha - 0.08) * 0.4
+    : dc.fluor * 0.9 + (e.species === 'virophage' ? 0.5 : 0.08);
   if (glow > 0.02) {
     place(ectx, dc.exf, e.x, e.y, 0);
     ectx.globalAlpha = Math.min(1, glow) * look.alpha;

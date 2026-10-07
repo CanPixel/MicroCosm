@@ -71,8 +71,7 @@ export function saveRecords(r: Records) {
   write(KEYS.records, r);
 }
 
-const prefersReduced = () =>
-  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const prefersReduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export function loadSettings(): Settings {
   return read(KEYS.settings, {

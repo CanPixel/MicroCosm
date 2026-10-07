@@ -61,25 +61,92 @@ export function speciesIcon(id: SpeciesId, size = 128, silhouette = false): stri
   const r = (def.radius[0] + def.radius[1]) / 2;
   // Fit each organism's typical footprint into the tile.
   const extent: Partial<Record<SpeciesId, number>> = {
-    stentor: 1.9, hydra: 2.1, lacrymaria: 2.4, gastrotrich: 1.6, collotheca: 1.5, rotifer: 1.7, euglena: 2.6,
-    bacillus: 2.4, proteo: 2.6, spirillum: 1.6, cyano: 1.8, paramecium: 1.7, phage: 2.2, diatom: 1.7, tmv: 2,
-    satellite: 5, prion: 2.6, viroid: 2.6, tardigrade: 1.4, amoeba: 1.2, neoplasm: 1.3, mimivirus: 1.3, adenovirus: 1.7,
-    retrovirus: 1.5, virophage: 2.2,
+    stentor: 1.9,
+    hydra: 2.1,
+    lacrymaria: 2.4,
+    gastrotrich: 1.6,
+    collotheca: 1.5,
+    rotifer: 1.7,
+    euglena: 2.6,
+    bacillus: 2.4,
+    proteo: 2.6,
+    spirillum: 1.6,
+    cyano: 1.8,
+    paramecium: 1.7,
+    phage: 2.2,
+    diatom: 1.7,
+    tmv: 2,
+    satellite: 5,
+    prion: 2.6,
+    viroid: 2.6,
+    tardigrade: 1.4,
+    amoeba: 1.2,
+    neoplasm: 1.3,
+    mimivirus: 1.3,
+    adenovirus: 1.7,
+    retrovirus: 1.5,
+    virophage: 2.2,
   };
   const scale = (size * 0.42) / (r * (extent[id] ?? 1.15));
   const e: Entity = {
-    id: 1, species: id, x: 0, y: 0, vx: 0, vy: 0, angle: id === 'stentor' || id === 'hydra' ? 0.2 : -0.35, spin: 0,
-    radius: r, hp: 1, maxHp: 1, seed: 7, age: 2, state: 0, timer: 0, targetId: 0, homeX: 0, homeY: 0, wander: 0,
-    reach: id === 'lacrymaria' ? 0.25 : id === 'hydra' ? 0.3 : 0, reachAngle: -0.35, carrier: false, satellites: id === 'adenovirus' ? 2 : 0,
-    attachedTo: 0, attachAngle: 0, attachTimer: 0, stun: 0, hitFlash: 0, aux: 0, aux2: 0, infection: 0, infectedBy: null,
-    spawnT: 1, dead: false, chunk: '',
+    id: 1,
+    species: id,
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    angle: id === 'stentor' || id === 'hydra' ? 0.2 : -0.35,
+    spin: 0,
+    radius: r,
+    hp: 1,
+    maxHp: 1,
+    seed: 7,
+    age: 2,
+    state: 0,
+    timer: 0,
+    targetId: 0,
+    homeX: 0,
+    homeY: 0,
+    wander: 0,
+    reach: id === 'lacrymaria' ? 0.25 : id === 'hydra' ? 0.3 : 0,
+    reachAngle: -0.35,
+    carrier: false,
+    satellites: id === 'adenovirus' ? 2 : 0,
+    attachedTo: 0,
+    attachAngle: 0,
+    attachTimer: 0,
+    stun: 0,
+    hitFlash: 0,
+    aux: 0,
+    aux2: 0,
+    infection: 0,
+    infectedBy: null,
+    spawnT: 1,
+    dead: false,
+    chunk: '',
   };
-  const offX = id === 'stentor' ? size * 0.16 : id === 'hydra' ? size * 0.02 : id === 'collotheca' ? size * 0.06 : id === 'lacrymaria' ? -size * 0.12 : 0;
+  const offX =
+    id === 'stentor'
+      ? size * 0.16
+      : id === 'hydra'
+        ? size * 0.02
+        : id === 'collotheca'
+          ? size * 0.06
+          : id === 'lacrymaria'
+            ? -size * 0.12
+            : 0;
   const dc: DrawCtx = {
-    ctx, ectx,
+    ctx,
+    ectx,
     xf: { s: scale, ox: size / 2 + offX, oy: size / 2 },
     exf: { s: scale, ox: size / 2 + offX, oy: size / 2 },
-    t: 1.3, ppu: scale, fluor: 0, dark: 0, electron: 0, hiddenAlpha: 1, patterns,
+    t: 1.3,
+    ppu: scale,
+    fluor: 0,
+    dark: 0,
+    electron: 0,
+    hiddenAlpha: 1,
+    patterns,
   };
   DRAWERS[id](dc, e, { alpha: 1, danger: false, edible: false, lod: r * scale });
   if (silhouette) {

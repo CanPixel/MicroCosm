@@ -87,9 +87,27 @@ function smallPrey(o: Entity, maxRadius: number, self: Entity) {
   return PREY_GROUPS.has(d.group) && !d.invulnerable && o.radius < maxRadius && o.species !== self.species;
 }
 
-export function fireProjectile(state: GameState, x: number, y: number, angle: number, speed: number, damage: number, life: number, owner: 'player' | 'enemy', stun = 0) {
+export function fireProjectile(
+  state: GameState,
+  x: number,
+  y: number,
+  angle: number,
+  speed: number,
+  damage: number,
+  life: number,
+  owner: 'player' | 'enemy',
+  stun = 0,
+) {
   state.projectiles.push({
-    id: state.nextId++, x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life, damage, stun, owner,
+    id: state.nextId++,
+    x,
+    y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    life,
+    damage,
+    stun,
+    owner,
   });
 }
 
@@ -188,7 +206,12 @@ const behaviors: Record<Behavior, (ctx: Ctx) => void> = {
         if (unit) {
           e.targetId = -unit.id;
         } else {
-          const prey = state.grid.nearest(e.x, e.y, def.sense * 0.7, (o) => o.species === 'paramecium' || (smallPrey(o, e.radius * 1.6, e) && SPECIES[o.species].group === 'protist'));
+          const prey = state.grid.nearest(
+            e.x,
+            e.y,
+            def.sense * 0.7,
+            (o) => o.species === 'paramecium' || (smallPrey(o, e.radius * 1.6, e) && SPECIES[o.species].group === 'protist'),
+          );
           e.targetId = prey ? prey.id : 0;
         }
         if (e.targetId) {
@@ -606,8 +629,12 @@ const behaviors: Record<Behavior, (ctx: Ctx) => void> = {
         }
       }
       if (!e.targetId) {
-        const host = state.grid.nearest(e.x, e.y, def.sense, (o) =>
-          !o.infectedBy && !o.attachedTo && o.id !== e.id && hostClassesOf(o.species).some((c) => infects.includes(c)));
+        const host = state.grid.nearest(
+          e.x,
+          e.y,
+          def.sense,
+          (o) => !o.infectedBy && !o.attachedTo && o.id !== e.id && hostClassesOf(o.species).some((c) => infects.includes(c)),
+        );
         if (host) e.targetId = host.id;
       }
     }

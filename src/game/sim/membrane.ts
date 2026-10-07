@@ -64,8 +64,10 @@ export function stepMembrane(m: MembraneState, input: MembraneInput) {
     if (rigid) {
       target = R * 0.94;
     } else {
-      const wobble = 0.075 * Math.sin(3 * a + time * 0.55 + seed) + 0.045 * Math.sin(5 * a - time * 0.8 + seed * 2.1)
-        + 0.02 * Math.sin(7 * a + time * 1.3 + seed * 0.7);
+      const wobble =
+        0.075 * Math.sin(3 * a + time * 0.55 + seed) +
+        0.045 * Math.sin(5 * a - time * 0.8 + seed * 2.1) +
+        0.02 * Math.sin(7 * a + time * 1.3 + seed * 0.7);
       target = R * (1 + wobble * input.liveliness);
       const c = Math.cos(a - heading);
       // Elongate along the swim axis and slim the flanks.
@@ -164,7 +166,7 @@ export function membraneImpulse(m: MembraneState, angle: number, strength: numbe
 // Interpolated membrane radius at an arbitrary angle.
 export function membraneRadiusAt(m: MembraneState, angle: number): number {
   const n = m.r.length;
-  let f = ((angle % TAU) + TAU) % TAU / TAU * n;
+  let f = ((((angle % TAU) + TAU) % TAU) / TAU) * n;
   const i0 = Math.floor(f) % n;
   const i1 = (i0 + 1) % n;
   f -= Math.floor(f);

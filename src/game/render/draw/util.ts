@@ -71,14 +71,10 @@ const BX = new Float32Array(64);
 const BY = new Float32Array(64);
 
 // Organic blob: a smooth closed outline with seeded lobes and slow breathing.
-export function blob(
-  ctx: CanvasRenderingContext2D, r: number, seed: number, t: number, wobble = 0.12, lobes = 5, n = 22, sx = 1, sy = 1,
-) {
+export function blob(ctx: CanvasRenderingContext2D, r: number, seed: number, t: number, wobble = 0.12, lobes = 5, n = 22, sx = 1, sy = 1) {
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2;
-    const w = 1
-      + wobble * Math.sin(a * lobes + seed + t * 0.9)
-      + wobble * 0.5 * Math.sin(a * (lobes + 2) - seed * 1.7 - t * 1.3);
+    const w = 1 + wobble * Math.sin(a * lobes + seed + t * 0.9) + wobble * 0.5 * Math.sin(a * (lobes + 2) - seed * 1.7 - t * 1.3);
     BX[i] = Math.cos(a) * r * w * sx;
     BY[i] = Math.sin(a) * r * w * sy;
   }

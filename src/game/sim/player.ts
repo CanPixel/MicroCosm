@@ -2,15 +2,22 @@ import { yieldsOf } from './entities';
 import { approach, clamp, TAU, turnToward } from './math';
 import { membraneImpulse, stepMembrane, type MembraneBody } from './membrane';
 import {
-  canBuild, computeTraits, countOrganelles, FATES, firstFreeSlot, MUTATION_POOL, MUTATIONS, mutationStacks, ORGANELLES,
-  SLOTS, slotAccepts,
+  canBuild,
+  computeTraits,
+  countOrganelles,
+  FATES,
+  firstFreeSlot,
+  MUTATION_POOL,
+  MUTATIONS,
+  mutationStacks,
+  ORGANELLES,
+  SLOTS,
+  slotAccepts,
 } from './organelles';
 import { curlFlow } from './rng';
 import { SPECIES } from './species';
 import { BODY_BIOMASS, createUnit, emit, MIN_CYTOPLASM, radiusForBiomass, type GameState, type SimInput } from './state';
-import type {
-  CellFate, CellUnit, DeathCause, Entity, HostClass, MutationId, OrganelleType, Player, SpeciesId,
-} from './types';
+import type { CellFate, CellUnit, DeathCause, Entity, HostClass, MutationId, OrganelleType, Player, SpeciesId } from './types';
 
 // Dividing costs spare biomass (it becomes the daughter) and nucleotides for
 // genome replication, so every division competes with building organelles.
@@ -27,8 +34,7 @@ export function playerHostClasses(player: Player): HostClass[] {
   return classes;
 }
 
-export const unitEngulfRatio = (player: Player, unit: CellUnit) =>
-  player.traits.engulfRatio + (unit.fate === 'phagocyte' ? 0.12 : 0);
+export const unitEngulfRatio = (player: Player, unit: CellUnit) => player.traits.engulfRatio + (unit.fate === 'phagocyte' ? 0.12 : 0);
 
 export function canUnitEat(player: Player, unit: CellUnit, e: Entity): boolean {
   const def = SPECIES[e.species];
@@ -66,8 +72,13 @@ export type DamageOpts = { cause?: DeathCause; bypassCooldown?: boolean };
 
 // Applies damage to a cell of the colony. Returns damage dealt.
 export function damageUnit(
-  state: GameState, unit: CellUnit, amount: number, fromX: number, fromY: number,
-  source: SpeciesId | 'burst' | 'misc', opts: DamageOpts = {},
+  state: GameState,
+  unit: CellUnit,
+  amount: number,
+  fromX: number,
+  fromY: number,
+  source: SpeciesId | 'burst' | 'misc',
+  opts: DamageOpts = {},
 ): number {
   const p = state.player;
   if (p.dead || unit.dead || amount <= 0) return 0;
@@ -86,7 +97,14 @@ export function damageUnit(
     unit.hitFlash = 1;
     unit.hitAngle = angle;
     membraneImpulse(unit.membrane, angle, -unit.radius * Math.min(7, 2 + dmg * 0.35), 0.55);
-    emit(state, { type: 'damage', amount: dmg, x: unit.x + Math.cos(angle) * unit.radius, y: unit.y + Math.sin(angle) * unit.radius, unit: unit.id, source });
+    emit(state, {
+      type: 'damage',
+      amount: dmg,
+      x: unit.x + Math.cos(angle) * unit.radius,
+      y: unit.y + Math.sin(angle) * unit.radius,
+      unit: unit.id,
+      source,
+    });
   }
   if (unit.integrity <= 0) {
     unit.integrity = 0;
@@ -429,10 +447,13 @@ export function updateMetabolism(state: GameState, dt: number) {
     }
   }
   for (const u of units) {
-    u.maxIntegrity = (u.fate === 'prime' ? t.maxIntegrity : t.maxIntegrity * 0.7);
+    u.maxIntegrity = u.fate === 'prime' ? t.maxIntegrity : t.maxIntegrity * 0.7;
     u.integrity = Math.min(u.integrity, u.maxIntegrity);
   }
-  state.stats.peakBiomass = Math.max(state.stats.peakBiomass, units.reduce((s, u) => s + u.biomass, 0));
+  state.stats.peakBiomass = Math.max(
+    state.stats.peakBiomass,
+    units.reduce((s, u) => s + u.biomass, 0),
+  );
 }
 
 // Digestion inside food vacuoles, plus endosymbiotic capture.
@@ -451,8 +472,14 @@ export function updateDigestion(state: GameState, dt: number) {
             const slot = firstFreeSlot(p, def.endosymbiont);
             if (slot !== null) {
               p.organelles.push({
-                id: state.nextOrganelleId++, type: def.endosymbiont, slot, misfolded: false, born: state.time, mass: 4,
-                px: v.lx, py: v.ly,
+                id: state.nextOrganelleId++,
+                type: def.endosymbiont,
+                slot,
+                misfolded: false,
+                born: state.time,
+                mass: 4,
+                px: v.lx,
+                py: v.ly,
               });
               prime.biomass += 4;
               p.traitsDirty = true;
@@ -525,7 +552,8 @@ export function canDivide(state: GameState) {
   const units = livingUnits(p);
   const reasons: string[] = [];
   const spare = spendableBiomass(p);
-  if (spare < divisionThreshold(p.generation)) reasons.push(`Spare biomass ${Math.floor(Math.max(0, spare))}/${divisionThreshold(p.generation)}`);
+  if (spare < divisionThreshold(p.generation))
+    reasons.push(`Spare biomass ${Math.floor(Math.max(0, spare))}/${divisionThreshold(p.generation)}`);
   if (p.dna < divisionDnaCost(p.generation)) reasons.push(`DNA ${Math.floor(p.dna)}/${divisionDnaCost(p.generation)}`);
   if (p.infection.viralLoad > 40) reasons.push('Genome infected');
   if (units.length >= 12) reasons.push('Colony at maximum size');
@@ -566,7 +594,13 @@ export function updateDivision(state: GameState, dt: number) {
   const share = Math.max(14, Math.min(spendableBiomass(p), divisionThreshold(p.generation)));
   prime.biomass -= share;
   const back = prime.heading + Math.PI;
-  const daughter = createUnit('phagocyte', prime.x + Math.cos(back) * prime.radius, prime.y + Math.sin(back) * prime.radius, share, state.time);
+  const daughter = createUnit(
+    'phagocyte',
+    prime.x + Math.cos(back) * prime.radius,
+    prime.y + Math.sin(back) * prime.radius,
+    share,
+    state.time,
+  );
   daughter.heading = prime.heading;
   daughter.integrity = 100;
   p.units.push(daughter);
@@ -628,8 +662,14 @@ export function buildOrganelle(state: GameState, type: OrganelleType): boolean {
   if (slot === null) return false;
   const origin = SLOTS[slot];
   p.organelles.push({
-    id: state.nextOrganelleId++, type, slot, misfolded: false, born: state.time, mass: check.cost.biomass,
-    px: origin.x * 0.2, py: origin.y * 0.2,
+    id: state.nextOrganelleId++,
+    type,
+    slot,
+    misfolded: false,
+    born: state.time,
+    mass: check.cost.biomass,
+    px: origin.x * 0.2,
+    py: origin.y * 0.2,
   });
   p.dna -= check.cost.dna;
   p.traitsDirty = true;

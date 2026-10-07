@@ -20,7 +20,15 @@ const SCALES: Record<BiomeId, Scale> = {
 
 // First-order Markov transitions over scale-degree intervals: mostly steps,
 // sometimes leaps, gravitating back toward the tonic.
-const INTERVAL_WEIGHTS: Array<[number, number]> = [[-2, 0.12], [-1, 0.3], [0, 0.06], [1, 0.3], [2, 0.12], [3, 0.05], [-3, 0.05]];
+const INTERVAL_WEIGHTS: Array<[number, number]> = [
+  [-2, 0.12],
+  [-1, 0.3],
+  [0, 0.06],
+  [1, 0.3],
+  [2, 0.12],
+  [3, 0.05],
+  [-3, 0.05],
+];
 
 export type SfxBus = 'sfx' | 'ui';
 
@@ -122,7 +130,9 @@ export class Soundscape {
     const gd = this.glass.getChannelData(0);
     for (let i = 0; i < glen; i++) {
       const t = i / ctx.sampleRate;
-      gd[i] = (Math.sin(t * 2 * Math.PI * 880) * 0.5 + Math.sin(t * 2 * Math.PI * 1318.5) * 0.3 + Math.sin(t * 2 * Math.PI * 2093) * 0.2) * Math.exp(-t * 4);
+      gd[i] =
+        (Math.sin(t * 2 * Math.PI * 880) * 0.5 + Math.sin(t * 2 * Math.PI * 1318.5) * 0.3 + Math.sin(t * 2 * Math.PI * 2093) * 0.2) *
+        Math.exp(-t * 4);
     }
 
     // Ambient wash.
@@ -345,7 +355,10 @@ export class Soundscape {
 
   private heartbeat(t: number, k: number) {
     const ctx = this.ctx!;
-    for (const [dt, g] of [[0, 1], [0.18, 0.7]] as const) {
+    for (const [dt, g] of [
+      [0, 1],
+      [0.18, 0.7],
+    ] as const) {
       const o = ctx.createOscillator();
       const env = ctx.createGain();
       o.type = 'sine';
@@ -364,7 +377,15 @@ export class Soundscape {
   // --- One-shot effects -----------------------------------------------------
 
   private tone(opts: {
-    type?: OscillatorType; from: number; to?: number; dur: number; gain: number; attack?: number; pan?: number; delay?: number; reverb?: number;
+    type?: OscillatorType;
+    from: number;
+    to?: number;
+    dur: number;
+    gain: number;
+    attack?: number;
+    pan?: number;
+    delay?: number;
+    reverb?: number;
   }) {
     const ctx = this.ctx;
     if (!ctx || this.muted) return;
@@ -392,7 +413,16 @@ export class Soundscape {
     o.stop(t + opts.dur + 0.05);
   }
 
-  private noiseHit(opts: { freq: number; to?: number; q?: number; dur: number; gain: number; type?: BiquadFilterType; pan?: number; delay?: number }) {
+  private noiseHit(opts: {
+    freq: number;
+    to?: number;
+    q?: number;
+    dur: number;
+    gain: number;
+    type?: BiquadFilterType;
+    pan?: number;
+    delay?: number;
+  }) {
     const ctx = this.ctx;
     if (!ctx || this.muted || !this.noise) return;
     const t = ctx.currentTime + (opts.delay ?? 0);

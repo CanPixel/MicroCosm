@@ -3,9 +3,7 @@ import { damageEntity, killEntity, yieldsOf } from './entities';
 import { attachAgent, clearAttachments, shakeAttachments } from './infection';
 import { angleDiff } from './math';
 import { ABILITY_INFO, countOrganelles } from './organelles';
-import {
-  canUnitEat, damageUnit, engulf, isUntouchable, livingUnits, playerHostClasses, releaseCapture, vacuoleSlotsFor,
-} from './player';
+import { canUnitEat, damageUnit, engulf, isUntouchable, livingUnits, playerHostClasses, releaseCapture, vacuoleSlotsFor } from './player';
 import { SPECIES } from './species';
 import { emit, removeEntity, spawnEntity, type GameState, type SimInput } from './state';
 import type { AbilityId, CellUnit, Entity } from './types';
@@ -246,7 +244,17 @@ export function castAbility(state: GameState, id: AbilityId, input: SimInput): b
       for (let i = 0; i < n; i++) {
         const spread = n === 1 ? 0 : (i / (n - 1) - 0.5) * 0.36;
         const a = angle + spread;
-        fireProjectile(state, prime.x + Math.cos(a) * prime.radius, prime.y + Math.sin(a) * prime.radius, a, 700, p.traits.dartDamage, 0.6, 'player', p.traits.dartStun);
+        fireProjectile(
+          state,
+          prime.x + Math.cos(a) * prime.radius,
+          prime.y + Math.sin(a) * prime.radius,
+          a,
+          700,
+          p.traits.dartDamage,
+          0.6,
+          'player',
+          p.traits.dartStun,
+        );
       }
       break;
     }
@@ -275,7 +283,8 @@ export function castAbility(state: GameState, id: AbilityId, input: SimInput): b
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
         spawnEntity(state, 'virophage', prime.x + Math.cos(a) * prime.radius, prime.y + Math.sin(a) * prime.radius, {
-          vx: Math.cos(a) * 220, vy: Math.sin(a) * 220,
+          vx: Math.cos(a) * 220,
+          vy: Math.sin(a) * 220,
         });
       }
       p.storedVirophages = 0;

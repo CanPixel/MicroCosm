@@ -147,7 +147,7 @@ export class Renderer {
   }
 
   private updateBiomeMap(state: GameState, cam: Camera) {
-    const span = Math.max(cam.viewW, cam.viewH) / cam.zoom * 1.5;
+    const span = (Math.max(cam.viewW, cam.viewH) / cam.zoom) * 1.5;
     const x0 = cam.x - span / 2;
     const y0 = cam.y - span / 2;
     this.biomeRect = [x0, y0, span, span];
@@ -183,8 +183,17 @@ export class Renderer {
 
     const hiddenAlpha = Math.min(1, 0.07 + inp.dark * 0.95 + inp.fluor * 0.95 + inp.glowBoost);
     const dc: DrawCtx = {
-      ctx: sctx, ectx, xf, exf, t: inp.time, ppu: cam.zoom, fluor: inp.fluor, dark: inp.dark, electron: inp.electron,
-      hiddenAlpha, patterns: this.patterns,
+      ctx: sctx,
+      ectx,
+      xf,
+      exf,
+      t: inp.time,
+      ppu: cam.zoom,
+      fluor: inp.fluor,
+      dark: inp.dark,
+      electron: inp.electron,
+      hiddenAlpha,
+      patterns: this.patterns,
     };
 
     // Cull and bucket entities by layer.
@@ -198,7 +207,8 @@ export class Renderer {
     const threats: Array<{ x: number; y: number }> = [];
     for (const e of state.entities) {
       if (e.dead) continue;
-      const reach = e.species === 'hydra' ? 4.6 : e.species === 'lacrymaria' ? 8 : e.species === 'collotheca' ? 2.6 : e.species === 'stentor' ? 3 : 1.6;
+      const reach =
+        e.species === 'hydra' ? 4.6 : e.species === 'lacrymaria' ? 8 : e.species === 'collotheca' ? 2.6 : e.species === 'stentor' ? 3 : 1.6;
       const m = e.radius * reach + 20;
       const dx = Math.abs(e.x - cam.x);
       const dy = Math.abs(e.y - cam.y);

@@ -120,7 +120,8 @@ export function updateInfection(state: GameState, dt: number) {
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2 + state.rng();
         spawnEntity(state, virus, prime.x + Math.cos(a) * prime.radius, prime.y + Math.sin(a) * prime.radius, {
-          vx: Math.cos(a) * 160, vy: Math.sin(a) * 160,
+          vx: Math.cos(a) * 160,
+          vy: Math.sin(a) * 160,
         }).stun = 2;
       }
       damageUnit(state, prime, prime.maxIntegrity * 0.34, prime.x, prime.y, 'burst', { bypassCooldown: true, cause: 'lysis' });
@@ -191,7 +192,8 @@ export function updateInfection(state: GameState, dt: number) {
         inf.colonyTimer = 0;
         inf.colonies = Math.min(8, inf.colonies + 1);
       }
-      if (inf.colonies > 4) damageUnit(state, prime, (inf.colonies - 4) * 1.1 * dt, prime.x, prime.y, 'misc', { bypassCooldown: true, cause: 'rupture' });
+      if (inf.colonies > 4)
+        damageUnit(state, prime, (inf.colonies - 4) * 1.1 * dt, prime.x, prime.y, 'misc', { bypassCooldown: true, cause: 'rupture' });
     }
   }
 

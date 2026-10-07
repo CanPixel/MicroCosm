@@ -1,6 +1,13 @@
 import { Soundscape } from './audio';
 import {
-  DEFAULT_RECORDS, loadJournal, loadRecords, loadSettings, recordDiscovery, saveRecords, saveSettings, type Records,
+  DEFAULT_RECORDS,
+  loadJournal,
+  loadRecords,
+  loadSettings,
+  recordDiscovery,
+  saveRecords,
+  saveSettings,
+  type Records,
   type Settings,
 } from './persistence';
 import { Camera } from './render/camera';
@@ -12,39 +19,99 @@ import { OBJECTIVES, objectiveNavTarget } from './sim/director';
 import { membraneImpulse } from './sim/membrane';
 import { approach, clamp } from './sim/math';
 import {
-  ABILITY_INFO, BUILD_ORDER, buildCost, canBuild, countOrganelles, FATES, MUTATIONS, ORGANELLES, SLOTS, slotAccepts,
+  ABILITY_INFO,
+  BUILD_ORDER,
+  buildCost,
+  canBuild,
+  countOrganelles,
+  FATES,
+  MUTATIONS,
+  ORGANELLES,
+  SLOTS,
+  slotAccepts,
 } from './sim/organelles';
 import {
-  buildOrganelle, canDivide, chooseDivision, divisionDnaCost, divisionThreshold, livingUnits, moveOrganelle,
-  recycleOrganelle, rerollDivision, spendableBiomass, startDivision,
+  buildOrganelle,
+  canDivide,
+  chooseDivision,
+  divisionDnaCost,
+  divisionThreshold,
+  livingUnits,
+  moveOrganelle,
+  recycleOrganelle,
+  rerollDivision,
+  spendableBiomass,
+  startDivision,
 } from './sim/player';
 import { createGame, stepGame } from './sim/sim';
 import { SPECIES, SPECIES_LIST } from './sim/species';
 import { NO_INPUT, spawnEntity, type GameState, type SimInput } from './sim/state';
 import { openness, spawnGroup } from './sim/world';
 import type {
-  AbilityId, BiomeId, CellFate, DeathCause, LightMode, Mutation, MutationId, OrganelleType, SimEvent, SpeciesId, Stats,
-  Traits, UnlockId,
+  AbilityId,
+  BiomeId,
+  CellFate,
+  DeathCause,
+  LightMode,
+  Mutation,
+  MutationId,
+  OrganelleType,
+  SimEvent,
+  SpeciesId,
+  Stats,
+  Traits,
+  UnlockId,
 } from './sim/types';
 
 export type Screen = 'title' | 'playing' | 'paused' | 'division' | 'dead' | 'victory';
 
 export type ToastKind = 'discover' | 'objective' | 'event' | 'warn' | 'good' | 'info' | 'unlock';
 export type Toast = {
-  id: number; kind: ToastKind; title: string; text: string; color: string; species?: SpeciesId; key?: string; born: number; ttl: number;
+  id: number;
+  kind: ToastKind;
+  title: string;
+  text: string;
+  color: string;
+  species?: SpeciesId;
+  key?: string;
+  born: number;
+  ttl: number;
 };
 
 // A large, quiet caption for arriving somewhere (biomes, the opening shot).
 export type Banner = { id: number; title: string; sub: string };
 
-export type AbilityView = { id: AbilityId; name: string; key: string; atp: number; cooldown: number; remaining: number; affordable: boolean; description: string };
+export type AbilityView = {
+  id: AbilityId;
+  name: string;
+  key: string;
+  atp: number;
+  cooldown: number;
+  remaining: number;
+  affordable: boolean;
+  description: string;
+};
 
 export type BuildOption = {
-  type: OrganelleType; name: string; role: string; science: string; ok: boolean; reason: string; biomass: number; dna: number; owned: number; max: number;
+  type: OrganelleType;
+  name: string;
+  role: string;
+  science: string;
+  ok: boolean;
+  reason: string;
+  biomass: number;
+  dna: number;
+  owned: number;
+  max: number;
 };
 
 export type SlotView = {
-  id: number; x: number; y: number; r: number; ring: 'core' | 'inner' | 'outer'; locked: boolean;
+  id: number;
+  x: number;
+  y: number;
+  r: number;
+  ring: 'core' | 'inner' | 'outer';
+  locked: boolean;
   occupant: { id: number; type: OrganelleType; misfolded: boolean } | null;
 };
 
@@ -80,7 +147,15 @@ export type HudSnapshot = {
   objectiveAge: number;
   completed: { title: string; reward: number } | null;
   objective: { index: number; total: number; title: string; text: string; progress: string } | null;
-  infection: { viralLoad: number; prophages: number; colonies: number; misfolded: number; attached: number; viroids: number; satellite: number };
+  infection: {
+    viralLoad: number;
+    prophages: number;
+    colonies: number;
+    misfolded: number;
+    attached: number;
+    viroids: number;
+    satellite: number;
+  };
   starving: boolean;
   captured: { species: SpeciesId; struggle: number } | null;
   cyst: boolean;
@@ -110,19 +185,68 @@ const LIGHT_ORDER: LightMode[] = ['bright', 'dark', 'fluor'];
 
 const EVENT_TEXT: Record<string, { title: string; text: string; color: string; kind: ToastKind }> = {
   glucoseBloom: { title: 'Glucose bloom', text: 'Photosynthesis upstream released a sugar cloud nearby.', color: '#d6ff5c', kind: 'good' },
-  viralStorm: { title: 'Viral storm', text: 'Virions converging on your membrane. Dash to shake them off, then use RNAi.', color: '#ff3b5c', kind: 'warn' },
-  prionFog: { title: 'Prion fog', text: 'Misfolded proteins drifting ahead. Switch to darkfield (Q) to see them.', color: '#d7c4ff', kind: 'warn' },
-  phageBurst: { title: 'Phage storm', text: 'Bacteriophages are bursting a bacterial colony. Harmless to you, and full of DNA.', color: '#b9c0ff', kind: 'event' },
-  virophageSwarm: { title: 'Virophage swarm', text: 'Sputnik virophages hunting giant viruses. Absorb them as allies.', color: '#7dffb0', kind: 'good' },
-  currentSurge: { title: 'Current surge', text: 'A strong current sweeps the plankton. Swim hard to hold position.', color: '#7de8ff', kind: 'event' },
-  neoplasm: { title: 'Neoplasm detected', text: 'A mutant cell mass is hunting. It splits when wounded. Burn it down for DNA.', color: '#ff2e4d', kind: 'warn' },
+  viralStorm: {
+    title: 'Viral storm',
+    text: 'Virions converging on your membrane. Dash to shake them off, then use RNAi.',
+    color: '#ff3b5c',
+    kind: 'warn',
+  },
+  prionFog: {
+    title: 'Prion fog',
+    text: 'Misfolded proteins drifting ahead. Switch to darkfield (Q) to see them.',
+    color: '#d7c4ff',
+    kind: 'warn',
+  },
+  phageBurst: {
+    title: 'Phage storm',
+    text: 'Bacteriophages are bursting a bacterial colony. Harmless to you, and full of DNA.',
+    color: '#b9c0ff',
+    kind: 'event',
+  },
+  virophageSwarm: {
+    title: 'Virophage swarm',
+    text: 'Sputnik virophages hunting giant viruses. Absorb them as allies.',
+    color: '#7dffb0',
+    kind: 'good',
+  },
+  currentSurge: {
+    title: 'Current surge',
+    text: 'A strong current sweeps the plankton. Swim hard to hold position.',
+    color: '#7de8ff',
+    kind: 'event',
+  },
+  neoplasm: {
+    title: 'Neoplasm detected',
+    text: 'A mutant cell mass is hunting. It splits when wounded. Burn it down for DNA.',
+    color: '#ff2e4d',
+    kind: 'warn',
+  },
 };
 
 const UNLOCK_TEXT: Partial<Record<UnlockId, { title: string; text: string; key?: string; color: string }>> = {
-  radar: { title: 'Chemotaxis', text: 'Your cell now senses chemical gradients. Green is food, blue is prey, red is danger.', color: '#7be0c0' },
-  dash: { title: 'Pseudopod dash', text: 'A burst of speed that also shakes off anything clinging to you.', key: 'SPACE', color: '#7be0c0' },
-  architect: { title: 'Cell Architect', text: 'Look inside your cell to grow and arrange organelles. Time slows while you build.', key: 'TAB', color: '#c4f53a' },
-  microscope: { title: 'Microscope light', text: 'Switch illumination. Darkfield and fluorescence reveal what brightfield hides.', key: 'Q', color: '#9fe8ff' },
+  radar: {
+    title: 'Chemotaxis',
+    text: 'Your cell now senses chemical gradients. Green is food, blue is prey, red is danger.',
+    color: '#7be0c0',
+  },
+  dash: {
+    title: 'Pseudopod dash',
+    text: 'A burst of speed that also shakes off anything clinging to you.',
+    key: 'SPACE',
+    color: '#7be0c0',
+  },
+  architect: {
+    title: 'Cell Architect',
+    text: 'Look inside your cell to grow and arrange organelles. Time slows while you build.',
+    key: 'TAB',
+    color: '#c4f53a',
+  },
+  microscope: {
+    title: 'Microscope light',
+    text: 'Switch illumination. Darkfield and fluorescence reveal what brightfield hides.',
+    key: 'Q',
+    color: '#9fe8ff',
+  },
 };
 
 const DEATH_TEXT: Record<DeathCause, string> = {
@@ -220,7 +344,18 @@ export class GameEngine {
     s.player.invulnUntil = 1e9;
     // The title screen shows the ecosystem in full, not the quiet opening.
     s.objective.index = 5;
-    const fauna: SpeciesId[] = ['euglena', 'paramecium', 'diatom', 'proteo', 'cyano', 'bacillus', 'spirillum', 'cocci', 'euglena', 'diatom'];
+    const fauna: SpeciesId[] = [
+      'euglena',
+      'paramecium',
+      'diatom',
+      'proteo',
+      'cyano',
+      'bacillus',
+      'spirillum',
+      'cocci',
+      'euglena',
+      'diatom',
+    ];
     fauna.forEach((id, i) => {
       const a = (i / fauna.length) * Math.PI * 2;
       spawnGroup(s, id, Math.cos(a) * 420, Math.sin(a) * 300, s.rng);
@@ -303,11 +438,21 @@ export class GameEngine {
       this.audio.modeSwitch(mode);
       if (mode === 'fluor' && !this.warned.has('fluor')) {
         this.warned.add('fluor');
-        this.toast('info', 'Fluorescence', 'Tags reveal infected prey, proviruses and organelle health. Excitation light costs ATP (phototoxicity).', '#4dff6a');
+        this.toast(
+          'info',
+          'Fluorescence',
+          'Tags reveal infected prey, proviruses and organelle health. Excitation light costs ATP (phototoxicity).',
+          '#4dff6a',
+        );
       }
       if (mode === 'dark' && !this.warned.has('dark')) {
         this.warned.add('dark');
-        this.toast('info', 'Darkfield', 'Scattered light outlines transparent agents: prions, viroids, satellites and trap bristles.', '#dfefff');
+        this.toast(
+          'info',
+          'Darkfield',
+          'Scattered light outlines transparent agents: prions, viroids, satellites and trap bristles.',
+          '#dfefff',
+        );
       }
     }
     this.publish();
@@ -523,7 +668,17 @@ export class GameEngine {
       const t = this.clock * 0.05;
       this.camera.update(dtReal, Math.cos(t) * 320, Math.sin(t * 1.3) * 220, 0, 0, 60, 30, 0, this.settings.reducedMotion);
     } else if (this.architect || this.architectBlend > 0.02) {
-      this.camera.update(dtReal, prime.x, prime.y, prime.vx, prime.vy, colonyR, prime.radius, this.architectBlend, this.settings.reducedMotion);
+      this.camera.update(
+        dtReal,
+        prime.x,
+        prime.y,
+        prime.vx,
+        prime.vy,
+        colonyR,
+        prime.radius,
+        this.architectBlend,
+        this.settings.reducedMotion,
+      );
     } else if (this.debugFocus) {
       this.camera.update(dtReal, this.debugFocus.x, this.debugFocus.y, 0, 0, colonyR, prime.radius, 0, this.settings.reducedMotion);
     } else {
@@ -539,27 +694,34 @@ export class GameEngine {
     this.ca = Math.max(0, this.ca - dtReal * 2.5);
     if (p.dead && this.screen !== 'title') this.desat = Math.min(0.85, this.desat + dtReal * 0.5);
 
-    const hurt = this.screen === 'title' || p.dead ? 0 : clamp(1 - prime.integrity / prime.maxIntegrity - 0.45, 0, 0.55) * 1.6 + (p.capture ? 0.35 : 0);
+    const hurt =
+      this.screen === 'title' || p.dead
+        ? 0
+        : clamp(1 - prime.integrity / prime.maxIntegrity - 0.45, 0, 0.55) * 1.6 + (p.capture ? 0.35 : 0);
     const toxicyst = p.traits.abilities.includes('toxicyst');
     const pointerWorld = this.camera.screenToWorld(this.input.pointer.x, this.input.pointer.y);
-    this.renderer.render(s, {
-      time: this.clock,
-      camera: this.camera,
-      dark: this.dark,
-      fluor: this.fluor,
-      electron: this.architectBlend * 0.62,
-      architect: this.architectBlend,
-      highlightSlot: this.highlightSlot,
-      fx: { ca: this.ca, flash: this.flash, hurt, desat: this.desat },
-      overlay: {
-        labels: this.labels,
-        aim: this.input.pointer.active && !this.input.pointer.touch ? pointerWorld : null,
-        aimActive: toxicyst && this.screen === 'playing',
-        nav: this.screen === 'playing' && this.introT > 0.9 ? objectiveNavTarget(s) : null,
+    this.renderer.render(
+      s,
+      {
+        time: this.clock,
+        camera: this.camera,
+        dark: this.dark,
+        fluor: this.fluor,
+        electron: this.architectBlend * 0.62,
+        architect: this.architectBlend,
+        highlightSlot: this.highlightSlot,
+        fx: { ca: this.ca, flash: this.flash, hurt, desat: this.desat },
+        overlay: {
+          labels: this.labels,
+          aim: this.input.pointer.active && !this.input.pointer.touch ? pointerWorld : null,
+          aimActive: toxicyst && this.screen === 'playing',
+          nav: this.screen === 'playing' && this.introT > 0.9 ? objectiveNavTarget(s) : null,
+        },
+        showPlayer: this.screen !== 'title',
+        glowBoost: 0,
       },
-      showPlayer: this.screen !== 'title',
-      glowBoost: 0,
-    }, dtReal);
+      dtReal,
+    );
 
     // Audio intensity from nearby danger.
     if (this.screen !== 'title') {
@@ -668,7 +830,12 @@ export class GameEngine {
       aimX = w.x;
       aimY = w.y;
     } else {
-      const target = s.grid.nearest(prime.x, prime.y, 520, (e) => SPECIES[e.species].threat >= 1 && SPECIES[e.species].group !== 'resource');
+      const target = s.grid.nearest(
+        prime.x,
+        prime.y,
+        520,
+        (e) => SPECIES[e.species].threat >= 1 && SPECIES[e.species].group !== 'resource',
+      );
       if (target) {
         aimX = target.x;
         aimY = target.y;
@@ -748,7 +915,14 @@ export class GameEngine {
           const u = this.nearestUnit(ev.x, ev.y);
           membraneImpulse(u.membrane, Math.atan2(ev.y - u.y, ev.x - u.x), u.radius * 3, 0.6);
           this.audio.gulp(SPECIES[ev.species].radius[1], this.pan(ev.x));
-          R.particles.burst(ev.x, ev.y, { count: 6, kind: 'bubble', color: 'rgba(230,255,245,0.9)', speed: [20, 60], size: [1.5, 4], life: [0.4, 0.8] });
+          R.particles.burst(ev.x, ev.y, {
+            count: 6,
+            kind: 'bubble',
+            color: 'rgba(230,255,245,0.9)',
+            speed: [20, 60],
+            size: [1.5, 4],
+            life: [0.4, 0.8],
+          });
           break;
         }
         case 'digested':
@@ -767,7 +941,14 @@ export class GameEngine {
           const def = SPECIES[ev.species];
           this.audio.kill(def.radius[1], this.pan(ev.x));
           const color = def.group === 'agent' ? '#c9b6ff' : '#ff9a6b';
-          R.particles.burst(ev.x, ev.y, { count: def.group === 'agent' ? 6 : 14, kind: 'shard', color, speed: [60, 220], size: [1.5, 4], life: [0.4, 0.8] });
+          R.particles.burst(ev.x, ev.y, {
+            count: def.group === 'agent' ? 6 : 14,
+            kind: 'shard',
+            color,
+            speed: [60, 220],
+            size: [1.5, 4],
+            life: [0.4, 0.8],
+          });
           R.particles.ring(ev.x, ev.y, def.radius[1] * 1.8, color, 0.45, 3);
           if (def.radius[1] > 30) {
             this.hitstop = 0.06;
@@ -779,12 +960,23 @@ export class GameEngine {
           this.audio.endosymbiosis();
           this.flash = 0.45;
           this.hitstop = 0.12;
-          R.particles.burst(ev.x, ev.y, { count: 36, color: ev.organelle === 'mitochondrion' ? '#ffb43d' : '#7be04a', speed: [80, 260], size: [2, 4], life: [0.6, 1.2] });
+          R.particles.burst(ev.x, ev.y, {
+            count: 36,
+            color: ev.organelle === 'mitochondrion' ? '#ffb43d' : '#7be04a',
+            speed: [80, 260],
+            size: [2, 4],
+            life: [0.6, 1.2],
+          });
           R.particles.ring(ev.x, ev.y, prime.radius * 3.2, '#fff2a8', 0.8, 4);
           const name = ORGANELLES[ev.organelle].name;
-          this.toast('good', `Endosymbiosis: ${name}`, ev.organelle === 'mitochondrion'
-            ? 'You engulfed a bacterium and kept it. ATP output just jumped. This is how mitochondria began, ~2 billion years ago.'
-            : 'A captured cyanobacterium now photosynthesizes for you. This is how every chloroplast began.', ev.organelle === 'mitochondrion' ? '#ffb43d' : '#7be04a');
+          this.toast(
+            'good',
+            `Endosymbiosis: ${name}`,
+            ev.organelle === 'mitochondrion'
+              ? 'You engulfed a bacterium and kept it. ATP output just jumped. This is how mitochondria began, ~2 billion years ago.'
+              : 'A captured cyanobacterium now photosynthesizes for you. This is how every chloroplast began.',
+            ev.organelle === 'mitochondrion' ? '#ffb43d' : '#7be04a',
+          );
           break;
         }
         case 'attach': {
@@ -792,7 +984,12 @@ export class GameEngine {
             R.particles.ring(ev.x, ev.y, 18, '#ffe98a', 0.4, 2);
             if (!this.warned.has('satellite')) {
               this.warned.add('satellite');
-              this.toast('warn', 'Satellite RNA absorbed', 'Harmless alone, but the next virus that infects you will replicate faster.', '#ffe98a');
+              this.toast(
+                'warn',
+                'Satellite RNA absorbed',
+                'Harmless alone, but the next virus that infects you will replicate faster.',
+                '#ffe98a',
+              );
             }
             break;
           }
@@ -800,7 +997,12 @@ export class GameEngine {
           R.particles.ring(ev.x, ev.y, 22, '#ff3b5c', 0.4, 2);
           if (!this.warned.has('attach')) {
             this.warned.add('attach');
-            this.toast('warn', 'Virus docking', 'A virion is drilling into your membrane. DASH (SPACE) to shake it off before it injects.', '#ff3b5c');
+            this.toast(
+              'warn',
+              'Virus docking',
+              'A virion is drilling into your membrane. DASH (SPACE) to shake it off before it injects.',
+              '#ff3b5c',
+            );
           }
           break;
         }
@@ -812,8 +1014,20 @@ export class GameEngine {
         case 'infection':
           this.audio.infection();
           this.ca = 0.8;
-          if (ev.style === 'lysogenic') this.toast('warn', 'Provirus integrated', 'A retrovirus spliced itself into your genome. It sleeps until stress wakes it. RNAi (3) can excise it.', '#ff6b84');
-          else this.toast('warn', 'Genome hijacked', `${SPECIES[ev.species].name} DNA is replicating inside you. Use RNA interference (3) before the cell bursts.`, '#ff3b5c');
+          if (ev.style === 'lysogenic')
+            this.toast(
+              'warn',
+              'Provirus integrated',
+              'A retrovirus spliced itself into your genome. It sleeps until stress wakes it. RNAi (3) can excise it.',
+              '#ff6b84',
+            );
+          else
+            this.toast(
+              'warn',
+              'Genome hijacked',
+              `${SPECIES[ev.species].name} DNA is replicating inside you. Use RNA interference (3) before the cell bursts.`,
+              '#ff3b5c',
+            );
           break;
         case 'lysisBurst':
           this.audio.burst();
@@ -829,23 +1043,45 @@ export class GameEngine {
           break;
         case 'misfold':
           this.audio.misfold();
-          this.toast('warn', 'Prion misfolding', `Your ${ORGANELLES[ev.organelle].name.toLowerCase()} misfolded and stopped working. It will spread. Lysosome burst (1) recycles it.`, '#d7c4ff');
+          this.toast(
+            'warn',
+            'Prion misfolding',
+            `Your ${ORGANELLES[ev.organelle].name.toLowerCase()} misfolded and stopped working. It will spread. Lysosome burst (1) recycles it.`,
+            '#d7c4ff',
+          );
           break;
         case 'colonized':
           if (!this.warned.has('colonized')) {
             this.warned.add('colonized');
-            this.toast('warn', 'Hitchhikers', 'That prey carried intracellular bacteria. They now steal your glucose. Lysosome bursts clear colonies.', '#9dff3a');
+            this.toast(
+              'warn',
+              'Hitchhikers',
+              'That prey carried intracellular bacteria. They now steal your glucose. Lysosome bursts clear colonies.',
+              '#9dff3a',
+            );
           }
           break;
         case 'cured':
           this.audio.cure();
-          R.particles.burst(prime.x, prime.y, { count: 12, color: '#7dffb0', speed: [60, 160], size: [1.5, 3], life: [0.4, 0.7], spread: prime.radius });
+          R.particles.burst(prime.x, prime.y, {
+            count: 12,
+            color: '#7dffb0',
+            speed: [60, 160],
+            size: [1.5, 3],
+            life: [0.4, 0.7],
+            spread: prime.radius,
+          });
           break;
         case 'captured':
           this.audio.captured();
           this.camera.addTrauma(0.5);
           this.hitstop = 0.08;
-          this.toast('warn', `Caught by ${SPECIES[ev.species].name}`, 'Thrash with WASD and SPACE to break free, or encyst (4).', '#ff3b5c');
+          this.toast(
+            'warn',
+            `Caught by ${SPECIES[ev.species].name}`,
+            'Thrash with WASD and SPACE to break free, or encyst (4).',
+            '#ff3b5c',
+          );
           break;
         case 'escaped':
           this.audio.escaped();
@@ -856,7 +1092,14 @@ export class GameEngine {
           break;
         case 'build':
           this.audio.build();
-          R.particles.burst(prime.x, prime.y, { count: 14, color: '#ffffff', speed: [40, 140], size: [1.5, 3], life: [0.4, 0.7], spread: prime.radius * 0.6 });
+          R.particles.burst(prime.x, prime.y, {
+            count: 14,
+            color: '#ffffff',
+            speed: [40, 140],
+            size: [1.5, 3],
+            life: [0.4, 0.7],
+            spread: prime.radius * 0.6,
+          });
           membraneImpulse(prime.membrane, Math.random() * Math.PI * 2, prime.radius * 3, 1.2);
           break;
         case 'divisionReady':
@@ -914,7 +1157,14 @@ export class GameEngine {
         case 'npcBurst':
           if (this.onScreen(ev.x, ev.y)) {
             this.audio.kill(8, this.pan(ev.x));
-            R.particles.burst(ev.x, ev.y, { count: 12, kind: 'shard', color: '#c4c9ff', speed: [60, 180], size: [1.5, 3], life: [0.4, 0.8] });
+            R.particles.burst(ev.x, ev.y, {
+              count: 12,
+              kind: 'shard',
+              color: '#c4c9ff',
+              speed: [60, 180],
+              size: [1.5, 3],
+              life: [0.4, 0.8],
+            });
           }
           break;
         case 'stun':
@@ -922,7 +1172,12 @@ export class GameEngine {
           break;
         case 'tardigrade':
           this.audio.tardigrade();
-          this.toast('good', 'Dsup borrowed', 'Brushing the tardigrade coated you in damage-suppressor protein: -45% damage for 10 s.', '#c9b6ff');
+          this.toast(
+            'good',
+            'Dsup borrowed',
+            'Brushing the tardigrade coated you in damage-suppressor protein: -45% damage for 10 s.',
+            '#c9b6ff',
+          );
           break;
         case 'victory':
           this.audio.victory();
@@ -948,13 +1203,30 @@ export class GameEngine {
     switch (id) {
       case 'dash':
         this.audio.dash();
-        R.particles.burst(x, y, { count: 12, kind: 'bubble', color: 'rgba(220,255,250,0.8)', speed: [20, 80], size: [2, 5], life: [0.4, 0.8], angle: Math.atan2(-p.dashDir.y, -p.dashDir.x), cone: 0.7, spread: prime.radius * 0.6 });
+        R.particles.burst(x, y, {
+          count: 12,
+          kind: 'bubble',
+          color: 'rgba(220,255,250,0.8)',
+          speed: [20, 80],
+          size: [2, 5],
+          life: [0.4, 0.8],
+          angle: Math.atan2(-p.dashDir.y, -p.dashDir.x),
+          cone: 0.7,
+          spread: prime.radius * 0.6,
+        });
         this.state.shockwaves.push({ x, y, t: 0, duration: 0.4, radius: prime.radius * 2.2, strength: 0.35, color: '#c8fff0' });
         break;
       case 'lysosome':
         this.audio.lysosome();
         this.camera.addTrauma(0.35);
-        R.particles.burst(x, y, { count: 40, kind: 'bubble', color: 'rgba(200,150,255,0.9)', speed: [120, 380], size: [2, 6], life: [0.4, 0.9] });
+        R.particles.burst(x, y, {
+          count: 40,
+          kind: 'bubble',
+          color: 'rgba(200,150,255,0.9)',
+          speed: [120, 380],
+          size: [2, 6],
+          life: [0.4, 0.9],
+        });
         R.particles.burst(x, y, { count: 24, color: '#ffd23f', speed: [100, 300], size: [1.5, 3], life: [0.4, 0.8] });
         break;
       case 'toxicyst':
@@ -966,7 +1238,15 @@ export class GameEngine {
         break;
       case 'encyst':
         this.audio.encyst();
-        R.particles.burst(x, y, { count: 16, kind: 'shard', color: '#ffcf7a', speed: [40, 120], size: [1.5, 3], life: [0.4, 0.8], spread: prime.radius });
+        R.particles.burst(x, y, {
+          count: 16,
+          kind: 'shard',
+          color: '#ffcf7a',
+          speed: [40, 120],
+          size: [1.5, 3],
+          life: [0.4, 0.8],
+          spread: prime.radius,
+        });
         break;
       case 'virophage':
         this.audio.cure();
@@ -1085,11 +1365,21 @@ export class GameEngine {
       maxIntegrity: prime.maxIntegrity,
       generation: p.generation,
       cells: livingUnits(p).length,
-      division: { threshold: divisionThreshold(p.generation), dna: divisionDnaCost(p.generation), ok: div.ok, reasons: div.reasons, progress: p.dividing },
+      division: {
+        threshold: divisionThreshold(p.generation),
+        dna: divisionDnaCost(p.generation),
+        ok: div.ok,
+        reasons: div.reasons,
+        progress: p.dividing,
+      },
       abilities: t.abilities.map((id) => {
         const info = ABILITY_INFO[id];
         return {
-          id, name: info.name, key: info.key, atp: info.atp, description: info.description,
+          id,
+          name: info.name,
+          key: info.key,
+          atp: info.atp,
+          description: info.description,
           cooldown: id === 'dash' ? t.dashCooldown : info.cooldown,
           remaining: Math.max(0, p.cooldowns[id] - s.time),
           affordable: p.atp >= info.atp,
@@ -1108,7 +1398,15 @@ export class GameEngine {
       intro: this.introT,
       objectiveAge: this.clock - this.objectiveAt,
       completed: this.clock - this.objectiveAt < 2.8 ? this.completed : null,
-      objective: objective ? { index: s.objective.index, total: OBJECTIVES.length, title: objective.title, text: objective.text, progress: s.objective.progressText } : null,
+      objective: objective
+        ? {
+            index: s.objective.index,
+            total: OBJECTIVES.length,
+            title: objective.title,
+            text: objective.text,
+            progress: s.objective.progressText,
+          }
+        : null,
       infection: {
         viralLoad: p.infection.viralLoad,
         prophages: p.infection.prophages,
@@ -1130,8 +1428,16 @@ export class GameEngine {
         const check = canBuild(p, type, spendable);
         const cost = buildCost(p, type);
         return {
-          type, name: def.name, role: def.role, science: def.science, ok: check.ok, reason: check.reason,
-          biomass: cost.biomass, dna: cost.dna, owned: countOrganelles(p, type, true), max: def.max,
+          type,
+          name: def.name,
+          role: def.role,
+          science: def.science,
+          ok: check.ok,
+          reason: check.reason,
+          biomass: cost.biomass,
+          dna: cost.dna,
+          owned: countOrganelles(p, type, true),
+          max: def.max,
         };
       }),
       choices: s.divisionChoices ? { fates: s.divisionChoices.fates, mutations: s.divisionChoices.mutations } : null,

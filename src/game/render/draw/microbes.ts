@@ -161,7 +161,10 @@ export function drawDna(dc: DrawCtx, e: Entity, look: EntityLook) {
     ctx.stroke();
   }
   ctx.lineWidth = r * 0.26;
-  for (const [sign, color] of [[1, PAL.dna.a], [-1, PAL.dna.b]] as const) {
+  for (const [sign, color] of [
+    [1, PAL.dna.a],
+    [-1, PAL.dna.b],
+  ] as const) {
     ctx.strokeStyle = color;
     ctx.beginPath();
     for (let i = 0; i <= 18; i++) {
@@ -204,7 +207,16 @@ export function drawLipid(dc: DrawCtx, e: Entity, look: EntityLook) {
 
 // --- Bacteria --------------------------------------------------------------
 
-function flagellumTail(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, len: number, t: number, w: number, color: string) {
+function flagellumTail(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  angle: number,
+  len: number,
+  t: number,
+  w: number,
+  color: string,
+) {
   ctx.strokeStyle = color;
   ctx.lineWidth = w;
   ctx.lineCap = 'round';
@@ -228,7 +240,12 @@ export function drawCocci(dc: DrawCtx, e: Entity, look: EntityLook) {
   place(ctx, dc.xf, e.x, e.y, e.angle);
   ctx.globalAlpha = look.alpha;
   const pair = hash(e.seed) > 0.4;
-  const spheres: Array<[number, number]> = pair ? [[-r * 0.55, 0], [r * 0.55, 0]] : [[0, 0]];
+  const spheres: Array<[number, number]> = pair
+    ? [
+        [-r * 0.55, 0],
+        [r * 0.55, 0],
+      ]
+    : [[0, 0]];
   for (const [x, y] of spheres) {
     ctx.beginPath();
     circle(ctx, x, y, pair ? r * 0.72 : r);
@@ -399,4 +416,3 @@ export function bacteriumDot(dc: DrawCtx, e: Entity, look: EntityLook, color: st
   circle(ctx, 0, 0, e.radius);
   ctx.fill();
 }
-

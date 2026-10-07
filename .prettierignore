@@ -1,0 +1,11 @@
+# Generated and vendored files
+.github/
+node_modules/
+dist/
+build/
+media/
+src-tauri/target/
+src-tauri/gen/
+bun.lock
+*.webp
+*.png

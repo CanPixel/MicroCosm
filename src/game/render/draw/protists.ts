@@ -6,7 +6,17 @@ import { circle, ellipse, flatShade, hash, place, setPatternScale, smoothClosed,
 const XS = new Float32Array(64);
 const YS = new Float32Array(64);
 
-function cilia(ctx: CanvasRenderingContext2D, xs: Float32Array, ys: Float32Array, n: number, len: number, t: number, color: string, width: number, step = 1) {
+function cilia(
+  ctx: CanvasRenderingContext2D,
+  xs: Float32Array,
+  ys: Float32Array,
+  n: number,
+  len: number,
+  t: number,
+  color: string,
+  width: number,
+  step = 1,
+) {
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.lineCap = 'round';
@@ -127,7 +137,7 @@ export function drawEuglena(dc: DrawCtx, e: Entity, look: EntityLook) {
   const body = () => {
     ctx.beginPath();
     const L = r * 1.6;
-    const W = r * 0.52 / squish;
+    const W = (r * 0.52) / squish;
     ctx.moveTo(L * 0.85, 0);
     ctx.bezierCurveTo(L * 0.85, -W * 1.2, -L * 0.2, -W * 1.25, -L, 0);
     ctx.bezierCurveTo(-L * 0.2, W * 1.25, L * 0.85, W * 1.2, L * 0.85, 0);
