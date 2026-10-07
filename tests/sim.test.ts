@@ -1,342 +1,303 @@
 import { describe, expect, test } from 'bun:test';
+import { biomeWeights, dominantBiome } from '../src/game/sim/biomes';
+import { castAbility } from '../src/game/sim/combat';
+import { attachAgent } from '../src/game/sim/infection';
+import { angleDiff } from '../src/game/sim/math';
+import { createMembrane, stepMembrane, type MembraneInput } from '../src/game/sim/membrane';
+import { buildCost, canBuild, computeTraits, SLOT_NEIGHBORS } from '../src/game/sim/organelles';
 import {
-  DIVISION_ATP_COST,
-  DIVISION_BIOMASS_COST,
-  DIVISION_GLUCOSE_COST,
-  DIVISION_MIN_ARCHITECTURE_SCORE,
-  DIVISION_MIN_SIZE,
-  MAX_ORGANELLE_LEVEL,
-  USER_ZOOM_MAX,
-  USER_ZOOM_MIN,
-} from '../src/lib/game/constants';
-import { createSimulation, type Simulation, type ViewInfo } from '../src/lib/game/sim';
+  buildOrganelle, canDivide, canUnitEat, chooseDivision, divisionDnaCost, divisionThreshold, spendableBiomass, startDivision,
+} from '../src/game/sim/player';
+import { mulberry32 } from '../src/game/sim/rng';
+import { createGame, stepGame } from '../src/game/sim/sim';
+import { BODY_BIOMASS, NO_INPUT, spawnEntity, type GameState, type SimInput } from '../src/game/sim/state';
+import { chunkKey, generateChunk } from '../src/game/sim/world';
+import { createState } from '../src/game/sim/state';
+import type { OrganelleType } from '../src/game/sim/types';
 
-const idleInput = { moveX: 0, moveY: 0 };
+const view = (s: GameState) => ({ x: s.player.units[0].x, y: s.player.units[0].y, halfW: 720, halfH: 450 });
 
-function advance(simulation: Simulation, seconds: number, view: ViewInfo) {
-  const frames = Math.ceil(seconds * 60);
-  for (let frame = 0; frame < frames; frame++) {
-    simulation.step(1 / 60, idleInput, view);
-  }
+function run(s: GameState, seconds: number, input: SimInput = NO_INPUT) {
+  for (let i = 0; i < seconds * 30; i++) stepGame(s, 1 / 30, input, view(s));
 }
 
-describe('microscope camera', () => {
-  test('clamps user magnification and preserves smooth automatic framing', () => {
-    const simulation = createSimulation(17);
-    const view = { width: 1440, height: 900 };
+// A clean world with only what the test spawns.
+function emptyWorld(seed = 1) {
+  const s = createGame(seed);
+  s.entities = [];
+  s.byId.clear();
+  s.director.nextEventAt = 1e9;
+  // Mark the neighborhood as loaded so streaming does not repopulate it.
+  for (let x = -4; x <= 4; x++) for (let y = -4; y <= 4; y++) s.loadedChunks.add(chunkKey(x, y));
+  s.ambientTimer = 1e9;
+  return s;
+}
 
-    simulation.setZoomMultiplier(100);
-    expect(simulation.state.camera.zoomMultiplier).toBe(USER_ZOOM_MAX);
-    advance(simulation, 2, view);
-    const closeZoom = simulation.state.camera.zoom;
+function grant(s: GameState, biomass: number, dna = 0) {
+  s.player.units[0].biomass += biomass;
+  s.player.dna += dna;
+}
 
-    simulation.setZoomMultiplier(-100);
-    expect(simulation.state.camera.zoomMultiplier).toBe(USER_ZOOM_MIN);
-    advance(simulation, 2.5, view);
-    const ecosystemZoom = simulation.state.camera.zoom;
+function addOrganelle(s: GameState, type: OrganelleType, slot: number) {
+  s.player.organelles.push({ id: s.nextOrganelleId++, type, slot, misfolded: false, born: 0, mass: 0, px: 0, py: 0 });
+  s.player.traitsDirty = true;
+}
 
-    expect(closeZoom).toBeGreaterThan(4.7);
-    expect(ecosystemZoom).toBeLessThan(1.55);
-    expect(closeZoom).toBeGreaterThan(ecosystemZoom);
-  });
-});
-
-describe('infinite deterministic world streaming', () => {
-  test('loads enough chunks for a large viewport and replaces them after distant travel', () => {
-    const simulation = createSimulation(31);
-    const view = { width: 3840, height: 2160 };
-    simulation.initialSpawns(view);
-
-    const originChunkKeys = new Set(simulation.state.organisms.map(({ chunk }) => `${chunk.x}:${chunk.y}`));
-    const originIds = new Set(simulation.state.organisms.map(({ id }) => id));
-    expect(originChunkKeys.size).toBeGreaterThanOrEqual(35);
-
-    simulation.state.player.pos.x = 120_000;
-    simulation.state.player.pos.y = -84_000;
-    simulation.state.camera.pos.x = simulation.state.player.pos.x;
-    simulation.state.camera.pos.y = simulation.state.player.pos.y;
-    simulation.step(1 / 60, idleInput, view);
-
-    const farChunkKeys = new Set(simulation.state.organisms.map(({ chunk }) => `${chunk.x}:${chunk.y}`));
-    const overlappingIds = simulation.state.organisms.filter(({ id }) => originIds.has(id));
-    expect(farChunkKeys.size).toBeGreaterThanOrEqual(35);
-    expect(overlappingIds).toHaveLength(0);
-  });
-});
-
-describe('ecosystem pressure', () => {
-  test('a threat interval launches a visible giant-virus wave', () => {
-    const simulation = createSimulation(57);
-    const view = { width: 1280, height: 720 };
-    simulation.initialSpawns(view);
-
-    advance(simulation, 45.2, view);
-
-    const waveViruses = simulation.state.organisms.filter(({ id }) => id.startsWith('wave-'));
-    expect(simulation.state.threatLevel).toBe(2);
-    expect(waveViruses.length).toBeGreaterThanOrEqual(2);
-    expect(waveViruses.every(({ species, kind }) => species === 'giantVirus' && kind === 'infectious')).toBe(true);
+describe('membrane', () => {
+  const base = (rand: () => number): MembraneInput => ({
+    radius: 30, heading: 0, speed: 1, time: 0, dt: 1 / 60, seed: 1, liveliness: 1,
+    bodies: [], engulfing: [], neighbors: [], rigid: false, pinch: 0, rand,
   });
 
-  test('collision damage never increases the size of a critically starved cell', () => {
-    const simulation = createSimulation(61);
-    const player = simulation.state.player;
-    player.size = 5.5;
-    player.score = 5.5;
-    simulation.state.time = 6;
-    simulation.state.organisms.push({
-      id: 'collision-target',
-      chunk: { x: 0, y: 0 },
-      species: 'spikyVirus',
-      kind: 'ambient',
-      harmful: true,
-      devourable: false,
-      autonomous: false,
-      pos: { x: 0, y: 0 },
-      heading: 0,
-      displayRotation: 0,
-      speed: 0,
-      size: 20,
-      collisionRadius: 10,
-      render: {
-        duration: 20,
-        delay: 0,
-        opacity: 1,
-        initialRotation: 0,
-        animationDirection: 'normal',
-      },
-    });
-
-    simulation.step(1 / 60, idleInput, { width: 1, height: 1 });
-
-    expect(player.size).toBeLessThanOrEqual(5.5);
-    expect(player.integrity).toBeLessThan(player.maxIntegrity);
-  });
-});
-
-describe('genome hijack counterplay', () => {
-  test('an upgraded nucleus can clear an established viral load with RNA interference', () => {
-    const simulation = createSimulation(9);
-    const player = simulation.state.player;
-    simulation.state.collectedOrganelles.add('nucleus');
-    player.organelleLevels.nucleus = 1;
-    player.infected = true;
-    player.infectionStart = 0;
-    player.infectionProgress = 40;
-    simulation.state.time = 12;
-
-    expect(simulation.activate('nucleus')).toBe(true);
-    expect(player.infected).toBe(false);
-    expect(player.infectionProgress).toBe(0);
-    expect(player.energy).toBe(72);
-  });
-
-  test('an unupgraded nucleus shields the membrane but cannot clear infection', () => {
-    const simulation = createSimulation(9);
-    const player = simulation.state.player;
-    simulation.state.collectedOrganelles.add('nucleus');
-    player.infected = true;
-    player.infectionStart = 0;
-    player.infectionProgress = 40;
-    simulation.state.time = 12;
-
-    expect(simulation.activate('nucleus')).toBe(true);
-    expect(player.infected).toBe(true);
-    expect(player.shieldUntil).toBeGreaterThan(simulation.state.time);
-  });
-
-  test('a folded RNAi program automatically clears a dangerous viral load', () => {
-    const simulation = createSimulation(19);
-    const player = simulation.state.player;
-    simulation.state.collectedOrganelles.add('nucleus');
-    player.organelleLevels.nucleus = 1;
-    player.automation.rnai = true;
-    player.infected = true;
-    player.infectionStart = 0;
-    simulation.state.time = 8;
-
-    simulation.step(1 / 60, idleInput, { width: 1, height: 1 });
-
-    expect(player.infected).toBe(false);
-    expect(player.energy).toBeLessThan(100);
-  });
-
-  test('a folded autophagy program spends ATP to digest an approaching virus', () => {
-    const simulation = createSimulation(23);
-    const player = simulation.state.player;
-    simulation.state.collectedOrganelles.add('golgi');
-    player.organelleLevels.golgi = 1;
-    player.automation.autophagy = true;
-    simulation.state.organisms.push({
-      id: 'autophagy-target',
-      chunk: { x: 0, y: 0 },
-      species: 'giantVirus',
-      kind: 'infectious',
-      harmful: true,
-      devourable: false,
-      autonomous: false,
-      pos: { x: 100, y: 0 },
-      heading: 0,
-      displayRotation: 0,
-      speed: 0,
-      size: 44,
-      collisionRadius: 18,
-      render: {
-        duration: 24,
-        delay: 0,
-        opacity: 1,
-        initialRotation: 0,
-        animationDirection: 'normal',
-      },
-    });
-
-    simulation.step(1 / 60, idleInput, { width: 1, height: 1 });
-
-    expect(simulation.state.organisms.some(({ id }) => id === 'autophagy-target')).toBe(false);
-    expect(player.energy).toBeLessThan(67);
-    expect(player.kills).toBeGreaterThanOrEqual(1);
-  });
-});
-
-describe('internal cell architecture', () => {
-  test('engulfed systems arrive disordered and require deliberate intracellular transport', () => {
-    const simulation = createSimulation(41);
-    const view = { width: 1280, height: 720 };
-    simulation.initialSpawns(view);
-    for (const type of ['mitochondrion', 'golgi', 'nucleus'] as const) {
-      const starter = simulation.state.organisms.find(({ id }) => id === `starter-${type}`);
-      expect(starter).toBeDefined();
-      simulation.state.player.pos = { ...starter!.pos };
-      simulation.state.camera.pos = { ...starter!.pos };
-      simulation.step(1 / 60, idleInput, view);
+  test('stays a positive, star-shaped loop through violent turns and engulfing', () => {
+    const rand = mulberry32(4);
+    const m = createMembrane(30);
+    for (let f = 0; f < 1200; f++) {
+      const heading = f % 40 < 20 ? 0 : Math.PI; // repeated 180 degree reversals
+      stepMembrane(m, {
+        ...base(rand), heading, time: f / 60,
+        bodies: [{ x: Math.cos(f * 0.1) * 20, y: Math.sin(f * 0.1) * 20, r: 8 }],
+        engulfing: f % 200 < 50 ? [{ x: 40, y: 0, r: 12 }] : [],
+        pinch: f > 900 ? 0.8 : 0,
+      });
+      for (let i = 0; i < m.r.length; i++) {
+        expect(Number.isFinite(m.r[i])).toBe(true);
+        expect(m.r[i]).toBeGreaterThan(30 * 0.4);
+      }
     }
-
-    expect(simulation.state.player.architecture.find(({ type }) => type === 'nucleus')?.slot).toBe(8);
-    expect(simulation.getArchitectureBonuses().score).toBeLessThan(DIVISION_MIN_ARCHITECTURE_SCORE);
-
-    const nucleus = simulation.state.player.architecture.find(({ type }) => type === 'nucleus')!;
-    const mitochondrion = simulation.state.player.architecture.find(({ type }) => type === 'mitochondrion')!;
-    const golgi = simulation.state.player.architecture.find(({ type }) => type === 'golgi')!;
-    simulation.moveOrganelle(nucleus.id, 0);
-    simulation.moveOrganelle(mitochondrion.id, 1);
-    simulation.moveOrganelle(golgi.id, 2);
-
-    expect(simulation.getArchitectureBonuses().score).toBeGreaterThanOrEqual(DIVISION_MIN_ARCHITECTURE_SCORE);
   });
 
-  test('moving the nucleus into the genome core improves coherence and viral resistance', () => {
-    const simulation = createSimulation(44);
-    simulation.state.player.architecture = [
-      { id: 'nucleus-0', type: 'nucleus', slot: 8 },
-      { id: 'mitochondrion-0', type: 'mitochondrion', slot: 0 },
-      { id: 'golgi-0', type: 'golgi', slot: 6 },
-    ];
-    const disordered = simulation.getArchitectureBonuses();
-
-    expect(simulation.moveOrganelle('nucleus-0', 0)).toBe(true);
-    const coherent = simulation.getArchitectureBonuses();
-
-    expect(coherent.score).toBeGreaterThan(disordered.score);
-    expect(coherent.viralResistance).toBeGreaterThan(disordered.viralResistance);
-    expect(simulation.state.player.architecture.find(({ id }) => id === 'mitochondrion-0')?.slot).toBe(8);
+  test('organelles push the wall outward past their own edge', () => {
+    const rand = mulberry32(2);
+    const m = createMembrane(30);
+    for (let f = 0; f < 240; f++) stepMembrane(m, { ...base(rand), speed: 0, liveliness: 0, bodies: [{ x: 28, y: 0, r: 10 }] });
+    expect(m.r[0]).toBeGreaterThan(38);
   });
 
-  test('upgrades grow additional placeable organelles and stop at the specialization cap', () => {
-    const simulation = createSimulation(45);
-    const player = simulation.state.player;
-    simulation.state.collectedOrganelles.add('mitochondrion');
-    player.architecture.push({ id: 'mitochondrion-0', type: 'mitochondrion', slot: 1 });
-    player.glucose = 500;
-    player.biomass = 500;
-
-    expect(simulation.upgrade('mitochondrion')).toBe(true);
-    expect(simulation.upgrade('mitochondrion')).toBe(true);
-    expect(player.organelleLevels.mitochondrion).toBe(MAX_ORGANELLE_LEVEL);
-    expect(player.architecture.filter(({ type }) => type === 'mitochondrion')).toHaveLength(3);
-    expect(simulation.upgrade('mitochondrion')).toBe(false);
+  test('colony neighbours produce a flat shared wall at the bisector', () => {
+    const rand = mulberry32(3);
+    const m = createMembrane(30);
+    for (let f = 0; f < 120; f++) stepMembrane(m, { ...base(rand), speed: 0, neighbors: [{ x: 45, y: 0, r: 30 }] });
+    // Along +x the wall must not cross the midpoint between the two cells.
+    expect(m.r[0]).toBeLessThanOrEqual(22.5);
   });
 });
 
-describe('controlled cytokinesis victory loop', () => {
-  test('requires a stable architecture and completes a viable daughter cell', () => {
-    const simulation = createSimulation(91);
-    const player = simulation.state.player;
-    const systems = ['mitochondrion', 'golgi', 'nucleus'] as const;
-    systems.forEach((type) => simulation.state.collectedOrganelles.add(type));
-    player.organelleLevels = { mitochondrion: 1, golgi: 1, nucleus: 1 };
-    player.architecture = [
-      { id: 'nucleus-0', type: 'nucleus', slot: 0 },
-      { id: 'mitochondrion-0', type: 'mitochondrion', slot: 1 },
-      { id: 'golgi-0', type: 'golgi', slot: 2 },
-    ];
-    player.size = DIVISION_MIN_SIZE;
-    player.score = DIVISION_MIN_SIZE;
-    player.energy = 100;
-    player.glucose = 80;
-    player.biomass = 40;
-    player.integrity = player.maxIntegrity;
-
-    expect(simulation.divisionReadiness().ready).toBe(true);
-    expect(simulation.beginDivision()).toBe(true);
-    expect(player.energy).toBe(100 - DIVISION_ATP_COST);
-    expect(player.glucose).toBe(80 - DIVISION_GLUCOSE_COST);
-    expect(player.biomass).toBe(40 - DIVISION_BIOMASS_COST);
-
-    advance(simulation, 13, { width: 1, height: 1 });
-
-    expect(player.won).toBe(true);
-    expect(player.stage).toBe('complete');
-    expect(player.divisionProgress).toBe(100);
-  });
-
-  test('viral hijack aborts division before the genome is copied', () => {
-    const simulation = createSimulation(92);
-    const player = simulation.state.player;
-    player.divisionActive = true;
-    player.divisionProgress = 52;
-    player.infected = true;
-    player.infectionStart = 0;
-    simulation.state.time = 2;
-
-    simulation.step(1 / 60, idleInput, { width: 1, height: 1 });
-
-    expect(player.divisionActive).toBe(false);
-    expect(player.divisionProgress).toBe(0);
-    expect(player.won).toBe(false);
-  });
-});
-
-describe('evasive swim burst', () => {
-  const view = { width: 1440, height: 900 };
-  test('spends ATP once, accelerates, and enforces its cooldown', () => {
-    const burst = createSimulation(42);
-    const normal = createSimulation(42);
-    expect(burst.dash()).toBe(true);
-    expect(burst.state.player.energy).toBe(86);
-    expect(burst.dash()).toBe(false);
-    expect(burst.state.player.energy).toBe(86);
-    for (let i = 0; i < 24; i++) {
-      burst.step(1 / 60, { moveX: 1, moveY: 0 }, view);
-      normal.step(1 / 60, { moveX: 1, moveY: 0 }, view);
+describe('world', () => {
+  test('biome weights are a partition of unity and the origin is sunlit', () => {
+    const w = new Float32Array(5);
+    for (const [x, y] of [[0, 0], [9000, -4000], [-20000, 15000]]) {
+      biomeWeights(x, y, 99, w);
+      expect(w.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 4);
     }
-    expect(burst.state.player.pos.x).toBeGreaterThan(normal.state.player.pos.x * 2);
-    advance(burst, .3, view);
-    expect(burst.dashState().active).toBe(false);
-    expect(burst.dash()).toBe(false);
-    advance(burst, 3.4, view);
-    expect(burst.dashState().cooldown).toBe(0);
-    expect(burst.dash()).toBe(true);
+    expect(dominantBiome(0, 0, 99)).toBe('shallows');
   });
-  test('cannot spend energy during division, death, or with insufficient ATP', () => {
-    const sim = createSimulation(4);
-    sim.state.player.energy = 13;
-    expect(sim.dash()).toBe(false);
-    sim.state.player.energy = 100;
-    sim.state.player.divisionActive = true;
-    expect(sim.dash()).toBe(false);
-    sim.state.player.divisionActive = false;
-    sim.state.player.dying = true;
-    expect(sim.dash()).toBe(false);
-    expect(sim.state.player.energy).toBe(100);
+
+  test('chunks regenerate identically from the seed', () => {
+    const a = createState(1234);
+    const b = createState(1234);
+    generateChunk(a, 3, -2);
+    generateChunk(b, 3, -2);
+    expect(a.entities.map((e) => `${e.species}:${e.x.toFixed(2)}:${e.y.toFixed(2)}`))
+      .toEqual(b.entities.map((e) => `${e.species}:${e.x.toFixed(2)}:${e.y.toFixed(2)}`));
+  });
+
+  test('streams new ground and forgets the old after long travel', () => {
+    const s = createGame(31);
+    run(s, 0.2);
+    const originIds = new Set(s.entities.map((e) => e.id));
+    expect(s.loadedChunks.size).toBeGreaterThan(8);
+    s.player.units[0].x = 60_000;
+    s.player.units[0].y = -40_000;
+    run(s, 0.2);
+    expect(s.entities.filter((e) => originIds.has(e.id))).toHaveLength(0);
+    expect(s.entities.length).toBeGreaterThan(20);
+  });
+});
+
+describe('predation by size', () => {
+  test('engulfs smaller prey into a food vacuole and digests it into biomass', () => {
+    const s = emptyWorld();
+    const prime = s.player.units[0];
+    const prey = spawnEntity(s, 'bacillus', prime.x + 10, prime.y, { radius: 7 });
+    const before = prime.biomass;
+    expect(canUnitEat(s.player, prime, prey)).toBe(true);
+    run(s, 0.1);
+    expect(prime.vacuoles.length).toBe(1);
+    run(s, 5);
+    expect(prime.vacuoles.length).toBe(0);
+    expect(prime.biomass).toBeGreaterThan(before + 1);
+    expect(s.stats.eaten).toBe(1);
+  });
+
+  test('cannot engulf something larger than itself', () => {
+    const s = emptyWorld();
+    const prime = s.player.units[0];
+    const big = spawnEntity(s, 'paramecium', prime.x + 200, prime.y, { radius: 28 });
+    expect(canUnitEat(s.player, prime, big)).toBe(false);
+  });
+
+  test('engulfing an α-proteobacterium installs a mitochondrion (endosymbiosis)', () => {
+    const s = emptyWorld();
+    const prime = s.player.units[0];
+    spawnEntity(s, 'proteo', prime.x + 8, prime.y, { radius: 7 });
+    run(s, 1);
+    expect(s.player.organelles.some((o) => o.type === 'mitochondrion')).toBe(true);
+    expect(s.events.length >= 0).toBe(true);
+    expect(s.player.traits.mitoRate).toBeGreaterThan(0);
+  });
+});
+
+describe('cell architecture', () => {
+  test('building requires prerequisites and spare biomass beyond the body', () => {
+    const s = emptyWorld();
+    expect(spendableBiomass(s.player)).toBeLessThan(18);
+    expect(canBuild(s.player, 'er', spendableBiomass(s.player)).ok).toBe(false);
+    expect(canBuild(s.player, 'golgi', 100).reason).toContain('Endoplasmic');
+    expect(canBuild(s.player, 'mitochondrion', 100).reason).toContain('proteobacterium');
+    grant(s, 40, 2);
+    expect(buildOrganelle(s, 'er')).toBe(true);
+    expect(buildOrganelle(s, 'golgi')).toBe(true);
+    s.player.traits = computeTraits(s.player);
+    expect(s.player.traits.abilities).toContain('rnai');
+  });
+
+  test('an ER beside the nucleus makes construction cheaper', () => {
+    const s = emptyWorld();
+    const plain = buildCost(s.player, 'vacuole').biomass;
+    addOrganelle(s, 'er', 1);
+    expect(SLOT_NEIGHBORS[1]).toContain(0);
+    s.player.traits = computeTraits(s.player);
+    expect(buildCost(s.player, 'vacuole').biomass).toBeLessThan(plain);
+  });
+
+  test('chloroplasts photosynthesize more in the cortex than deep inside', () => {
+    const s = emptyWorld();
+    addOrganelle(s, 'chloroplast', 1);
+    const inner = computeTraits(s.player).photoRate;
+    s.player.organelles[1].slot = 7;
+    expect(computeTraits(s.player).photoRate).toBeGreaterThan(inner);
+  });
+});
+
+describe('infection', () => {
+  test('a docked virus injects, replicates, and RNA interference cuts the load', () => {
+    const s = emptyWorld();
+    addOrganelle(s, 'er', 1);
+    const prime = s.player.units[0];
+    attachAgent(s, prime, 'adenovirus', 0, 0, 1);
+    run(s, 3);
+    expect(prime.attached).toHaveLength(0);
+    expect(s.player.infection.viralLoad).toBeGreaterThan(15);
+    const load = s.player.infection.viralLoad;
+    s.player.atp = 100;
+    expect(castAbility(s, 'rnai', NO_INPUT)).toBe(true);
+    expect(s.player.infection.viralLoad).toBeLessThan(load);
+  });
+
+  test('a dash can shake a virion off before it injects', () => {
+    const s = emptyWorld(7);
+    const prime = s.player.units[0];
+    for (let i = 0; i < 6; i++) attachAgent(s, prime, 'adenovirus', i, 0, i);
+    s.player.atp = 100;
+    expect(castAbility(s, 'dash', { ...NO_INPUT, moveX: 1 })).toBe(true);
+    expect(prime.attached.length).toBeLessThan(6);
+  });
+
+  test('an unchecked lytic infection bursts the membrane and releases virions', () => {
+    const s = emptyWorld();
+    s.player.infection.viralLoad = 99;
+    s.player.infection.lastVirus = 'adenovirus';
+    const integrity = s.player.units[0].integrity;
+    run(s, 1);
+    expect(s.player.units[0].integrity).toBeLessThan(integrity);
+    expect(s.entities.filter((e) => e.species === 'adenovirus').length).toBeGreaterThan(0);
+    expect(s.player.infection.viralLoad).toBeLessThan(40);
+  });
+
+  test('prions misfold organelles and a lysosome burst recycles them', () => {
+    const s = emptyWorld();
+    for (const [t, slot] of [['er', 1], ['golgi', 2], ['lysosome', 3]] as Array<[OrganelleType, number]>) addOrganelle(s, t, slot);
+    const prime = s.player.units[0];
+    spawnEntity(s, 'prion', prime.x + 5, prime.y);
+    run(s, 0.2);
+    expect(s.player.organelles.some((o) => o.misfolded)).toBe(true);
+    const misfolded = s.player.organelles.filter((o) => o.misfolded).length;
+    s.player.atp = 100;
+    s.player.traits = computeTraits(s.player);
+    if (!s.player.traits.abilities.includes('lysosome')) {
+      // The misfold may have hit the lysosome itself; add a healthy one.
+      addOrganelle(s, 'lysosome', 4);
+      s.player.traits = computeTraits(s.player);
+    }
+    expect(castAbility(s, 'lysosome', NO_INPUT)).toBe(true);
+    expect(s.player.organelles.filter((o) => o.misfolded).length).toBeLessThan(misfolded);
+  });
+});
+
+describe('predators', () => {
+  test('a giant amoeba engulfs a small cell, and struggling breaks free', () => {
+    const s = emptyWorld(5);
+    const prime = s.player.units[0];
+    spawnEntity(s, 'amoeba', prime.x + 90, prime.y, { radius: 94 });
+    run(s, 4);
+    expect(s.player.capture?.species).toBe('amoeba');
+    let flip = 1;
+    for (let i = 0; i < 30 * 6 && s.player.capture; i++) {
+      flip = -flip;
+      s.player.atp = 100;
+      stepGame(s, 1 / 30, { ...NO_INPUT, moveX: flip, moveY: 0, dash: i % 14 === 0 }, view(s));
+    }
+    expect(s.player.capture).toBeNull();
+    expect(s.player.dead).toBe(false);
+  });
+
+  test('an uncontested capture ends in digestion', () => {
+    const s = emptyWorld(5);
+    const prime = s.player.units[0];
+    spawnEntity(s, 'amoeba', prime.x + 90, prime.y, { radius: 94 });
+    run(s, 20);
+    expect(s.player.dead).toBe(true);
+    expect(s.player.deathCause).toBe('digested');
+  });
+});
+
+describe('division and colony', () => {
+  test('division is gated on spare biomass and DNA, then offers fates and mutations', () => {
+    const s = emptyWorld();
+    expect(canDivide(s).ok).toBe(false);
+    grant(s, divisionThreshold(1) + 5, divisionDnaCost(1));
+    expect(canDivide(s).ok).toBe(true);
+    expect(startDivision(s)).toBe(true);
+    run(s, 3.5);
+    expect(s.player.pendingDivision).toBe(true);
+    const choices = s.divisionChoices!;
+    expect(choices.fates).toHaveLength(3);
+    expect(choices.mutations).toHaveLength(3);
+    expect(chooseDivision(s, choices.fates[0], choices.mutations[0])).toBe(true);
+    expect(s.player.generation).toBe(2);
+    expect(s.player.units).toHaveLength(2);
+    expect(s.player.units[1].fate).toBe(choices.fates[0]);
+    // The daughter is built from spare biomass, never from the prime's body.
+    expect(s.player.units[0].biomass).toBeGreaterThanOrEqual(BODY_BIOMASS);
+  });
+
+  test('daughters stay adhered to the prime cell while it swims', () => {
+    const s = emptyWorld();
+    grant(s, divisionThreshold(1) + 5, divisionDnaCost(1));
+    startDivision(s);
+    run(s, 3.5);
+    chooseDivision(s, s.divisionChoices!.fates[0], s.divisionChoices!.mutations[0]);
+    run(s, 4, { ...NO_INPUT, moveX: 1 });
+    const [a, b] = s.player.units;
+    expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeLessThan((a.radius + b.radius) * 1.3);
+    expect(a.x).toBeGreaterThan(200);
+  });
+});
+
+describe('angle helpers', () => {
+  test('shortest signed difference wraps around', () => {
+    expect(angleDiff(0.1, Math.PI * 2 - 0.1)).toBeCloseTo(-0.2, 6);
+    expect(angleDiff(-3, 3)).toBeCloseTo(6 - Math.PI * 2, 6);
   });
 });

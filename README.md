@@ -3,165 +3,141 @@
 
 # MicroCosm
 
-### Survive the ecosystem. Engineer the cell. Divide before it consumes you.
+### Engulf. Endosymbiose. Divide. Become multicellular.
 
-An experimental real-time cellular survival strategy game for desktop and browser.
+A real-time cellular survival game for desktop and browser: part agar.io, part Factorio-inside-a-cell, part *Journey to the Microcosmos*, drawn in a Kurzgesagt-style flat palette.
 
 ![Version](https://img.shields.io/badge/version-0.2.0-8eea54?style=flat-square&labelColor=0b2632)
 ![Tauri](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&labelColor=0b2632)
-![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square&labelColor=0b2632)
+![WebGL2](https://img.shields.io/badge/WebGL2-post--processing-c4f53a?style=flat-square&labelColor=0b2632)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-7aa2f7?style=flat-square&labelColor=0b2632)
 ![Bun](https://img.shields.io/badge/Bun-powered-f3e9d2?style=flat-square&labelColor=0b2632)
 
 </div>
 
-![MicroCosm ecosystem view](docs/screenshots/ecosystem.webp)
-
-## One cell, two games
-
-MicroCosm runs two interdependent game loops at once. Every decision inside the cell changes how well it survives outside, while every resource gathered outside determines what can be built within.
-
-| Ecosystem survival | Cellular strategy |
-| --- | --- |
-| Swim through a borderless, procedurally streamed micro-world | Build a functional internal architecture around the genome |
-| Hunt green glucose crystals and engulf useful organelles | Place and rearrange mitochondria, nuclei, and Golgi systems |
-| Evade predators, armored organisms, fungal barriers, and viruses | Balance ATP generation, uptake, repair, biomass, and viral resistance |
-| Read currents, threats, scale, and spatial opportunities in real time | Switch metabolic stances and fold regulatory RNA programs |
-
-The world does not pause while the cell is being redesigned. Survival and architecture remain part of the same continuous simulation.
+![A young cell among Paramecium, Euglena and cyanobacteria in the Sunlit Shallows](docs/screenshots/ecosystem.webp)
 
 ## The run
 
-A successful specimen progresses through five biological phases:
+You begin as a single amoeboid cell in an infinite, procedurally streamed drop of pond water. The arc follows the real history of complex life:
 
-1. **Ignite metabolism** by gathering glucose and establishing ATP production.
-2. **Assemble systems** by engulfing the organelles needed for a viable cell.
-3. **Stabilize architecture** by placing those systems into a coherent internal plan.
-4. **Build replication reserves** while preserving membrane integrity and genome stability.
-5. **Begin cytokinesis** and survive the division process in real time.
+1. **Ignite metabolism.** Swim into glucose crystals. Glycolysis turns each into ATP.
+2. **Endosymbiosis.** Engulf a purple α-proteobacterium and keep it: it becomes your first mitochondrion, and ATP output jumps. Engulf a cyanobacterium and you gain a chloroplast instead.
+3. **Build the cell.** Digested prey becomes biomass. Zoom into your ultrastructure and grow an endoplasmic reticulum, Golgi, lysosomes, flagella, cilia, extrusomes and more.
+4. **Divide.** At critical mass, replicate your genome (it costs DNA) and pinch in two. The daughter stays attached, and you choose its fate and a heritable mutation.
+5. **Multicellularity.** Grow a colony of six specialized cells: photocytes, ciliocytes, phagocytes, cnidocytes and germ cells, tessellated like tissue.
 
-Genome hijack is not simply a damage timer. An upgraded nucleus enables RNA interference, while an upgraded Golgi apparatus enables autophagy. Either route can suppress viral replication, and regulatory RNA can automate emergency responses at an ongoing metabolic cost.
+![A five-cell colony of specialized daughters](docs/screenshots/colony.webp)
+
+## A living ecosystem
+
+Thirty-three species, each with its own behavior and a Field Journal entry grounded in real biology. They hunt, flee, graze and infect each other without you.
+
+| | Organisms |
+| --- | --- |
+| **Food** | Glucose, cell debris, DNA fragments, lipid droplets, cocci, bacilli, spirilla, diatoms, Euglena, gastrotrichs |
+| **Endosymbionts** | α-proteobacteria (→ mitochondria), cyanobacteria (→ chloroplasts) |
+| **Hunters** | *Didinium* charges, *Lacrymaria olor* coils its neck and strikes, *Amoeba proteus* engulfs anything smaller, *Paramecium* fires trichocysts |
+| **Traps** | Hydra tentacles with nematocysts, the near-invisible *Collotheca* funnel, Stentor and rotifer feeding vortices |
+| **Armor and terrain** | *Arcella* (only its aperture is vulnerable), indestructible tardigrades (brush them for Dsup protection), pollen grains |
+| **Mini-boss** | Neoplasms: glucose-hoarding tumor masses that split when wounded |
+
+Infection follows the design bible's **aliveness spectrum**:
+
+| Agent | Mechanic |
+| --- | --- |
+| Prions | Misfold an organelle; the misfolding spreads to neighbors. A lysosome burst performs autophagy. |
+| Viroids | Swarm photosynthetic cells and siphon ATP. Shake them off. |
+| Satellite RNAs | Inert alone; amplify the next virus that infects you. |
+| Viruses | Adenovirus (lytic), retrovirus (integrates as a dormant provirus that stress can reawaken), TMV (plant cells only), bacteriophage (bacteria only), Mimivirus (amoebae, including you). Docked virions can be shaken off with a dash before they inject. |
+| Virophages | Allies. Absorb them and release the swarm against giant viruses. |
+| Intracellular bacteria | Hitchhike inside infected prey and colonize your cytoplasm. |
+
+Five biomes (Sunlit Shallows, Biofilm Reef, Lysis Bloom, Abyssal Sediment, Neoplastic Rift) set light for photosynthesis, glucose density, currents and spawn tables. An ecosystem director escalates pressure with time, distance and generation: viral storms, prion fog, phage bursts, glucose blooms, current surges and neoplasm hunts.
+
+## The microscope is a mechanic
+
+Press <kbd>Q</kbd> to switch illumination. Each light shows different things.
+
+| Darkfield | Fluorescence |
+| --- | --- |
+| ![Darkfield](docs/screenshots/darkfield.webp) | ![Fluorescence](docs/screenshots/fluorescence.webp) |
+| Scattered light outlines every edge on a black field. Reveals transparent agents (prions, viroids, satellites) and the bristles of traps. | Real probe colors: DAPI-blue nuclei, MitoTracker-green mitochondria, red chlorophyll, magenta lysosomes, orange membrane dye. Reveals infected prey and proviruses, but excitation light costs ATP (phototoxicity). |
+
+Brightfield is the vivid illustrated default. Zooming into the **Cell Architect** shifts the grade toward an electron micrograph.
 
 ## Cell Architect
 
-![MicroCosm ultrastructure and Cell Architect view](docs/screenshots/cell-architect.webp)
+![The Cell Architect: organelles placed in genome, cytoplasm and cortex slots](docs/screenshots/cell-architect.webp)
 
-Push the microscope into ultrastructure and the external world phases into the living cell plan. Organelles can be dragged between illuminated genome, metabolic, and membrane receptors. Position affects ATP flux, transport, anabolism, movement, lysosome reach, architecture coherence, and viral resistance.
+Press <kbd>TAB</kbd> to zoom into your own ultrastructure. Time slows but never stops. Drag organelles between genome, cytoplasm and cortex slots. Placement creates synergies, for example:
 
-Three metabolic stances let the same cell behave very differently:
+- ER beside the nucleus makes construction cheaper.
+- Golgi fed by ER strengthens lysosome bursts and darts.
+- Mitochondria next to a flagellum, cilia or cytoskeleton boost speed.
+- Chloroplasts in the cortex catch more light.
 
-- **Forage Flux** opens transport channels for speed and rapid sugar uptake, at the cost of a leakier membrane.
-- **Homeostasis** conserves ATP and reinforces the membrane for a slower, safer organism.
-- **Replication** routes resources into biomass and new cell material while reducing mobility.
-
-## Microscopy as a mechanic
-
-The microscope is more than a camera zoom. At ecosystem scale the game uses a vivid illustrated cellular language. Increasing magnification progressively strips away color and introduces granular electron-micrograph structure. At maximum magnification, exploration gives way to direct manipulation of the cell interior.
+Your cell's size follows from what it contains: every organelle is real biomass the membrane has to wrap.
 
 ## Controls
 
 | Input | Action |
 | --- | --- |
-| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrow keys | Swim |
-| Drag or tap the world | Steer toward the pointer |
-| <kbd>[</kbd> / <kbd>]</kbd> | Zoom the microscope out / in |
-| Microscope slider | Move between ecosystem and ultrastructure |
-| <kbd>Tab</kbd> | Enter or leave Cell Architect when available |
-| Hold <kbd>E</kbd> | Identify nearby biological structures |
-| <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> | Trigger organelle abilities |
-| Mouse or touch drag | Reposition organelles in Cell Architect |
+| <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows, or hold the mouse | Swim |
+| <kbd>Space</kbd> | Pseudopod dash: shakes off docked viruses, breaks grips |
+| <kbd>1</kbd>–<kbd>5</kbd>, right click | Lysosome burst, toxicyst volley, RNA interference, encyst, release virophages |
+| <kbd>Q</kbd> | Cycle brightfield, darkfield and fluorescence |
+| <kbd>Tab</kbd> | Cell Architect |
+| <kbd>R</kbd> | Divide |
+| Hold <kbd>E</kbd> | Identify specimens |
+| Mouse wheel, <kbd>[</kbd> <kbd>]</kbd> | Magnification |
+| <kbd>Esc</kbd> | Pause (also automatic when the window loses focus) |
 
-## Core systems
+## Under the hood
 
-- Deterministic infinite-world chunk streaming with no invisible arena borders
-- Real-time glucose, ATP, biomass, integrity, and size economy
-- Organism-specific behavior, collision profiles, weak points, and predation rules
-- Placeable and upgradeable organelles with layout-dependent bonuses
-- Active abilities including ATP Surge, Membrane Shield, and Lysosome Burst
-- Viral attachment, genome hijack, RNA interference, and autophagy responses
-- Continuous five-phase objective structure with controlled division as the win condition
-- Optical-to-electron microscope transition integrated into play
-- Mouse, keyboard, touch, browser, and native desktop support
-- Local simulation with no account, Firebase, or server dependency
+- **Simulation** (`src/game/sim`): plain, deterministic TypeScript with no DOM. Seeded chunk streaming, a spatial hash, behavior AI, combat, infection, metabolism and division. A full world step costs well under a millisecond.
+- **Membrane**: a ring of springy radii at fixed angles. It is star-shaped by construction, so it can never self-intersect on a hard turn (the old "180° cell wall" bug), yet it still forms pseudopods, organelle bulges, a phagocytic cup around prey, and flat shared walls between colony cells.
+- **Renderer** (`src/game/render`): every organism is drawn procedurally on a Canvas2D layer, plus a half-resolution emissive layer. A WebGL2 stack composes a biome-tinted, flow-warped Voronoi field with the scene, applies the microscope light modes, then bloom (13-tap downsample, tent upsample), shockwave distortion, chromatic aberration, vignette and grain. Resolution adapts automatically when frames run long.
+- **Audio** (`src/game/audio.ts`): fully synthesized with Web Audio. An adaptive filtered-noise wash, granular grains, a Markov-chain melody over biome-specific modes on FM bells, a threat heartbeat, and around 30 effects. There are no audio files.
+- **UI** (`src/ui`): React for the HUD and menus only. The engine publishes snapshots through a tiny external store, and React never runs in the frame loop. Journal and build-menu thumbnails are rendered by the same drawing code as the world.
+- **Persistence**: local only (Field Journal, personal records, settings).
 
 ## Run locally
 
-### Requirements
-
-- [Bun](https://bun.sh/)
-- A current Rust toolchain for native builds
-- The platform prerequisites required by [Tauri 2](https://tauri.app/start/prerequisites/)
-
-### Browser
+Requires [Bun](https://bun.sh/). Native builds also need a Rust toolchain and the [Tauri 2 prerequisites](https://tauri.app/start/prerequisites/).
 
 ```bash
 bun install
-bun run dev
+bun run dev        # browser, http://localhost:1420
+bun tauri dev      # native desktop window
+bun tauri build    # native bundles in src-tauri/target/release/bundle/
 ```
 
-Vite prints the local and network addresses. The responsive client can also be opened from a mobile browser on the same network.
-
-### Native desktop
-
-```bash
-bun tauri dev
-```
-
-### Production build
-
-```bash
-bun tauri build
-```
-
-Native bundles are written beneath `src-tauri/target/release/bundle/`.
+Append `?seed=1234` to the URL to replay a specific world.
 
 ## Quality checks
 
 ```bash
-bun test
+bun test           # simulation invariants + a full deterministic playthrough by a scripted bot
 bun run typecheck
 bun run lint
 bun run build
 ```
 
-## Technology
-
-| Layer | Stack |
-| --- | --- |
-| Simulation and interface | React 18 + TypeScript |
-| Build system | Vite 7 + Bun |
-| Native shell | Tauri 2 + Rust |
-| Styling | Tailwind CSS + project-specific CSS |
-| Spatial generation | D3 Delaunay + deterministic chunk generation |
-| Interface primitives | Radix UI + Lucide |
-| Persistence and services | Fully local, no backend required |
+`tests/bot.ts` is a scripted "naturalist" that plays complete runs headlessly. It is useful for balance tuning across many seeds.
 
 ## Project structure
 
 ```text
-MicroCosm/
-├── src/                  # Game simulation, rendering, UI, and tests
-├── public/assets/        # Microscopy textures and runtime artwork
-├── docs/screenshots/     # README showcase images
-├── src-tauri/            # Native application shell and platform icons
-├── package.json          # Bun scripts and frontend dependencies
-└── vite.config.ts        # Vite development and production configuration
+src/
+├── game/
+│   ├── sim/        # deterministic simulation: species, biomes, organelles, AI, infection, division
+│   ├── render/     # Canvas2D organism art, WebGL2 post-processing, particles, camera, overlay
+│   ├── audio.ts    # procedural soundscape
+│   ├── engine.ts   # single frame loop: input → step → render → feedback → HUD snapshot
+│   └── ...         # input, store, persistence
+├── ui/             # React HUD, Cell Architect, journal, menus, styles
+tests/              # bun tests and the playtest bot
+src-tauri/          # native shell
+media/              # design references and legacy art
 ```
-
-## Project status
-
-MicroCosm is an actively developed experimental game. The complete run structure and dual gameplay loop are playable, while balancing, biological variety, accessibility, mobile packaging, performance, and visual feedback continue to evolve.
-
-<div align="center">
-  <sub>Built for people who look at a cell and see both an organism and a factory.</sub>
-</div>
-
-## Expedition controls and feedback
-
-An expedition briefing now explains the loop before the simulation starts. Press Escape or click Pause to freeze metabolism, threats, and ability cooldowns. Switching away automatically pauses the expedition. Cell Architect still runs in real time.
-
-- **Space / Swim burst:** a 0.55-second evasive burst for 14 ATP, with a four-second cooldown. Steer during the burst, or continue along your last velocity (upward when stationary). Unavailable during division.
-- **Local biosphere radar:** actual nearby nutrients, organelles, antivirals, and threats within 1,100 μm. The outlined ring indicates the current objective, including a bearing at the edge for distant targets.
-- **Fluid feedback:** world-space swim wakes, nutrient absorption sparks, and a phosphor burst ripple. Particles are capped at 120 and respect reduced-motion preferences.
-
-Build the macOS application with `bun run tauri build --bundles app`.
