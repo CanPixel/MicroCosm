@@ -19,69 +19,169 @@ export type OrganelleDef = {
 
 export const ORGANELLES: Record<OrganelleType, OrganelleDef> = {
   nucleus: {
-    type: 'nucleus', name: 'Nucleus', short: 'NUC', role: 'Genome command center',
+    type: 'nucleus',
+    name: 'Nucleus',
+    short: 'NUC',
+    role: 'Genome command center',
     science: 'Holds the genome behind a double membrane studded with pores. All other systems run on its instructions.',
-    cost: { biomass: 0, dna: 0 }, requires: [], ring: 'core', max: 1, size: 0.27,
+    cost: { biomass: 0, dna: 0 },
+    requires: [],
+    ring: 'core',
+    max: 1,
+    size: 0.27,
   },
   mitochondrion: {
-    type: 'mitochondrion', name: 'Mitochondrion', short: 'MITO', role: 'ATP power plant',
+    type: 'mitochondrion',
+    name: 'Mitochondrion',
+    short: 'MITO',
+    role: 'ATP power plant',
     science: 'Pumps protons across folded cristae; ATP synthase, a spinning molecular turbine, turns that gradient into ATP.',
-    cost: { biomass: 16, dna: 0 }, requires: ['mitochondrion'], endosymbiont: 'proteo', ring: 'any', max: 8, size: 0.17,
+    cost: { biomass: 16, dna: 0 },
+    requires: ['mitochondrion'],
+    endosymbiont: 'proteo',
+    ring: 'any',
+    max: 8,
+    size: 0.17,
   },
   chloroplast: {
-    type: 'chloroplast', name: 'Chloroplast', short: 'CHLR', role: 'Light into glucose',
+    type: 'chloroplast',
+    name: 'Chloroplast',
+    short: 'CHLR',
+    role: 'Light into glucose',
     science: 'Stacks of thylakoid membranes capture photons and fix CO₂ into sugar. Output scales with local light.',
-    cost: { biomass: 16, dna: 0 }, requires: ['chloroplast'], endosymbiont: 'cyano', ring: 'any', max: 6, size: 0.17,
+    cost: { biomass: 16, dna: 0 },
+    requires: ['chloroplast'],
+    endosymbiont: 'cyano',
+    ring: 'any',
+    max: 6,
+    size: 0.17,
   },
   er: {
-    type: 'er', name: 'Endoplasmic reticulum', short: 'ER', role: 'Protein factory',
+    type: 'er',
+    name: 'Endoplasmic reticulum',
+    short: 'ER',
+    role: 'Protein factory',
     science: 'A folded membrane maze studded with ribosomes. Builds the proteins for repair, export and RNA interference.',
-    cost: { biomass: 18, dna: 0 }, requires: [], ring: 'any', max: 2, ability: 'rnai', size: 0.2,
+    cost: { biomass: 18, dna: 0 },
+    requires: [],
+    ring: 'any',
+    max: 2,
+    ability: 'rnai',
+    size: 0.2,
   },
   golgi: {
-    type: 'golgi', name: 'Golgi apparatus', short: 'GOLGI', role: 'Packaging and export',
+    type: 'golgi',
+    name: 'Golgi apparatus',
+    short: 'GOLGI',
+    role: 'Packaging and export',
     science: 'Stacked cisternae that tag, sort and ship proteins in vesicles. It assembles lysosomes and extrusomes.',
-    cost: { biomass: 22, dna: 1 }, requires: ['er'], ring: 'any', max: 2, size: 0.18,
+    cost: { biomass: 22, dna: 1 },
+    requires: ['er'],
+    ring: 'any',
+    max: 2,
+    size: 0.18,
   },
   lysosome: {
-    type: 'lysosome', name: 'Lysosome', short: 'LYSO', role: 'Acid digestion, burst attack',
+    type: 'lysosome',
+    name: 'Lysosome',
+    short: 'LYSO',
+    role: 'Acid digestion, burst attack',
     science: 'Acidic bubbles of digestive enzymes. They break down prey, recycle misfolded proteins (autophagy) and kill invaders.',
-    cost: { biomass: 12, dna: 1 }, requires: ['golgi'], ring: 'any', max: 4, ability: 'lysosome', size: 0.1,
+    cost: { biomass: 12, dna: 1 },
+    requires: ['golgi'],
+    ring: 'any',
+    max: 4,
+    ability: 'lysosome',
+    size: 0.1,
   },
   vacuole: {
-    type: 'vacuole', name: 'Vacuole', short: 'VAC', role: 'Storage',
+    type: 'vacuole',
+    name: 'Vacuole',
+    short: 'VAC',
+    role: 'Storage',
     science: 'A membrane-bound reservoir. Stores glucose and water and buffers the cell against starvation.',
-    cost: { biomass: 14, dna: 0 }, requires: [], ring: 'any', max: 3, size: 0.2,
+    cost: { biomass: 14, dna: 0 },
+    requires: [],
+    ring: 'any',
+    max: 3,
+    size: 0.2,
   },
   cytoskeleton: {
-    type: 'cytoskeleton', name: 'Cytoskeleton hub', short: 'CYTO', role: 'Speed, toughness, encystment',
+    type: 'cytoskeleton',
+    name: 'Cytoskeleton hub',
+    short: 'CYTO',
+    role: 'Speed, toughness, encystment',
     science: 'A centrosome organizing microtubules and actin. Scaffolds the membrane and powers crawling and cyst formation.',
-    cost: { biomass: 14, dna: 0 }, requires: [], ring: 'any', max: 2, ability: 'encyst', size: 0.14,
+    cost: { biomass: 14, dna: 0 },
+    requires: [],
+    ring: 'any',
+    max: 2,
+    ability: 'encyst',
+    size: 0.14,
   },
   flagellum: {
-    type: 'flagellum', name: 'Flagellum', short: 'FLAG', role: 'Propulsion',
+    type: 'flagellum',
+    name: 'Flagellum',
+    short: 'FLAG',
+    role: 'Propulsion',
     science: 'A whip of nine microtubule doublets around two singlets (the 9+2 axoneme), beaten by dynein motors.',
-    cost: { biomass: 20, dna: 2 }, requires: ['cytoskeleton'], ring: 'membrane', max: 3, size: 0.12,
+    cost: { biomass: 20, dna: 2 },
+    requires: ['cytoskeleton'],
+    ring: 'membrane',
+    max: 3,
+    size: 0.12,
   },
   cilia: {
-    type: 'cilia', name: 'Cilia field', short: 'CILIA', role: 'Agility and feeding currents',
+    type: 'cilia',
+    name: 'Cilia field',
+    short: 'CILIA',
+    role: 'Agility and feeding currents',
     science: 'Thousands of short hairs beating in metachronal waves. They row the cell and sweep food toward it.',
-    cost: { biomass: 18, dna: 1 }, requires: ['cytoskeleton'], ring: 'membrane', max: 4, size: 0.12,
+    cost: { biomass: 18, dna: 1 },
+    requires: ['cytoskeleton'],
+    ring: 'membrane',
+    max: 4,
+    size: 0.12,
   },
   extrusome: {
-    type: 'extrusome', name: 'Extrusome battery', short: 'EXTR', role: 'Toxicyst darts',
+    type: 'extrusome',
+    name: 'Extrusome battery',
+    short: 'EXTR',
+    role: 'Toxicyst darts',
     science: 'Docked capsules that fire on command, like the toxicysts Didinium uses to harpoon Paramecium.',
-    cost: { biomass: 16, dna: 2 }, requires: ['golgi'], ring: 'membrane', max: 3, ability: 'toxicyst', size: 0.12,
+    cost: { biomass: 16, dna: 2 },
+    requires: ['golgi'],
+    ring: 'membrane',
+    max: 3,
+    ability: 'toxicyst',
+    size: 0.12,
   },
   eyespot: {
-    type: 'eyespot', name: 'Eyespot', short: 'EYE', role: 'Sensing and phototaxis',
+    type: 'eyespot',
+    name: 'Eyespot',
+    short: 'EYE',
+    role: 'Sensing and phototaxis',
     science: 'A carotenoid-pigmented stigma shading a light sensor, so the cell can steer toward light.',
-    cost: { biomass: 10, dna: 1 }, requires: ['chloroplast'], ring: 'membrane', max: 1, size: 0.1,
+    cost: { biomass: 10, dna: 1 },
+    requires: ['chloroplast'],
+    ring: 'membrane',
+    max: 1,
+    size: 0.1,
   },
 };
 
 export const BUILD_ORDER: OrganelleType[] = [
-  'mitochondrion', 'chloroplast', 'er', 'golgi', 'lysosome', 'vacuole', 'cytoskeleton', 'flagellum', 'cilia', 'extrusome', 'eyespot',
+  'mitochondrion',
+  'chloroplast',
+  'er',
+  'golgi',
+  'lysosome',
+  'vacuole',
+  'cytoskeleton',
+  'flagellum',
+  'cilia',
+  'extrusome',
+  'eyespot',
 ];
 
 export type Slot = { id: number; x: number; y: number; ring: 'core' | 'inner' | 'outer' };
@@ -164,7 +264,11 @@ export function canBuild(player: Player, type: OrganelleType, storedBiomass: num
   for (const req of def.requires) {
     if (countOrganelles(player, req) === 0) {
       if (def.endosymbiont && req === type) {
-        return { ok: false, reason: def.endosymbiont === 'proteo' ? 'Engulf an α-proteobacterium first' : 'Engulf a cyanobacterium first', cost };
+        return {
+          ok: false,
+          reason: def.endosymbiont === 'proteo' ? 'Engulf an α-proteobacterium first' : 'Engulf a cyanobacterium first',
+          cost,
+        };
       }
       return { ok: false, reason: `Needs ${ORGANELLES[req].name}`, cost };
     }
@@ -179,45 +283,219 @@ export function canBuild(player: Player, type: OrganelleType, storedBiomass: num
 export type FateDef = { id: CellFate; name: string; role: string; science: string; color: string };
 
 export const FATES: Record<Exclude<CellFate, 'prime'>, FateDef> = {
-  photocyte: { id: 'photocyte', name: 'Photocyte', role: '+Glucose from light', science: 'A daughter packed with chloroplasts, like the green cells of Volvox.', color: '#7be04a' },
-  ciliocyte: { id: 'ciliocyte', name: 'Ciliocyte', role: '+Speed and agility', science: 'A motor cell fringed with cilia that rows the colony along.', color: '#4fd8ff' },
-  phagocyte: { id: 'phagocyte', name: 'Phagocyte', role: 'Engulfs larger prey, digests faster', science: 'A hunter-gatherer cell specialized for phagocytosis, the ancestor of macrophages.', color: '#ffb43d' },
-  cnidocyte: { id: 'cnidocyte', name: 'Cnidocyte', role: 'Stings attackers, +burst damage', science: 'A stinging cell loaded with nematocysts, borrowed from the Hydra playbook.', color: '#ff4f8b' },
-  germ: { id: 'germ', name: 'Germ cell', role: '+DNA over time, cheaper builds', science: 'A reproductive cell that keeps the lineage\'s genome pristine.', color: '#b07bff' },
+  photocyte: {
+    id: 'photocyte',
+    name: 'Photocyte',
+    role: '+Glucose from light',
+    science: 'A daughter packed with chloroplasts, like the green cells of Volvox.',
+    color: '#7be04a',
+  },
+  ciliocyte: {
+    id: 'ciliocyte',
+    name: 'Ciliocyte',
+    role: '+Speed and agility',
+    science: 'A motor cell fringed with cilia that rows the colony along.',
+    color: '#4fd8ff',
+  },
+  phagocyte: {
+    id: 'phagocyte',
+    name: 'Phagocyte',
+    role: 'Engulfs larger prey, digests faster',
+    science: 'A hunter-gatherer cell specialized for phagocytosis, the ancestor of macrophages.',
+    color: '#ffb43d',
+  },
+  cnidocyte: {
+    id: 'cnidocyte',
+    name: 'Cnidocyte',
+    role: 'Stings attackers, +burst damage',
+    science: 'A stinging cell loaded with nematocysts, borrowed from the Hydra playbook.',
+    color: '#ff4f8b',
+  },
+  germ: {
+    id: 'germ',
+    name: 'Germ cell',
+    role: '+DNA over time, cheaper builds',
+    science: "A reproductive cell that keeps the lineage's genome pristine.",
+    color: '#b07bff',
+  },
 };
 
 export type MutationDef = { id: MutationId; name: string; effect: string; science: string; maxStacks: number };
 
 export const MUTATIONS: Record<MutationId, MutationDef> = {
-  pellicle: { id: 'pellicle', name: 'Pellicle', effect: '+25% max integrity, -6% damage', science: 'A protein lattice under the membrane, like a ciliate\'s armor.', maxStacks: 3 },
-  contractileVacuole: { id: 'contractileVacuole', name: 'Contractile vacuole', effect: '+0.8 integrity regen/s', science: 'A pump that bails out excess water so the cell never bursts.', maxStacks: 2 },
-  cytostome: { id: 'cytostome', name: 'Cytostome', effect: 'Engulf 10% larger prey', science: 'A permanent "cell mouth" that widens phagocytosis.', maxStacks: 2 },
-  cristae: { id: 'cristae', name: 'Deep cristae', effect: '+35% ATP per mitochondrion', science: 'More inner-membrane folds mean more ATP synthase turbines.', maxStacks: 2 },
-  phototaxis: { id: 'phototaxis', name: 'Light-harvesting antennae', effect: '+45% photosynthesis', science: 'Extra pigment complexes funnel more photons to the reaction centers.', maxStacks: 2 },
-  interferon: { id: 'interferon', name: 'Antiviral cascade', effect: 'Viruses replicate 30% slower', science: 'Innate sensors detect viral RNA and throttle the hijacked machinery.', maxStacks: 2 },
-  chaperonin: { id: 'chaperonin', name: 'Chaperonins', effect: 'Prions misfold half as often; organelles refold slowly', science: 'HSP60 barrels give misfolded proteins a private chamber to refold.', maxStacks: 1 },
-  dsup: { id: 'dsup', name: 'Dsup gene', effect: '-12% damage taken', science: 'The tardigrade damage-suppressor protein that shields DNA.', maxStacks: 2 },
-  glycogen: { id: 'glycogen', name: 'Glycogen granules', effect: '+50% glucose storage, +15 ATP cap', science: 'Branched glucose polymers packed for lean times.', maxStacks: 2 },
-  hydrolase: { id: 'hydrolase', name: 'Hydrolases', effect: '+40% digestion speed', science: 'Sharper digestive enzymes inside every food vacuole.', maxStacks: 2 },
-  flagellarMotor: { id: 'flagellarMotor', name: 'Turbo dynein', effect: '+12% speed', science: 'Faster motor proteins along every microtubule.', maxStacks: 2 },
-  cadherin: { id: 'cadherin', name: 'Cadherin junctions', effect: 'Colony cells take 25% less damage', science: 'Calcium-dependent adhesion proteins, the glue of animal tissue.', maxStacks: 1 },
-  bioluminescence: { id: 'bioluminescence', name: 'Bioluminescence', effect: 'Glow reveals hidden agents nearby', science: 'Luciferase oxidizes luciferin to emit cold light, as dinoflagellates do.', maxStacks: 1 },
-  venom: { id: 'venom', name: 'Toxicyst venom', effect: 'Darts +30% damage, +0.8s stun', science: 'Paralytic toxins packed into each extrusome capsule.', maxStacks: 2 },
-  endosymbiontPact: { id: 'endosymbiontPact', name: 'Endosymbiont pact', effect: 'Intracellular bacteria make ATP instead of stealing', science: 'Parasite becomes partner, the same deal that made mitochondria.', maxStacks: 1 },
-  pseudopodSurge: { id: 'pseudopodSurge', name: 'Pseudopod surge', effect: 'Dash recharges 30% faster', science: 'Explosive actin polymerization at the leading edge.', maxStacks: 2 },
-  hgt: { id: 'hgt', name: 'Horizontal gene transfer', effect: 'Copy a random trait, +3 DNA', science: 'Genes jump between unrelated organisms. Bacteria do it constantly.', maxStacks: 3 },
-  quorum: { id: 'quorum', name: 'Quorum sensing', effect: '+DNA trickle, +5% build discount', science: 'Chemical chatter that lets cells act together.', maxStacks: 2 },
+  pellicle: {
+    id: 'pellicle',
+    name: 'Pellicle',
+    effect: '+25% max integrity, -6% damage',
+    science: "A protein lattice under the membrane, like a ciliate's armor.",
+    maxStacks: 3,
+  },
+  contractileVacuole: {
+    id: 'contractileVacuole',
+    name: 'Contractile vacuole',
+    effect: '+0.8 integrity regen/s',
+    science: 'A pump that bails out excess water so the cell never bursts.',
+    maxStacks: 2,
+  },
+  cytostome: {
+    id: 'cytostome',
+    name: 'Cytostome',
+    effect: 'Engulf 10% larger prey',
+    science: 'A permanent "cell mouth" that widens phagocytosis.',
+    maxStacks: 2,
+  },
+  cristae: {
+    id: 'cristae',
+    name: 'Deep cristae',
+    effect: '+35% ATP per mitochondrion',
+    science: 'More inner-membrane folds mean more ATP synthase turbines.',
+    maxStacks: 2,
+  },
+  phototaxis: {
+    id: 'phototaxis',
+    name: 'Light-harvesting antennae',
+    effect: '+45% photosynthesis',
+    science: 'Extra pigment complexes funnel more photons to the reaction centers.',
+    maxStacks: 2,
+  },
+  interferon: {
+    id: 'interferon',
+    name: 'Antiviral cascade',
+    effect: 'Viruses replicate 30% slower',
+    science: 'Innate sensors detect viral RNA and throttle the hijacked machinery.',
+    maxStacks: 2,
+  },
+  chaperonin: {
+    id: 'chaperonin',
+    name: 'Chaperonins',
+    effect: 'Prions misfold half as often; organelles refold slowly',
+    science: 'HSP60 barrels give misfolded proteins a private chamber to refold.',
+    maxStacks: 1,
+  },
+  dsup: {
+    id: 'dsup',
+    name: 'Dsup gene',
+    effect: '-12% damage taken',
+    science: 'The tardigrade damage-suppressor protein that shields DNA.',
+    maxStacks: 2,
+  },
+  glycogen: {
+    id: 'glycogen',
+    name: 'Glycogen granules',
+    effect: '+50% glucose storage, +15 ATP cap',
+    science: 'Branched glucose polymers packed for lean times.',
+    maxStacks: 2,
+  },
+  hydrolase: {
+    id: 'hydrolase',
+    name: 'Hydrolases',
+    effect: '+40% digestion speed',
+    science: 'Sharper digestive enzymes inside every food vacuole.',
+    maxStacks: 2,
+  },
+  flagellarMotor: {
+    id: 'flagellarMotor',
+    name: 'Turbo dynein',
+    effect: '+12% speed',
+    science: 'Faster motor proteins along every microtubule.',
+    maxStacks: 2,
+  },
+  cadherin: {
+    id: 'cadherin',
+    name: 'Cadherin junctions',
+    effect: 'Colony cells take 25% less damage',
+    science: 'Calcium-dependent adhesion proteins, the glue of animal tissue.',
+    maxStacks: 1,
+  },
+  bioluminescence: {
+    id: 'bioluminescence',
+    name: 'Bioluminescence',
+    effect: 'Glow reveals hidden agents nearby',
+    science: 'Luciferase oxidizes luciferin to emit cold light, as dinoflagellates do.',
+    maxStacks: 1,
+  },
+  venom: {
+    id: 'venom',
+    name: 'Toxicyst venom',
+    effect: 'Darts +30% damage, +0.8s stun',
+    science: 'Paralytic toxins packed into each extrusome capsule.',
+    maxStacks: 2,
+  },
+  endosymbiontPact: {
+    id: 'endosymbiontPact',
+    name: 'Endosymbiont pact',
+    effect: 'Intracellular bacteria make ATP instead of stealing',
+    science: 'Parasite becomes partner, the same deal that made mitochondria.',
+    maxStacks: 1,
+  },
+  pseudopodSurge: {
+    id: 'pseudopodSurge',
+    name: 'Pseudopod surge',
+    effect: 'Dash recharges 30% faster',
+    science: 'Explosive actin polymerization at the leading edge.',
+    maxStacks: 2,
+  },
+  hgt: {
+    id: 'hgt',
+    name: 'Horizontal gene transfer',
+    effect: 'Copy a random trait, +3 DNA',
+    science: 'Genes jump between unrelated organisms. Bacteria do it constantly.',
+    maxStacks: 3,
+  },
+  quorum: {
+    id: 'quorum',
+    name: 'Quorum sensing',
+    effect: '+DNA trickle, +5% build discount',
+    science: 'Chemical chatter that lets cells act together.',
+    maxStacks: 2,
+  },
 };
 
 export const MUTATION_POOL = Object.keys(MUTATIONS) as MutationId[];
 
 export const ABILITY_INFO: Record<AbilityId, { name: string; atp: number; cooldown: number; key: string; description: string }> = {
-  dash: { name: 'Pseudopod dash', atp: 9, cooldown: 2.4, key: 'SPACE', description: 'Burst of speed. Shakes off attached viruses and breaks grips.' },
-  lysosome: { name: 'Lysosome burst', atp: 24, cooldown: 7, key: '1', description: 'Acid shockwave: damages hostiles, clears agents, recycles misfolded organelles.' },
-  toxicyst: { name: 'Toxicyst volley', atp: 12, cooldown: 2.6, key: '2', description: 'Fires harpoon darts toward your aim that damage and stun.' },
-  rnai: { name: 'RNA interference', atp: 22, cooldown: 10, key: '3', description: 'Shreds viral RNA: cuts viral load, excises a provirus, strips viroids.' },
-  encyst: { name: 'Encyst', atp: 18, cooldown: 16, key: '4', description: 'Harden into a cyst: invulnerable and immobile for 3.5s. Breaks any grip.' },
-  virophage: { name: 'Release virophages', atp: 6, cooldown: 4, key: '5', description: 'Releases your stored virophage swarm against giant viruses.' },
+  dash: {
+    name: 'Pseudopod dash',
+    atp: 9,
+    cooldown: 2.4,
+    key: 'SPACE',
+    description: 'Burst of speed. Shakes off attached viruses and breaks grips.',
+  },
+  lysosome: {
+    name: 'Lysosome burst',
+    atp: 24,
+    cooldown: 7,
+    key: '1',
+    description: 'Acid shockwave: damages hostiles, clears agents, recycles misfolded organelles.',
+  },
+  toxicyst: {
+    name: 'Toxicyst volley',
+    atp: 12,
+    cooldown: 2.6,
+    key: '2',
+    description: 'Fires harpoon darts toward your aim that damage and stun.',
+  },
+  rnai: {
+    name: 'RNA interference',
+    atp: 22,
+    cooldown: 10,
+    key: '3',
+    description: 'Shreds viral RNA: cuts viral load, excises a provirus, strips viroids.',
+  },
+  encyst: {
+    name: 'Encyst',
+    atp: 18,
+    cooldown: 16,
+    key: '4',
+    description: 'Harden into a cyst: invulnerable and immobile for 3.5s. Breaks any grip.',
+  },
+  virophage: {
+    name: 'Release virophages',
+    atp: 6,
+    cooldown: 4,
+    key: '5',
+    description: 'Releases your stored virophage swarm against giant viruses.',
+  },
 };
 
 export function baseTraits(): Traits {
@@ -338,12 +616,26 @@ export function computeTraits(player: Player): Traits {
   for (const unit of player.units.slice(1)) {
     if (unit.dead) continue;
     switch (unit.fate) {
-      case 'photocyte': t.photoRate += 0.45; break;
-      case 'ciliocyte': speedMult += 0.09; t.accel += 1.5; break;
-      case 'phagocyte': t.digestion += 0.3; t.vacuoleSlots += 1; break;
-      case 'cnidocyte': t.lysoDamage += 6; break;
-      case 'germ': t.dnaRate += 0.04; t.buildDiscount += 0.04; break;
-      default: break;
+      case 'photocyte':
+        t.photoRate += 0.45;
+        break;
+      case 'ciliocyte':
+        speedMult += 0.09;
+        t.accel += 1.5;
+        break;
+      case 'phagocyte':
+        t.digestion += 0.3;
+        t.vacuoleSlots += 1;
+        break;
+      case 'cnidocyte':
+        t.lysoDamage += 6;
+        break;
+      case 'germ':
+        t.dnaRate += 0.04;
+        t.buildDiscount += 0.04;
+        break;
+      default:
+        break;
     }
   }
 

@@ -5,7 +5,7 @@
 
 ### Engulf. Endosymbiose. Divide. Become multicellular.
 
-A real-time cellular survival game for desktop and browser: part agar.io, part Factorio-inside-a-cell, part *Journey to the Microcosmos*, drawn in a Kurzgesagt-style flat palette.
+A real-time cellular survival game for desktop and browser: part agar.io, part Factorio-inside-a-cell, part _Journey to the Microcosmos_, drawn in a Kurzgesagt-style flat palette.
 
 ![Version](https://img.shields.io/badge/version-0.2.0-8eea54?style=flat-square&labelColor=0b2632)
 ![Tauri](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&labelColor=0b2632)
@@ -37,25 +37,25 @@ You begin as a single amoeboid cell in an infinite, procedurally streamed drop o
 
 Thirty-three species, each with its own behavior and a Field Journal entry grounded in real biology. They hunt, flee, graze and infect each other without you.
 
-| | Organisms |
-| --- | --- |
-| **Food** | Glucose, cell debris, DNA fragments, lipid droplets, cocci, bacilli, spirilla, diatoms, Euglena, gastrotrichs |
-| **Endosymbionts** | α-proteobacteria (→ mitochondria), cyanobacteria (→ chloroplasts) |
-| **Hunters** | *Didinium* charges, *Lacrymaria olor* coils its neck and strikes, *Amoeba proteus* engulfs anything smaller, *Paramecium* fires trichocysts |
-| **Traps** | Hydra tentacles with nematocysts, the near-invisible *Collotheca* funnel, Stentor and rotifer feeding vortices |
-| **Armor and terrain** | *Arcella* (only its aperture is vulnerable), indestructible tardigrades (brush them for Dsup protection), pollen grains |
-| **Mini-boss** | Neoplasms: glucose-hoarding tumor masses that split when wounded |
+|                       | Organisms                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Food**              | Glucose, cell debris, DNA fragments, lipid droplets, cocci, bacilli, spirilla, diatoms, Euglena, gastrotrichs                               |
+| **Endosymbionts**     | α-proteobacteria (→ mitochondria), cyanobacteria (→ chloroplasts)                                                                           |
+| **Hunters**           | _Didinium_ charges, _Lacrymaria olor_ coils its neck and strikes, _Amoeba proteus_ engulfs anything smaller, _Paramecium_ fires trichocysts |
+| **Traps**             | Hydra tentacles with nematocysts, the near-invisible _Collotheca_ funnel, Stentor and rotifer feeding vortices                              |
+| **Armor and terrain** | _Arcella_ (only its aperture is vulnerable), indestructible tardigrades (brush them for Dsup protection), pollen grains                     |
+| **Mini-boss**         | Neoplasms: glucose-hoarding tumor masses that split when wounded                                                                            |
 
 Infection follows the design bible's **aliveness spectrum**:
 
-| Agent | Mechanic |
-| --- | --- |
-| Prions | Misfold an organelle; the misfolding spreads to neighbors. A lysosome burst performs autophagy. |
-| Viroids | Swarm photosynthetic cells and siphon ATP. Shake them off. |
-| Satellite RNAs | Inert alone; amplify the next virus that infects you. |
-| Viruses | Adenovirus (lytic), retrovirus (integrates as a dormant provirus that stress can reawaken), TMV (plant cells only), bacteriophage (bacteria only), Mimivirus (amoebae, including you). Docked virions can be shaken off with a dash before they inject. |
-| Virophages | Allies. Absorb them and release the swarm against giant viruses. |
-| Intracellular bacteria | Hitchhike inside infected prey and colonize your cytoplasm. |
+| Agent                  | Mechanic                                                                                                                                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prions                 | Misfold an organelle; the misfolding spreads to neighbors. A lysosome burst performs autophagy.                                                                                                                                                         |
+| Viroids                | Swarm photosynthetic cells and siphon ATP. Shake them off.                                                                                                                                                                                              |
+| Satellite RNAs         | Inert alone; amplify the next virus that infects you.                                                                                                                                                                                                   |
+| Viruses                | Adenovirus (lytic), retrovirus (integrates as a dormant provirus that stress can reawaken), TMV (plant cells only), bacteriophage (bacteria only), Mimivirus (amoebae, including you). Docked virions can be shaken off with a dash before they inject. |
+| Virophages             | Allies. Absorb them and release the swarm against giant viruses.                                                                                                                                                                                        |
+| Intracellular bacteria | Hitchhike inside infected prey and colonize your cytoplasm.                                                                                                                                                                                             |
 
 Five biomes (Sunlit Shallows, Biofilm Reef, Lysis Bloom, Abyssal Sediment, Neoplastic Rift) set light for photosynthesis, glucose density, currents and spawn tables. An ecosystem director escalates pressure with time, distance and generation: viral storms, prion fog, phage bursts, glucose blooms, current surges and neoplasm hunts.
 
@@ -63,9 +63,9 @@ Five biomes (Sunlit Shallows, Biofilm Reef, Lysis Bloom, Abyssal Sediment, Neopl
 
 Press <kbd>Q</kbd> to switch illumination. Each light shows different things.
 
-| Darkfield | Fluorescence |
-| --- | --- |
-| ![Darkfield](screenshots/darkfield.webp) | ![Fluorescence](screenshots/fluorescence.webp) |
+| Darkfield                                                                                                                                 | Fluorescence                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Darkfield](screenshots/darkfield.webp)                                                                                                  | ![Fluorescence](screenshots/fluorescence.webp)                                                                                                                                                                      |
 | Scattered light outlines every edge on a black field. Reveals transparent agents (prions, viroids, satellites) and the bristles of traps. | Real probe colors: DAPI-blue nuclei, MitoTracker-green mitochondria, red chlorophyll, magenta lysosomes, orange membrane dye. Reveals infected prey and proviruses, but excitation light costs ATP (phototoxicity). |
 
 Brightfield is the vivid illustrated default. Zooming into the **Cell Architect** shifts the grade toward an electron micrograph.
@@ -85,17 +85,17 @@ Your cell's size follows from what it contains: every organelle is real biomass 
 
 ## Controls
 
-| Input | Action |
-| --- | --- |
-| <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows, or hold the mouse | Swim |
-| <kbd>Space</kbd> | Pseudopod dash: shakes off docked viruses, breaks grips |
-| <kbd>1</kbd>–<kbd>5</kbd>, right click | Lysosome burst, toxicyst volley, RNA interference, encyst, release virophages |
-| <kbd>Q</kbd> | Cycle brightfield, darkfield and fluorescence |
-| <kbd>Tab</kbd> | Cell Architect |
-| <kbd>R</kbd> | Divide |
-| Hold <kbd>E</kbd> | Identify specimens |
-| Mouse wheel, <kbd>[</kbd> <kbd>]</kbd> | Magnification |
-| <kbd>Esc</kbd> | Pause (also automatic when the window loses focus) |
+| Input                                                                        | Action                                                                        |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows, or hold the mouse | Swim                                                                          |
+| <kbd>Space</kbd>                                                             | Pseudopod dash: shakes off docked viruses, breaks grips                       |
+| <kbd>1</kbd>–<kbd>5</kbd>, right click                                       | Lysosome burst, toxicyst volley, RNA interference, encyst, release virophages |
+| <kbd>Q</kbd>                                                                 | Cycle brightfield, darkfield and fluorescence                                 |
+| <kbd>Tab</kbd>                                                               | Cell Architect                                                                |
+| <kbd>R</kbd>                                                                 | Divide                                                                        |
+| Hold <kbd>E</kbd>                                                            | Identify specimens                                                            |
+| Mouse wheel, <kbd>[</kbd> <kbd>]</kbd>                                       | Magnification                                                                 |
+| <kbd>Esc</kbd>                                                               | Pause (also automatic when the window loses focus)                            |
 
 ## Under the hood
 

@@ -22,8 +22,16 @@ export class Camera {
   }
 
   update(
-    dt: number, focusX: number, focusY: number, vx: number, vy: number, colonyR: number, primeR: number,
-    architect: number, reducedMotion: boolean, intro = 1,
+    dt: number,
+    focusX: number,
+    focusY: number,
+    vx: number,
+    vy: number,
+    colonyR: number,
+    primeR: number,
+    architect: number,
+    reducedMotion: boolean,
+    intro = 1,
   ) {
     this.t += dt;
     const minDim = Math.min(this.viewW, this.viewH);

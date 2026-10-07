@@ -10,7 +10,20 @@ import { mulberry32 } from '../src/game/sim/rng';
 import type { GameState, SimInput } from '../src/game/sim/state';
 import type { AbilityId, OrganelleType } from '../src/game/sim/types';
 
-const BUILD_PRIORITY: OrganelleType[] = ['er', 'golgi', 'lysosome', 'cytoskeleton', 'mitochondrion', 'vacuole', 'extrusome', 'flagellum', 'mitochondrion', 'cilia', 'lysosome', 'chloroplast'];
+const BUILD_PRIORITY: OrganelleType[] = [
+  'er',
+  'golgi',
+  'lysosome',
+  'cytoskeleton',
+  'mitochondrion',
+  'vacuole',
+  'extrusome',
+  'flagellum',
+  'mitochondrion',
+  'cilia',
+  'lysosome',
+  'chloroplast',
+];
 
 export type BotReport = {
   seed: number;
@@ -87,7 +100,8 @@ export function runBot(seed: number, seconds: number, dt = 1 / 30): BotReport & 
     }
     if (prime.attached.some((a) => a.species !== 'viroid') && has('dash')) dash = true;
     if ((p.infection.viralLoad > 30 || p.infection.prophages > 0) && has('rnai')) abilities.push('rnai');
-    if ((nearestHostile < 140 || p.organelles.some((o) => o.misfolded) || p.infection.colonies > 2) && has('lysosome')) abilities.push('lysosome');
+    if ((nearestHostile < 140 || p.organelles.some((o) => o.misfolded) || p.infection.colonies > 2) && has('lysosome'))
+      abilities.push('lysosome');
     if (nearestHostile < 260 && has('toxicyst')) abilities.push('toxicyst');
     if (p.capture && has('encyst')) abilities.push('encyst');
 
@@ -128,7 +142,13 @@ export function runBot(seed: number, seconds: number, dt = 1 / 30): BotReport & 
     }
     const ml = Math.hypot(mx, my) || 1;
     const input: SimInput = {
-      moveX: mx / ml, moveY: my / ml, aimX: prime.x + mx * 200, aimY: prime.y + my * 200, dash, abilities, divide: false,
+      moveX: mx / ml,
+      moveY: my / ml,
+      aimX: prime.x + mx * 200,
+      aimY: prime.y + my * 200,
+      dash,
+      abilities,
+      divide: false,
     };
     view.x = prime.x;
     view.y = prime.y;

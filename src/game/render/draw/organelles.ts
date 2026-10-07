@@ -6,22 +6,32 @@ import { capsule, circle, ellipse, flatShade, rgba } from './util';
 // world space). `face` is the direction toward the cell center so stacked
 // membranes (ER, Golgi) curve around the nucleus like real endomembranes.
 
-export function drawOrganelle(
-  ctx: CanvasRenderingContext2D, type: OrganelleType, r: number, t: number, seed: number, face = 0, extra = 0,
-) {
+export function drawOrganelle(ctx: CanvasRenderingContext2D, type: OrganelleType, r: number, t: number, seed: number, face = 0, extra = 0) {
   switch (type) {
-    case 'nucleus': return nucleus(ctx, r, t, seed, extra);
-    case 'mitochondrion': return mitochondrion(ctx, r, t, seed);
-    case 'chloroplast': return chloroplast(ctx, r, t, seed);
-    case 'er': return er(ctx, r, t, face);
-    case 'golgi': return golgi(ctx, r, t, face);
-    case 'lysosome': return lysosome(ctx, r, t, seed);
-    case 'vacuole': return vacuole(ctx, r, t);
-    case 'cytoskeleton': return centrosome(ctx, r, t);
-    case 'flagellum': return basalBody(ctx, r, PAL.flagellum);
-    case 'cilia': return basalBody(ctx, r, PAL.cilia, 5);
-    case 'extrusome': return extrusomes(ctx, r, face);
-    case 'eyespot': return eyespot(ctx, r);
+    case 'nucleus':
+      return nucleus(ctx, r, t, seed, extra);
+    case 'mitochondrion':
+      return mitochondrion(ctx, r, t, seed);
+    case 'chloroplast':
+      return chloroplast(ctx, r, t, seed);
+    case 'er':
+      return er(ctx, r, t, face);
+    case 'golgi':
+      return golgi(ctx, r, t, face);
+    case 'lysosome':
+      return lysosome(ctx, r, t, seed);
+    case 'vacuole':
+      return vacuole(ctx, r, t);
+    case 'cytoskeleton':
+      return centrosome(ctx, r, t);
+    case 'flagellum':
+      return basalBody(ctx, r, PAL.flagellum);
+    case 'cilia':
+      return basalBody(ctx, r, PAL.cilia, 5);
+    case 'extrusome':
+      return extrusomes(ctx, r, face);
+    case 'eyespot':
+      return eyespot(ctx, r);
   }
 }
 
@@ -58,7 +68,12 @@ function nucleus(ctx: CanvasRenderingContext2D, r: number, t: number, seed: numb
       const a = seed + i * 1.7;
       const rr = r * (0.3 + 0.12 * i);
       ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
-      ctx.quadraticCurveTo(Math.cos(a + 1.2 + Math.sin(t * 0.6 + i) * 0.2) * r * 0.75, Math.sin(a + 1.2) * r * 0.75, Math.cos(a + 2.2) * rr, Math.sin(a + 2.2) * rr);
+      ctx.quadraticCurveTo(
+        Math.cos(a + 1.2 + Math.sin(t * 0.6 + i) * 0.2) * r * 0.75,
+        Math.sin(a + 1.2) * r * 0.75,
+        Math.cos(a + 2.2) * rr,
+        Math.sin(a + 2.2) * rr,
+      );
     }
     ctx.stroke();
     // Nucleolus.

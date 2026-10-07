@@ -122,7 +122,10 @@ export function Radar({ engine, biome, label }: { engine: GameEngine; biome: Bio
   }, [engine]);
 
   return (
-    <div className="radar reveal" title="Chemosensory map. Green: food, blue: prey, red: danger, ring: your objective. The red rim is ecosystem pressure.">
+    <div
+      className="radar reveal"
+      title="Chemosensory map. Green: food, blue: prey, red: danger, ring: your objective. The red rim is ecosystem pressure."
+    >
       <canvas ref={ref} style={{ width: SIZE, height: SIZE }} />
       <div className="radar-label">{label}</div>
     </div>

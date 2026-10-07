@@ -17,7 +17,14 @@ export type OverlayInputs = {
 
 const FONT = '"Sora", "Nunito Sans", system-ui, sans-serif';
 
-export function drawOverlay(ctx: CanvasRenderingContext2D, dpr: number, cam: Camera, state: GameState, floaters: Floater[], o: OverlayInputs) {
+export function drawOverlay(
+  ctx: CanvasRenderingContext2D,
+  dpr: number,
+  cam: Camera,
+  state: GameState,
+  floaters: Floater[],
+  o: OverlayInputs,
+) {
   const W = cam.viewW;
   const H = cam.viewH;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

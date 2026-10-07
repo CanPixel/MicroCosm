@@ -16,7 +16,7 @@ export default defineConfig({
     host: true,
     watch: {
       // Tell Vite to ignore watching src-tauri
-      ignored: ["**/src-tauri/**"],
+      ignored: ['**/src-tauri/**'],
     },
   },
   build: { target: 'es2020' },

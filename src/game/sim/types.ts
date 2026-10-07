@@ -10,43 +10,108 @@ export type LightMode = 'bright' | 'dark' | 'fluor';
 
 export type SpeciesId =
   // resources
-  | 'glucose' | 'debris' | 'dna' | 'lipid'
+  | 'glucose'
+  | 'debris'
+  | 'dna'
+  | 'lipid'
   // bacteria
-  | 'cocci' | 'bacillus' | 'spirillum' | 'proteo' | 'cyano'
+  | 'cocci'
+  | 'bacillus'
+  | 'spirillum'
+  | 'proteo'
+  | 'cyano'
   // protists
-  | 'diatom' | 'euglena' | 'paramecium' | 'didinium' | 'lacrymaria' | 'amoeba' | 'testate' | 'stentor'
+  | 'diatom'
+  | 'euglena'
+  | 'paramecium'
+  | 'didinium'
+  | 'lacrymaria'
+  | 'amoeba'
+  | 'testate'
+  | 'stentor'
   // animalcules
-  | 'gastrotrich' | 'rotifer' | 'hydra' | 'collotheca' | 'tardigrade'
+  | 'gastrotrich'
+  | 'rotifer'
+  | 'hydra'
+  | 'collotheca'
+  | 'tardigrade'
   // infectious agents along the aliveness spectrum
-  | 'prion' | 'viroid' | 'satellite' | 'adenovirus' | 'retrovirus' | 'tmv' | 'phage' | 'mimivirus' | 'virophage'
+  | 'prion'
+  | 'viroid'
+  | 'satellite'
+  | 'adenovirus'
+  | 'retrovirus'
+  | 'tmv'
+  | 'phage'
+  | 'mimivirus'
+  | 'virophage'
   // other
-  | 'neoplasm' | 'pollen';
+  | 'neoplasm'
+  | 'pollen';
 
 export type SpeciesGroup = 'resource' | 'bacteria' | 'protist' | 'animal' | 'agent' | 'boss' | 'obstacle';
 
 export type Behavior =
-  | 'drift' | 'swim' | 'corkscrew' | 'hunter' | 'neck' | 'engulfer' | 'testate' | 'vortex'
-  | 'tentacles' | 'trap' | 'lumber' | 'virus' | 'swarm' | 'virophage' | 'neoplasm' | 'grazer';
+  | 'drift'
+  | 'swim'
+  | 'corkscrew'
+  | 'hunter'
+  | 'neck'
+  | 'engulfer'
+  | 'testate'
+  | 'vortex'
+  | 'tentacles'
+  | 'trap'
+  | 'lumber'
+  | 'virus'
+  | 'swarm'
+  | 'virophage'
+  | 'neoplasm'
+  | 'grazer';
 
 export type HostClass = 'bacteria' | 'eukaryote' | 'plant' | 'amoeboid' | 'giantVirus';
 
 export type InfectionStyle = 'lytic' | 'lysogenic' | 'viroid' | 'prion';
 
 export type OrganelleType =
-  | 'nucleus' | 'mitochondrion' | 'chloroplast' | 'er' | 'golgi' | 'lysosome'
-  | 'vacuole' | 'cytoskeleton' | 'flagellum' | 'cilia' | 'extrusome' | 'eyespot';
+  | 'nucleus'
+  | 'mitochondrion'
+  | 'chloroplast'
+  | 'er'
+  | 'golgi'
+  | 'lysosome'
+  | 'vacuole'
+  | 'cytoskeleton'
+  | 'flagellum'
+  | 'cilia'
+  | 'extrusome'
+  | 'eyespot';
 
 export type CellFate = 'prime' | 'photocyte' | 'ciliocyte' | 'phagocyte' | 'cnidocyte' | 'germ';
 
 export type AbilityId = 'dash' | 'lysosome' | 'toxicyst' | 'rnai' | 'encyst' | 'virophage';
 
 export type MutationId =
-  | 'pellicle' | 'contractileVacuole' | 'cytostome' | 'cristae' | 'phototaxis' | 'interferon'
-  | 'chaperonin' | 'dsup' | 'glycogen' | 'hydrolase' | 'flagellarMotor' | 'cadherin'
-  | 'bioluminescence' | 'venom' | 'endosymbiontPact' | 'pseudopodSurge' | 'hgt' | 'quorum';
+  | 'pellicle'
+  | 'contractileVacuole'
+  | 'cytostome'
+  | 'cristae'
+  | 'phototaxis'
+  | 'interferon'
+  | 'chaperonin'
+  | 'dsup'
+  | 'glycogen'
+  | 'hydrolase'
+  | 'flagellarMotor'
+  | 'cadherin'
+  | 'bioluminescence'
+  | 'venom'
+  | 'endosymbiontPact'
+  | 'pseudopodSurge'
+  | 'hgt'
+  | 'quorum';
 
-export type DeathCause =
-  | 'rupture' | 'starvation' | 'lysis' | 'digested' | 'proteostasis' | 'neoplasm';
+export type DeathCause = 'rupture' | 'starvation' | 'lysis' | 'digested' | 'proteostasis' | 'neoplasm';
 
 export type Entity = {
   id: number;

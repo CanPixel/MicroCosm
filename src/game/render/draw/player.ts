@@ -12,10 +12,24 @@ const XS = new Float32Array(96);
 const YS = new Float32Array(96);
 
 const PREY_COLOR: Partial<Record<SpeciesId, string>> = {
-  cocci: '#26d9b8', bacillus: '#2fc3e8', spirillum: '#a874ff', proteo: '#b05cff', cyano: '#3ec95e', diatom: '#d29a35',
-  euglena: '#54d65e', paramecium: '#96c8ff', didinium: '#ff8f3d', lacrymaria: '#ff8fc6', amoeba: '#9ab8dc',
-  testate: '#b8742c', stentor: '#3f7bff', gastrotrich: '#dff0b2', rotifer: '#e8dfc4', collotheca: '#d7e8fa',
-  neoplasm: '#d81b3c', phage: '#c4c9ff',
+  cocci: '#26d9b8',
+  bacillus: '#2fc3e8',
+  spirillum: '#a874ff',
+  proteo: '#b05cff',
+  cyano: '#3ec95e',
+  diatom: '#d29a35',
+  euglena: '#54d65e',
+  paramecium: '#96c8ff',
+  didinium: '#ff8f3d',
+  lacrymaria: '#ff8fc6',
+  amoeba: '#9ab8dc',
+  testate: '#b8742c',
+  stentor: '#3f7bff',
+  gastrotrich: '#dff0b2',
+  rotifer: '#e8dfc4',
+  collotheca: '#d7e8fa',
+  neoplasm: '#d81b3c',
+  phage: '#c4c9ff',
 };
 
 const FATE_TINT: Record<string, [string, string, string]> = {
@@ -208,7 +222,13 @@ function drawFateInternals(dc: DrawCtx, u: CellUnit, t: number) {
   const items: Array<[OrganelleType, number, number, number]> = [];
   switch (u.fate) {
     case 'photocyte':
-      items.push(['nucleus', 0, 0, 0.26], ['chloroplast', 0.45, 0.2, 0.16], ['chloroplast', -0.4, 0.3, 0.16], ['chloroplast', 0.05, -0.5, 0.16], ['chloroplast', -0.35, -0.3, 0.14]);
+      items.push(
+        ['nucleus', 0, 0, 0.26],
+        ['chloroplast', 0.45, 0.2, 0.16],
+        ['chloroplast', -0.4, 0.3, 0.16],
+        ['chloroplast', 0.05, -0.5, 0.16],
+        ['chloroplast', -0.35, -0.3, 0.14],
+      );
       break;
     case 'ciliocyte':
       items.push(['nucleus', 0, 0, 0.27], ['mitochondrion', 0.42, -0.25, 0.13], ['mitochondrion', -0.42, 0.25, 0.13]);
@@ -420,7 +440,7 @@ export function drawCell(dc: DrawCtx, state: GameState, u: CellUnit, alpha: numb
       const x = (o.px * c - o.py * s) * R;
       const y = (o.px * s + o.py * c) * R;
       const pop = easeOutBack(Math.min(1, (state.time - o.born) / 0.55));
-      const spin = o.type === 'nucleus' ? 0 : (o.id * 1.37) % 6.28 + Math.sin(t * 0.4 + o.id) * 0.15;
+      const spin = o.type === 'nucleus' ? 0 : ((o.id * 1.37) % 6.28) + Math.sin(t * 0.4 + o.id) * 0.15;
       place(ctx, dc.xf, u.x + x, u.y + y, u.heading + spin, Math.max(0.01, pop));
       ctx.globalAlpha = alpha * (o.misfolded ? 0.6 : 1);
       const face = Math.atan2(-y, -x) - u.heading - spin;

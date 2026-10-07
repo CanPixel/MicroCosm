@@ -175,9 +175,16 @@ export function ambientUpkeep(state: GameState, view: ViewRect, dt: number) {
   if (prey < 3 + 9 * open) {
     const at = offscreen();
     const symbionts = state.objective.index >= 1;
-    const table = speciesWeightsAt(at.x, at.y, state.seed, state.director.pressure, (d) =>
-      (d.group === 'bacteria' && (symbionts || !isSymbiont(d.id))) || d.id === 'euglena' || d.id === 'diatom'
-      || (d.id === 'paramecium' && open > 0.4),
+    const table = speciesWeightsAt(
+      at.x,
+      at.y,
+      state.seed,
+      state.director.pressure,
+      (d) =>
+        (d.group === 'bacteria' && (symbionts || !isSymbiont(d.id))) ||
+        d.id === 'euglena' ||
+        d.id === 'diatom' ||
+        (d.id === 'paramecium' && open > 0.4),
     );
     const species = weightedPick(rng, table);
     if (species) spawnGroup(state, species, at.x, at.y, rng);

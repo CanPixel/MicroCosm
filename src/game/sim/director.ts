@@ -24,40 +24,53 @@ const has = (s: GameState, type: Parameters<typeof countOrganelles>[1]) => count
 
 export const OBJECTIVES: ObjectiveDef[] = [
   {
-    id: 'feed', title: 'Ignite metabolism', reward: 0,
+    id: 'feed',
+    title: 'Ignite metabolism',
+    reward: 0,
     text: 'Swim into glucose crystals. Glycolysis turns each one into ATP.',
     check: (s) => s.stats.glucose >= 10,
     progress: (s) => `${Math.min(10, s.stats.glucose)}/10 glucose`,
     nav: ['glucose'],
   },
   {
-    id: 'mito', title: 'Endosymbiosis', reward: 1,
+    id: 'mito',
+    title: 'Endosymbiosis',
+    reward: 1,
     text: 'Engulf a purple α-proteobacterium. Instead of digesting it, you keep it as your first mitochondrion.',
     check: (s) => has(s, 'mitochondrion'),
     nav: ['proteo'],
     intro: ['proteo', 'proteo', 'cyano'],
   },
   {
-    id: 'hunt', title: 'Gather biomass', reward: 1,
+    id: 'hunt',
+    title: 'Gather biomass',
+    reward: 1,
     text: 'Engulf microbes smaller than you (dashed green ring). Digested prey becomes spare biomass for building.',
     check: (s) => s.stats.eaten - s.objective.startEaten >= 6 || has(s, 'er'),
-    progress: (s) => `${Math.min(6, s.stats.eaten - s.objective.startEaten)}/6 engulfed · ${Math.floor(Math.max(0, spendableBiomass(s.player)))} spare`,
+    progress: (s) =>
+      `${Math.min(6, s.stats.eaten - s.objective.startEaten)}/6 engulfed · ${Math.floor(Math.max(0, spendableBiomass(s.player)))} spare`,
     nav: ['bacillus', 'cocci', 'spirillum', 'euglena', 'diatom'],
     intro: ['cocci', 'bacillus'],
   },
   {
-    id: 'er', title: 'Endomembrane system', reward: 2,
+    id: 'er',
+    title: 'Endomembrane system',
+    reward: 2,
     text: 'Press TAB to zoom into your ultrastructure and grow an endoplasmic reticulum.',
     check: (s) => has(s, 'er'),
   },
   {
-    id: 'arm', title: 'Arm the cell', reward: 1,
+    id: 'arm',
+    title: 'Arm the cell',
+    reward: 1,
     text: 'Grow a Golgi apparatus, then a lysosome. Lysosome burst is on key 1.',
     check: (s) => has(s, 'lysosome'),
     progress: (s) => `${(has(s, 'golgi') ? 1 : 0) + (has(s, 'lysosome') ? 1 : 0)}/2 built`,
   },
   {
-    id: 'divide', title: 'Cytokinesis', reward: 2,
+    id: 'divide',
+    title: 'Cytokinesis',
+    reward: 2,
     text: 'Reach critical mass and gather DNA for genome replication, then divide with R.',
     check: (s) => s.player.generation >= 2,
     progress: (s) => {
@@ -67,19 +80,25 @@ export const OBJECTIVES: ObjectiveDef[] = [
     nav: (s) => (s.player.dna < divisionDnaCost(s.player.generation) ? ['dna', 'phage'] : null),
   },
   {
-    id: 'colony', title: 'A colony forms', reward: 2,
+    id: 'colony',
+    title: 'A colony forms',
+    reward: 2,
     text: 'Divide again. Your daughters stay attached and specialize.',
     check: (s) => livingUnits(s.player).length >= 3,
     progress: (s) => `${livingUnits(s.player).length}/3 cells`,
   },
   {
-    id: 'journal', title: 'Field journal', reward: 3,
+    id: 'journal',
+    title: 'Field journal',
+    reward: 3,
     text: 'Catalogue 16 species. Switch microscope light (Q) to reveal hidden agents.',
     check: (s) => s.discovered.size >= 16,
     progress: (s) => `${s.discovered.size}/16 species`,
   },
   {
-    id: 'multicellular', title: 'Multicellularity', reward: 5,
+    id: 'multicellular',
+    title: 'Multicellularity',
+    reward: 5,
     text: 'Grow a colony of 6 specialized cells and cross the threshold to complex life.',
     check: (s) => livingUnits(s.player).length >= 6,
     progress: (s) => `${livingUnits(s.player).length}/6 cells`,
@@ -159,15 +178,17 @@ function runEvent(state: GameState, kind: DirectorEventKind) {
       const ring = Math.max(view.halfW, view.halfH) + 140;
       const plant = countOrganelles(p, 'chloroplast', true) > 0;
       for (let i = 0; i < n; i++) {
-        const species = weightedPick<SpeciesId>(rng, {
-          adenovirus: 3,
-          retrovirus: pressure > 1 ? 1.2 : 0,
-          mimivirus: pressure > 1.3 ? 0.5 : 0,
-          tmv: plant ? 1 : 0,
-        }) ?? 'adenovirus';
+        const species =
+          weightedPick<SpeciesId>(rng, {
+            adenovirus: 3,
+            retrovirus: pressure > 1 ? 1.2 : 0,
+            mimivirus: pressure > 1.3 ? 0.5 : 0,
+            tmv: plant ? 1 : 0,
+          }) ?? 'adenovirus';
         const a = (i / n) * Math.PI * 2 + rng() * 0.3;
         const e = spawnEntity(state, species, prime.x + Math.cos(a) * ring, prime.y + Math.sin(a) * ring, {
-          vx: -Math.cos(a) * 60, vy: -Math.sin(a) * 60,
+          vx: -Math.cos(a) * 60,
+          vy: -Math.sin(a) * 60,
         });
         if (rng() < 0.3) e.satellites = randInt(rng, 2, 3);
       }
@@ -193,7 +214,12 @@ function runEvent(state: GameState, kind: DirectorEventKind) {
       if (infected < 3) {
         at = ahead(state, 480);
         for (let i = 0; i < 8; i++) {
-          const b = spawnEntity(state, pick(rng, ['cocci', 'bacillus', 'cocci'] as const), at.x + rand(rng, -90, 90), at.y + rand(rng, -90, 90));
+          const b = spawnEntity(
+            state,
+            pick(rng, ['cocci', 'bacillus', 'cocci'] as const),
+            at.x + rand(rng, -90, 90),
+            at.y + rand(rng, -90, 90),
+          );
           b.infectedBy = 'phage';
           b.infection = rng() * 4;
         }
@@ -284,8 +310,7 @@ const UNLOCK_CHECKS: Record<UnlockId, (s: GameState) => boolean> = {
   radar: (s) => s.objective.index >= 1,
   biomass: (s) => s.stats.eaten >= 1 || s.objective.index >= 2,
   // Dash arrives early, or immediately if something grabs you first.
-  dash: (s) => s.stats.eaten >= 2 || s.objective.index >= 2 || !!s.player.capture
-    || s.player.units.some((u) => u.attached.length > 0),
+  dash: (s) => s.stats.eaten >= 2 || s.objective.index >= 2 || !!s.player.capture || s.player.units.some((u) => u.attached.length > 0),
   architect: (s) => s.objective.index >= 2,
   dna: (s) => s.player.dna >= 0.5 || s.objective.index >= 4,
   microscope: (s) => s.objective.index >= 3 || s.time > 540,

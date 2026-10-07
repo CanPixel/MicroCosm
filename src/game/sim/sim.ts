@@ -1,11 +1,15 @@
 import { updateEntities } from './ai';
 import { updateInteractions, updateProjectiles, castAbility } from './combat';
-import {
-  checkDivisionReady, updateDirector, updateDiscovery, updateEnvironment, updateObjectives, updateUnlocks,
-} from './director';
+import { checkDivisionReady, updateDirector, updateDiscovery, updateEnvironment, updateObjectives, updateUnlocks } from './director';
 import { updateInfection } from './infection';
 import {
-  refreshTraits, startDivision, updateDigestion, updateDivision, updateMetabolism, updatePlayerMovement, updateUnitBodies,
+  refreshTraits,
+  startDivision,
+  updateDigestion,
+  updateDivision,
+  updateMetabolism,
+  updatePlayerMovement,
+  updateUnitBodies,
 } from './player';
 import { mulberry32, rand } from './rng';
 import { createState, spawnEntity, type GameState, type SimInput, type ViewRect } from './state';

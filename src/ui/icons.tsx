@@ -33,7 +33,12 @@ export function IntegrityIcon({ size = 18 }: P) {
 export function BiomassIcon({ size = 18 }: P) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <path d="M5 9.5c0-3.6 3-5.5 6.2-5 2.1-1.8 6.4-1 7.2 2.6 2.6 1 3 4.8.8 6.6.6 3.3-2.6 6-5.7 4.8-2.2 2.2-6.4 1.6-7.4-1.4C3.4 16.5 2.4 11.6 5 9.5Z" fill="#ffb48a" stroke="#ffe0cc" strokeWidth="1.4" />
+      <path
+        d="M5 9.5c0-3.6 3-5.5 6.2-5 2.1-1.8 6.4-1 7.2 2.6 2.6 1 3 4.8.8 6.6.6 3.3-2.6 6-5.7 4.8-2.2 2.2-6.4 1.6-7.4-1.4C3.4 16.5 2.4 11.6 5 9.5Z"
+        fill="#ffb48a"
+        stroke="#ffe0cc"
+        strokeWidth="1.4"
+      />
       <circle cx="10" cy="11" r="1.6" fill="#d9624a" />
       <circle cx="14.5" cy="14" r="1.2" fill="#d9624a" />
     </svg>
@@ -66,7 +71,12 @@ export function AbilityIcon({ id, size = 30 }: P & { id: AbilityId }) {
     case 'dash':
       return (
         <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-          <path d="M19 7c6 0 9 4.8 9 9s-3 9-9 9c-3.6 0-6-2-7.3-4.2C9 21 8 19 8.6 16 8 13 9 11 11.7 11.2 13 9 15.4 7 19 7Z" fill="#7be0c0" stroke="#fff" strokeWidth="1.6" />
+          <path
+            d="M19 7c6 0 9 4.8 9 9s-3 9-9 9c-3.6 0-6-2-7.3-4.2C9 21 8 19 8.6 16 8 13 9 11 11.7 11.2 13 9 15.4 7 19 7Z"
+            fill="#7be0c0"
+            stroke="#fff"
+            strokeWidth="1.6"
+          />
           <path d="M3 12h6M2 16h5M3 20h6" stroke="#c8fff0" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
@@ -76,7 +86,12 @@ export function AbilityIcon({ id, size = 30 }: P & { id: AbilityId }) {
           <circle cx="16" cy="16" r="8" fill="#b06cff" stroke="#e3c7ff" strokeWidth="2" />
           <circle cx="13.5" cy="14" r="2" fill="#ffd23f" />
           <circle cx="18.5" cy="18" r="1.6" fill="#ffd23f" />
-          <path d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.8 2.8M22.7 22.7l2.8 2.8M6.5 25.5l2.8-2.8M22.7 9.3l2.8-2.8" stroke="#d6b8ff" strokeWidth="2" strokeLinecap="round" />
+          <path
+            d="M16 2.5v4M16 25.5v4M2.5 16h4M25.5 16h4M6.5 6.5l2.8 2.8M22.7 22.7l2.8 2.8M6.5 25.5l2.8-2.8M22.7 9.3l2.8-2.8"
+            stroke="#d6b8ff"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
         </svg>
       );
     case 'toxicyst':
@@ -109,7 +124,13 @@ export function AbilityIcon({ id, size = 30 }: P & { id: AbilityId }) {
     case 'virophage':
       return (
         <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-          {[[10, 10], [22, 9], [16, 20], [8, 23], [24, 23]].map(([x, y], i) => (
+          {[
+            [10, 10],
+            [22, 9],
+            [16, 20],
+            [8, 23],
+            [24, 23],
+          ].map(([x, y], i) => (
             <path key={i} d={`M${x} ${y - 4} l3.5 2v4l-3.5 2-3.5-2v-4Z`} fill="#5ff0a0" stroke="#eafff3" strokeWidth="1.2" />
           ))}
         </svg>

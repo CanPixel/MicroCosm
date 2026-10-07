@@ -6,7 +6,14 @@ import { angleDiff } from '../src/game/sim/math';
 import { createMembrane, stepMembrane, type MembraneInput } from '../src/game/sim/membrane';
 import { buildCost, canBuild, computeTraits, SLOT_NEIGHBORS } from '../src/game/sim/organelles';
 import {
-  buildOrganelle, canDivide, canUnitEat, chooseDivision, divisionDnaCost, divisionThreshold, spendableBiomass, startDivision,
+  buildOrganelle,
+  canDivide,
+  canUnitEat,
+  chooseDivision,
+  divisionDnaCost,
+  divisionThreshold,
+  spendableBiomass,
+  startDivision,
 } from '../src/game/sim/player';
 import { mulberry32 } from '../src/game/sim/rng';
 import { createGame, stepGame } from '../src/game/sim/sim';
@@ -46,8 +53,19 @@ function addOrganelle(s: GameState, type: OrganelleType, slot: number) {
 
 describe('membrane', () => {
   const base = (rand: () => number): MembraneInput => ({
-    radius: 30, heading: 0, speed: 1, time: 0, dt: 1 / 60, seed: 1, liveliness: 1,
-    bodies: [], engulfing: [], neighbors: [], rigid: false, pinch: 0, rand,
+    radius: 30,
+    heading: 0,
+    speed: 1,
+    time: 0,
+    dt: 1 / 60,
+    seed: 1,
+    liveliness: 1,
+    bodies: [],
+    engulfing: [],
+    neighbors: [],
+    rigid: false,
+    pinch: 0,
+    rand,
   });
 
   test('stays a positive, star-shaped loop through violent turns and engulfing', () => {
@@ -56,7 +74,9 @@ describe('membrane', () => {
     for (let f = 0; f < 1200; f++) {
       const heading = f % 40 < 20 ? 0 : Math.PI; // repeated 180 degree reversals
       stepMembrane(m, {
-        ...base(rand), heading, time: f / 60,
+        ...base(rand),
+        heading,
+        time: f / 60,
         bodies: [{ x: Math.cos(f * 0.1) * 20, y: Math.sin(f * 0.1) * 20, r: 8 }],
         engulfing: f % 200 < 50 ? [{ x: 40, y: 0, r: 12 }] : [],
         pinch: f > 900 ? 0.8 : 0,
@@ -87,7 +107,11 @@ describe('membrane', () => {
 describe('world', () => {
   test('biome weights are a partition of unity and the origin is sunlit', () => {
     const w = new Float32Array(5);
-    for (const [x, y] of [[0, 0], [9000, -4000], [-20000, 15000]]) {
+    for (const [x, y] of [
+      [0, 0],
+      [9000, -4000],
+      [-20000, 15000],
+    ]) {
       biomeWeights(x, y, 99, w);
       expect(w.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 4);
     }
@@ -99,8 +123,9 @@ describe('world', () => {
     const b = createState(1234);
     generateChunk(a, 3, -2);
     generateChunk(b, 3, -2);
-    expect(a.entities.map((e) => `${e.species}:${e.x.toFixed(2)}:${e.y.toFixed(2)}`))
-      .toEqual(b.entities.map((e) => `${e.species}:${e.x.toFixed(2)}:${e.y.toFixed(2)}`));
+    expect(a.entities.map((e) => `${e.species}:${e.x.toFixed(2)}:${e.y.toFixed(2)}`)).toEqual(
+      b.entities.map((e) => `${e.species}:${e.x.toFixed(2)}:${e.y.toFixed(2)}`),
+    );
   });
 
   test('streams new ground and forgets the old after long travel', () => {
@@ -218,7 +243,12 @@ describe('infection', () => {
 
   test('prions misfold organelles and a lysosome burst recycles them', () => {
     const s = emptyWorld();
-    for (const [t, slot] of [['er', 1], ['golgi', 2], ['lysosome', 3]] as Array<[OrganelleType, number]>) addOrganelle(s, t, slot);
+    for (const [t, slot] of [
+      ['er', 1],
+      ['golgi', 2],
+      ['lysosome', 3],
+    ] as Array<[OrganelleType, number]>)
+      addOrganelle(s, t, slot);
     const prime = s.player.units[0];
     spawnEntity(s, 'prion', prime.x + 5, prime.y);
     run(s, 0.2);

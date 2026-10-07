@@ -82,7 +82,13 @@ export class PostFX {
   private emitSize = [0, 0];
 
   constructor(canvas: HTMLCanvasElement) {
-    const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, premultipliedAlpha: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' });
+    const gl = canvas.getContext('webgl2', {
+      antialias: false,
+      alpha: false,
+      premultipliedAlpha: false,
+      preserveDrawingBuffer: false,
+      powerPreference: 'high-performance',
+    });
     if (!gl) throw new Error('WebGL2 unavailable');
     this.gl = gl;
     this.floatOK = !!gl.getExtension('EXT_color_buffer_float');
@@ -95,15 +101,44 @@ export class PostFX {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
     this.compose = program(gl, COMPOSE_FRAG, [
-      'u_scene', 'u_biome', 'u_resolution', 'u_time', 'u_cam', 'u_ppu', 'u_biomeRect', 'u_pal', 'u_dark', 'u_fluor',
-      'u_electron', 'u_playerPx', 'u_playerVel', 'u_playerR', 'u_quality', 'u_light', 'u_surge',
+      'u_scene',
+      'u_biome',
+      'u_resolution',
+      'u_time',
+      'u_cam',
+      'u_ppu',
+      'u_biomeRect',
+      'u_pal',
+      'u_dark',
+      'u_fluor',
+      'u_electron',
+      'u_playerPx',
+      'u_playerVel',
+      'u_playerR',
+      'u_quality',
+      'u_light',
+      'u_surge',
     ]);
     this.prefilter = program(gl, PREFILTER_FRAG, ['u_src', 'u_emit', 'u_texel', 'u_threshold', 'u_emitGain']);
     this.down = program(gl, DOWN_FRAG, ['u_src', 'u_texel']);
     this.up = program(gl, UP_FRAG, ['u_src', 'u_texel', 'u_scatter']);
     this.final = program(gl, FINAL_FRAG, [
-      'u_compose', 'u_bloom', 'u_emit', 'u_resolution', 'u_time', 'u_waves', 'u_waveCount', 'u_ca', 'u_bloomStrength',
-      'u_emitSharp', 'u_vignette', 'u_hurt', 'u_flash', 'u_desat', 'u_grain', 'u_warp',
+      'u_compose',
+      'u_bloom',
+      'u_emit',
+      'u_resolution',
+      'u_time',
+      'u_waves',
+      'u_waveCount',
+      'u_ca',
+      'u_bloomStrength',
+      'u_emitSharp',
+      'u_vignette',
+      'u_hurt',
+      'u_flash',
+      'u_desat',
+      'u_grain',
+      'u_warp',
     ]);
 
     this.sceneTex = this.makeTex(gl.LINEAR);

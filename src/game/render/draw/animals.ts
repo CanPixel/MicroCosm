@@ -32,7 +32,10 @@ export function drawGastrotrich(dc: DrawCtx, e: Entity, look: EntityLook) {
     ctx.lineWidth = r * 0.025;
     ctx.beginPath();
     for (let i = 1; i < n - 2; i++) {
-      for (const [xs, ys, sign] of [[LX, LY, -1], [RX, RY, 1]] as const) {
+      for (const [xs, ys, sign] of [
+        [LX, LY, -1],
+        [RX, RY, 1],
+      ] as const) {
         ctx.moveTo(xs[i], ys[i]);
         ctx.lineTo(xs[i] - r * 0.3, ys[i] + sign * r * 0.22);
       }
